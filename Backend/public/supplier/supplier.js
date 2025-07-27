@@ -1,0 +1,278 @@
+// DOM Elements
+const addModal = document.getElementById("addInventoryModal");
+const editModal = document.getElementById("editInventoryModal");
+const fab = document.querySelector(".add-inventory-container");
+const inventoryContainer = document.querySelector(".inventory-item-container");
+const addForm = document.getElementById("addInventoryForm");
+const editItemName = document.getElementById("editItemName");
+const editQuantityInput = document.getElementById("editQuantity");
+const addQtyBtn = document.getElementById("addQtyBtn");
+const subtractQtyBtn = document.getElementById("subtractQtyBtn");
+const deleteItemBtn = document.getElementById("deleteItemBtn");
+
+let selectedItem = null;
+
+// Utility: Close modals
+function closeModal() {
+  addModal.style.display = "none";
+}
+function closeEditModal() {
+  editModal.style.display = "none";
+  editQuantityInput.value = "";
+}
+
+// Show add item modal
+fab.addEventListener("click", () => {
+  addModal.style.display = "flex";
+});
+
+//testing 2
+
+//testing
+
+document.addEventListener("DOMContentLoaded", async () => {
+  const supplier = JSON.parse(localStorage.getItem("supplier"));
+  const supplierId = supplier?._id;
+
+  if (!supplierId) {
+    console.error("Supplier not logged in.");
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/orders?supplierId=${supplierId}`);
+    const orders = await res.json();
+    console.log("Fetched orders:", orders);
+    const orderContainer = document.getElementById("orderContainer");
+
+    if (orders.length === 0) {
+      orderContainer.innerHTML = "<p>No orders yet.</p>";
+      return;
+    }
+
+    // Step 1: Group orders by vendorId
+    const groupedOrders = {};
+
+    orders.forEach((order) => {
+      const vendorName = order.vendorId?.name || "Unknown Vendor";
+
+      if (!groupedOrders[vendorName]) {
+        groupedOrders[vendorName] = {
+          date: new Date(order.date).toLocaleDateString(),
+          items: [],
+          total: 0,
+        };
+      }
+
+      groupedOrders[vendorName].items.push({
+        name: order.itemName,
+        quantity: order.quantity,
+        price: order.price,
+      });
+
+      groupedOrders[vendorName].total += order.quantity * order.price;
+    });
+
+    // Step 2: Render one card per vendor
+    Object.entries(groupedOrders).forEach(([vendorName, data]) => {
+      const itemsList = data.items
+        .map((item) => `${item.name} (x${item.quantity})`)
+        .join(", ");
+
+      const orderDiv = document.createElement("div");
+      orderDiv.className = "order-incoming";
+
+      // Apply inline styles
+      // orderDiv.style.border = "2px solid #ccc";
+      // orderDiv.style.borderRadius = "10px";
+      // orderDiv.style.padding = "16px";
+      // orderDiv.style.marginBottom = "20px";
+      // orderDiv.style.backgroundColor = "#fefefe";
+      // orderDiv.style.boxShadow = "0 4px 8px rgba(0, 0, 0, 0.1)";
+      // orderDiv.style.fontFamily = "Arial, sans-serif";
+      // orderDiv.style.transition = "transform 0.3s ease";
+      // orderDiv.style.cursor = "pointer";
+
+      orderDiv.innerHTML = `
+        <div class="first-row" style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+          <div class="client-name" style="font-weight: bold; font-size: 18px; color: #333;">${vendorName}</div>
+          <div class="status" style="font-size: 14px; color: #888;">${data.date}</div>
+        </div>
+        <div class="second-row" style="margin-bottom: 10px; font-size: 15px;">${itemsList}</div>
+        <div class="third-row" style="font-weight: bold; font-size: 16px; color: green;">Total: ₹${data.total}</div>
+      `;
+
+    
+      orderContainer.appendChild(orderDiv);
+    });
+  } catch (err) {
+    console.error("Error fetching orders:", err);
+  }
+});
+
+// Handle form submission
+addForm.addEventListener("submit", function (e) {
+  e.preventDefault();
+
+  const name = document.getElementById("itemName").value.trim();
+  const quantity = parseInt(document.getElementById("itemQuantity").value);
+  const imageFile = document.getElementById("itemImage").files[0];
+
+  if (!name || isNaN(quantity)) {
+    alert("Please fill all fields correctly!");
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function (event) {
+    const imageUrl = event.target.result;
+    const itemCard = createInventoryCard(name, quantity, imageUrl);
+    inventoryContainer.appendChild(itemCard);
+    addForm.reset();
+    closeModal();
+    alert("Item added!");
+  };
+
+  reader.readAsDataURL(imageFile);
+});
+
+//testing 3
+document.addEventListener("DOMContentLoaded", () => {
+  const addInventoryForm = document.getElementById("addInventoryForm");
+
+  const supplier = JSON.parse(localStorage.getItem("supplier"));
+  if (!supplier || !supplier._id) {
+    alert("Supplier not logged in!");
+    return;
+  }
+  const supplierId = supplier._id;
+  const name = supplier.name;
+
+  addInventoryForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const itemName = document.getElementById("itemName").value.trim();
+    const quantity = parseInt(document.getElementById("itemQuantity").value);
+    const price = parseFloat(document.getElementById("itemPrice").value);
+
+    const location = document.getElementById("itemLocation").value.trim();
+
+    if (!itemName || isNaN(quantity) || isNaN(price) || !location) {
+      alert("Please fill in all fields correctly.");
+      return;
+    }
+
+    const inventory = { itemName, quantity, price };
+    const newItem = { supplierId, name, inventory, location };
+
+    console.log("New Item:", newItem);
+    try {
+      const response = await fetch(`/api/suppliers`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(newItem),
+      });
+
+      if (!response.ok) throw new Error("Failed to add item");
+
+      const data = await response.json();
+      console.log("Updated Supplier:", data);
+
+      alert("Item added successfully!");
+      addInventoryForm.reset();
+      closeModal();
+      // const imageUrl = "./icons/add.png";
+      // const inventoryList = document.getElementById("inventoryList");
+      // const card = createInventoryCard(itemName, quantity, imageUrl);
+      // console.log("Created Card:", card)
+      // inventoryList.appendChild(card);
+    } catch (error) {
+      console.error("Error adding item:", error);
+      alert("Error adding item. Check console.");
+    }
+  });
+});
+
+// Create inventory card
+function createInventoryCard(name, quantity, imageUrl) {
+  const item = document.createElement("div");
+  item.classList.add("item");
+
+  const image = document.createElement("div");
+  image.classList.add("item-pic");
+  image.style.backgroundImage = `url(${imageUrl})`;
+  image.style.backgroundSize = "cover";
+  image.style.backgroundPosition = "center";
+  image.style.borderRadius = "15px 15px 0 0";
+  image.style.width = "248px";
+  image.style.height = "169px";
+
+  const nameDiv = document.createElement("div");
+  nameDiv.classList.add("item-name");
+  nameDiv.textContent = `${name} ${quantity}kg`;
+  nameDiv.style.width = "248px";
+  nameDiv.style.height = "40px";
+
+  item.appendChild(image);
+  item.appendChild(nameDiv);
+
+  return item;
+}
+
+// Handle inventory card clicks
+inventoryContainer.addEventListener("click", function (e) {
+  const card = e.target.closest(".item");
+  if (!card) return;
+
+  const nameDiv = card.querySelector(".item-name");
+  if (!nameDiv) return;
+
+  selectedItem = card;
+  editItemName.textContent = nameDiv.textContent;
+  editModal.style.display = "flex";
+});
+
+// Add quantity
+addQtyBtn.addEventListener("click", () => {
+  updateQuantity("add");
+});
+
+// Subtract quantity
+subtractQtyBtn.addEventListener("click", () => {
+  updateQuantity("subtract");
+});
+
+// Delete item
+deleteItemBtn.addEventListener("click", () => {
+  if (selectedItem) {
+    selectedItem.remove();
+    closeEditModal();
+  }
+});
+
+// Quantity logic
+function updateQuantity(type) {
+  if (!selectedItem) return;
+
+  const qtyChange = parseInt(editQuantityInput.value);
+  if (isNaN(qtyChange) || qtyChange <= 0) {
+    alert("Enter a valid quantity");
+    return;
+  }
+
+  const nameDiv = selectedItem.querySelector(".item-name");
+  if (!nameDiv) return;
+
+  const [itemName, currentQtyText] = nameDiv.textContent.split(" ");
+  let currentQty = parseInt(currentQtyText.replace("kg", ""));
+
+  currentQty =
+    type === "add"
+      ? currentQty + qtyChange
+      : Math.max(0, currentQty - qtyChange);
+
+  nameDiv.textContent = `${itemName} ${currentQty}kg`;
+  closeEditModal();
+}
