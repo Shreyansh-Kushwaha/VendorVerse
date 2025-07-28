@@ -102,3 +102,40 @@
   border-radius: 20px;
   transition: 0.5s;
 }
+
+
+@media (max-width: 768px) {
+  .container {
+    width: 90vw;
+    height: auto;
+    padding: 20px;
+  }
+
+  .text {
+    font-size: 1.8rem;
+    padding-bottom: 20px;
+    text-align: center;
+  }
+
+  .options-container {
+    flex-direction: column;
+    gap: 20px;
+    align-items: center;
+    justify-content: center;
+    height: auto;
+  }
+
+  .vendor-container,
+  .supplier-container {
+    width: 90%;
+    max-width: 300px;
+    height: 180px;
+    font-size: 1rem;
+  }
+
+  .vendor-logo,
+  .supplier-logo {
+    height: 100px;
+    width: 100px;
+  }
+}
