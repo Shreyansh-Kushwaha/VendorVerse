@@ -131,3 +131,64 @@ nav .login-btn {
   margin-bottom: 20px;
   list-style: none; /* 🚫 removes the default black bullet */
 }
+
+@media (max-width: 768px) {
+  header {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 15px;
+  }
+
+  .logo h1 {
+    font-size: 1.5rem;
+    margin-bottom: 10px;
+  }
+
+  nav {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: flex-start;
+  }
+
+  nav button, nav .login-btn {
+    font-size: 0.9rem;
+    padding: 6px 12px;
+    flex: 1;
+  }
+
+  .hero {
+    flex-direction: column-reverse;
+    padding: 20px;
+    gap: 20px;
+  }
+
+  .text-box h2 {
+    position: static;
+    font-size: 4rem;
+    text-align: center;
+    line-height: 1.2;
+    text-shadow: 2px 2px 0 #000, 4px 4px 0 rgba(0, 0, 0, 0.2);
+  }
+
+  .image-box img {
+    width: 100%;
+    height: auto;
+    border-radius: 10px;
+  }
+
+  .about {
+    padding: 20px;
+    margin: 20px 10px;
+  }
+
+  .about-text h3 {
+    font-size: 1.4rem;
+  }
+
+  .about-text p,
+  .about-text ul li {
+    font-size: 0.95rem;
+  }
+}
