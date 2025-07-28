@@ -18,6 +18,11 @@ header {
   padding: 10px 30px;
 }
 
+.head-text-h1 {
+  font-family: Poppins;
+}
+
+
 .logo {
   display: flex;
   align-items: center;
@@ -44,7 +49,7 @@ nav button {
   background-color: #e6ad4c;
   cursor: pointer;
   font-size: 1rem;
-  
+
 }
 
 nav .login-btn {
@@ -93,6 +98,7 @@ nav .login-btn {
   border-radius: 10px;
   box-shadow: 0 4px 10px rgba(0,0,0,0.08);
   max-width: 800px;
+  font-family: poppins;
 }
 
 .about-text h3 {
@@ -104,6 +110,7 @@ nav .login-btn {
 .about-text p {
   line-height: 1.6;
   margin-bottom: 20px;
+
 }
 
 /* .about-text ul {
@@ -131,6 +138,7 @@ nav .login-btn {
   margin-bottom: 20px;
   list-style: none; /* 🚫 removes the default black bullet */
 }
+
 
 @media (max-width: 768px) {
   header {
