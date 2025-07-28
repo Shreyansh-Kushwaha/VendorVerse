@@ -81,3 +81,48 @@
   padding-left: 5px;
   color: #FF8940;
 }
+
+@media (max-width: 768px) {
+  .container-one {
+    width: 90vw;
+    height: auto;
+    padding: 30px 15px;
+  }
+
+  .vm-logo {
+    font-size: 2.5rem;
+    text-align: center;
+    margin-top: 0;
+  }
+
+  .username-input-container,
+  .pass-input-container {
+    width: 100%;
+  }
+
+  .login-input {
+    width: 95%;
+    font-size: 1rem;
+  }
+
+  .login-button {
+    width: 100%;
+    font-size: 1rem;
+  }
+
+  .create-acc-container {
+    flex-direction: column;
+    text-align: center;
+    font-size: 0.9rem;
+    gap: 4px;
+  }
+
+  .login-text {
+    font-size: 0.9rem;
+    padding-left: 5px;
+  }
+
+  .page {
+    padding: 10px;
+  }
+}
