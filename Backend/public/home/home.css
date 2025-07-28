@@ -18,6 +18,11 @@ header {
   padding: 10px 30px;
 }
 
+.head-text-h1 {
+  font-family: Poppins;
+}
+
+
 .logo {
   display: flex;
   align-items: center;
@@ -44,7 +49,7 @@ nav button {
   background-color: #e6ad4c;
   cursor: pointer;
   font-size: 1rem;
-  
+
 }
 
 nav .login-btn {
@@ -93,6 +98,7 @@ nav .login-btn {
   border-radius: 10px;
   box-shadow: 0 4px 10px rgba(0,0,0,0.08);
   max-width: 800px;
+  font-family: poppins;
 }
 
 .about-text h3 {
@@ -104,6 +110,7 @@ nav .login-btn {
 .about-text p {
   line-height: 1.6;
   margin-bottom: 20px;
+
 }
 
 /* .about-text ul {
@@ -130,4 +137,66 @@ nav .login-btn {
   padding-left: 20px;
   margin-bottom: 20px;
   list-style: none; /* 🚫 removes the default black bullet */
+}
+
+
+@media (max-width: 768px) {
+  header {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 15px;
+  }
+
+  .logo h1 {
+    font-size: 1.5rem;
+    margin-bottom: 10px;
+  }
+
+  nav {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: flex-start;
+  }
+
+  nav button, nav .login-btn {
+    font-size: 0.9rem;
+    padding: 6px 12px;
+    flex: 1;
+  }
+
+  .hero {
+    flex-direction: column-reverse;
+    padding: 20px;
+    gap: 20px;
+  }
+
+  .text-box h2 {
+    position: static;
+    font-size: 4rem;
+    text-align: center;
+    line-height: 1.2;
+    text-shadow: 2px 2px 0 #000, 4px 4px 0 rgba(0, 0, 0, 0.2);
+  }
+
+  .image-box img {
+    width: 100%;
+    height: auto;
+    border-radius: 10px;
+  }
+
+  .about {
+    padding: 20px;
+    margin: 20px 10px;
+  }
+
+  .about-text h3 {
+    font-size: 1.4rem;
+  }
+
+  .about-text p,
+  .about-text ul li {
+    font-size: 0.95rem;
+  }
 }
