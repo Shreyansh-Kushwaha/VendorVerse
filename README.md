@@ -48,7 +48,7 @@ An efficient web platform built for **Indian street food vendors** to **connect 
 
 ---
 
-📢 Future Enhancements
+## 📢 Future Enhancements
 
 🛍️ Order status updates
 
@@ -62,7 +62,7 @@ An efficient web platform built for **Indian street food vendors** to **connect 
 
 ---
 
-📬 Contact
+## 📬 Contact
 
 For queries or feedback, reach out to me:
 
@@ -73,7 +73,7 @@ For queries or feedback, reach out to me:
 
 ---
 
-⭐ Show Your Support
+## ⭐ Show Your Support
 
 If you like this project:
 
