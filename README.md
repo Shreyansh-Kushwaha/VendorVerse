@@ -35,7 +35,7 @@ An efficient web platform built for **Indian street food vendors** to **connect 
 
 2. **Install dependencies**:
 
-      npm install
+      npm install node
 
 3. **Configure MongoDB Atlas URL in .env file**:
 
@@ -68,7 +68,7 @@ For queries or feedback, reach out to me:
 
 📧 Email: shreyanshkushwaha02@gmail.com
 
-🔗 LinkedIn: https://linkedin/in/Kushwaha-Shreyansh
+🔗 LinkedIn: https://in.linkedin.com/in/Kushwaha-Shreyansh
 
 
 ---
