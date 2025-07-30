@@ -1,0 +1,128 @@
+*{
+  margin: 0px;
+}
+.page{
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f0a119;
+}
+.container-one{
+  background-color: rgb(245, 245, 245);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 40vw;
+  height: 60vh;
+  border-radius: 20px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, .8);
+}
+.vm-logo{
+  font-size: 60px;
+  font-family: nats;
+  margin-top: -50px;
+}
+.login-text{
+  font: 5px;
+  padding-left: 15px;
+  font-weight: normal;
+}
+.username-container{
+  margin-top: 10px;
+  font-family: poppins;
+}
+.username-input-container{
+  background-color: rgb(255, 255, 255);
+  width: 450px;
+  height: 50px;
+  border-radius: 7px;
+  border: 1px solid black;
+}
+.login-input{
+  height: 47px;
+  width: 85%;
+  border: none;
+  font-size: 14px;
+  padding-left: 10px;
+  border-radius: 10px;
+  font-family: poppins;
+}
+.pass-container{
+  margin: 10px;
+  font-family: poppins;
+}
+.pass-input-container{
+  background-color: rgb(255, 255, 255);
+  width: 450px;
+  height: 50px;
+  border-radius: 7px;
+  font-family: poppins;
+  border: 1px solid black;
+}
+.login-button{
+  color: white;
+  font-size: large;
+  border: none;
+  background-color: #FF8940;
+  border-radius: 6px;
+  padding: 5px 20px;
+  font-family: poppins;
+  margin-top: 10px;
+}
+.create-acc-container{
+  padding: 5px 5px;
+  display: flex;
+  font-size: 15px;
+}
+.sign-up{
+  padding-left: 5px;
+  color: #FF8940;
+}
+
+@media (max-width: 768px) {
+  .container-one {
+    width: 90vw;
+    height: auto;
+    padding: 30px 15px;
+  }
+
+  .vm-logo {
+    font-size: 2.5rem;
+    text-align: center;
+    margin-top: 0;
+  }
+
+  .username-input-container,
+  .pass-input-container {
+    width: 100%;
+  }
+
+  .login-input {
+    width: 95%;
+    font-size: 1rem;
+  }
+
+  .login-button {
+    width: 100%;
+    font-size: 1rem;
+  }
+
+  .create-acc-container {
+    flex-direction: column;
+    text-align: center;
+    font-size: 0.9rem;
+    gap: 4px;
+  }
+
+  .login-text {
+    font-size: 0.9rem;
+    padding-left: 5px;
+  }
+
+  .page {
+    padding: 10px;
+  }
+}
