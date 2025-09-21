@@ -94,7 +94,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   
 
     
-    // Step 1: Group orders by vendorId
+    
     const groupedOrders = {};
 
     orders.forEach((order) => {
@@ -117,7 +117,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       groupedOrders[vendorName].total += order.quantity * order.price;
     });
 
-    // Step 2: Render one card per vendor
+    
     Object.entries(groupedOrders).forEach(([vendorName, data]) => {
       const itemsList = data.items
         .map((item) => `${item.name} (x${item.quantity})`)
@@ -133,8 +133,23 @@ document.addEventListener("DOMContentLoaded", async () => {
         </div>
         <div class="second-row" style="margin-bottom: 10px; font-size: 15px;">${itemsList}</div>
         <div class="third-row" style="font-weight: bold; font-size: 16px; color: green;">Total: ₹${data.total}</div>
+        <div class="action-btn">
+          <button type="button" class= "accept-btn" style=" border-radius: 10px; background-color: green; color: white; padding: 6px 12px;" >Accept</button>
+          <button type="button" class= "reject-btn" style=" border-radius: 10px; background-color: red; color: white; padding: 6px 12px;">Reject</button>
+          <button type="button" style=" border-radius: 10px; background-color: orange; color: white; padding: 6px 12px;" >Chat</button>
+         </div>
       `;
 
+      const acceptbtn = orderDiv.querySelector(".accept-btn");
+      const rejectbtn = orderDiv.querySelector(".reject-btn");
+      const buttoncontainer = orderDiv.querySelector(".action-btn");
+
+      acceptbtn.addEventListener("click", () => {
+        buttoncontainer.innerHTML = `<p style="font-weight: bold; color: green;">Accepted</p>`;
+      });
+      rejectbtn.addEventListener("click", () => {
+        buttoncontainer.innerHTML = `<p style="font-weight: bold; color: red;">Rejected</p>`;
+      });
 
       orderContainer.appendChild(orderDiv);
     });
@@ -146,7 +161,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   
 });
 
-// Handle form submission
+
 addForm.addEventListener("submit", function (e) {
   e.preventDefault();
 

@@ -5,19 +5,23 @@ const orderSchema = new mongoose.Schema({
   vendorId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "SupplierData",
-    required: true,
+    required: true
   },
   supplierId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "SupplierData",
     required: true,
-    unique: true,
+    unique: true
   },
   itemId: { type: mongoose.Schema.Types.ObjectId, required: true },
   itemName: String,
   quantity: Number,
   price: Number,
   date: { type: Date, default: Date.now },
+  status: {
+    type: String,
+    default: 'Pending'
+  }
 });
 
 module.exports = mongoose.model("Order", orderSchema);

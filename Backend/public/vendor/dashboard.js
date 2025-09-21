@@ -7,29 +7,18 @@
     // Fetch My Orders
     const res = await fetch(`/api/vendor/orders?vendorId=${vendorId}`);
     const orders = await res.json();
+    console.log(orders);
 
     const ordersList = document.getElementById("orders");
     ordersList.innerHTML = "";
 
     orders.forEach(order => {
       const li = document.createElement("li");
-      li.textContent = `${order.itemName} – ₹${order.price}, Qty: ${order.quantity} – Supplier: ${order.supplierId.name}`;
+      li.textContent = `${order?.itemName} – ₹${order?.price}, Qty: ${order?.quantity} – Supplier: ${order?.supplierId?.name} – ${order.status}`;
       ordersList.appendChild(li);
     });
     
-    // // Fetch My Orders
-    // try {
-    //   const res = await fetch(`/api/vendor/request?vendorId=${vendorId}`);
-    //   const orders = await res.json();
-    //   const ordersList = document.getElementById("orders");
-    //   orders.forEach((order, i) => {
-    //     const li = document.createElement("li");
-    //     li.textContent = `#${1000 + i} – ${i === 0 ? "Out for delivery " : "Delivered "}`;
-    //     ordersList.appendChild(li);
-    //   });
-    // } catch (err) {
-    //   console.error("Error loading orders:", err);
-    // }
+
 
     // Fetch Supplier Deals
     try {

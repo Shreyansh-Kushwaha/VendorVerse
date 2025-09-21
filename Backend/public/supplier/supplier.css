@@ -301,10 +301,12 @@ color: black;
   display: flex;
   justify-content: space-between;
   margin-top: 20px;
+  /*border-radius: 20px;*/
+
 }
 
 .confirm-btn, .cancel-btn {
-  padding: 8px 15px;
+  /*padding: 8px;*/
   border: none;
   border-radius: 5px;
   font-family: poppins;
@@ -319,3 +321,7 @@ color: black;
 .cancel-btn {
   background-color: #ccc;
 }
+
+
+
+
