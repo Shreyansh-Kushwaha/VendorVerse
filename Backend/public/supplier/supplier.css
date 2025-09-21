@@ -16,7 +16,8 @@
 /* Header logo bar */
 .logo-container {
   width: 100%;
-  height: 44px;
+  height: 50px;
+  min-height: 50px;
   background-color: #FF8940; /* red with softer tone */
   display: flex;
   flex-direction: row;
@@ -26,18 +27,42 @@
   padding-right : 30px
 }
 
-.logo{
-  font-weight : 600;
-  font-size: 20px;
-  color: #FF8940;
-  width: 80px;
-  height : 30px;
-  background-color: white;
-  border-radius: 5px;
-  text-align : center;
- 
-  
+.logo-container {
+  width: 100%;
+  height: 44px;
+  background-color: #FF8940;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 30px;
+  gap: 12px;
+  box-sizing: border-box;
 }
+
+
+.nav-button {
+  background-color: white;
+  color: #FF8940;
+  font-weight: 600;
+  font-size: 14px;
+  padding: 6px 14px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.nav-button:hover {
+  background-color: #ffe1c9;
+  transform: translateY(-2px);
+}
+
+.nav-button:active {
+  transform: scale(0.98);
+}
+
+
 
 /* Main content area */
 .main-container {
@@ -218,14 +243,14 @@ color: black;
   background-image: url("icons/add.png");
   background-color: #e97b27;
   transform: scale(1.1);
- 
+
 }
 /* Placeholder styles (can be improved when content added) */
 .status,
 .order-pending,
 .order-confirmed,
 .order-completed {
-  
+
 }
 
 

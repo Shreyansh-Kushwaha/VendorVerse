@@ -28,7 +28,7 @@ fab.addEventListener("click", () => {
 
 //testing 2
 
-//testing
+//After coming from Login page this takes supplierId and fetches the orders...
 
 document.addEventListener("DOMContentLoaded", async () => {
   const supplier = JSON.parse(localStorage.getItem("supplier"));
@@ -39,6 +39,47 @@ document.addEventListener("DOMContentLoaded", async () => {
     return;
   }
 
+
+     // Fetch orders and inventory for the supplier
+      await fetchOrdersAndInventory(supplierId);
+    
+
+  // Function to fetch orders and inventory for the supplier
+  async function fetchOrdersAndInventory(supplierId) {
+      try {
+          // Fetch orders
+          const resOrders = await fetch(`/api/orders?supplierId=${supplierId}`);
+          if (!resOrders.ok) {
+              throw new Error("Failed to fetch orders");
+          }
+          const orders = await resOrders.json();
+          console.log("Fetched orders:", orders);
+          // Render orders here (implement rendering logic)
+          // Fetch inventory items
+          const resInventory = await fetch(`/api/suppliers/${supplierId}/inventory`);
+          if (!resInventory.ok) {
+              throw new Error("Failed to fetch inventory");
+          }
+          const inventoryItems = await resInventory.json();
+          console.log("Fetched inventory items:", inventoryItems);
+          // Render inventory items
+          const inventoryContainer = document.querySelector(".inventory-item-container");
+          inventoryContainer.innerHTML = ""; // Clear existing items if any
+          inventoryItems.forEach(item => {
+              const itemCard = createInventoryCard(item.itemName, item.quantity, item.imageUrl || ""); // Adjust as necessary
+              inventoryContainer.appendChild(itemCard);
+          });
+      } catch (err) {
+          console.error("Error fetching data:", err);
+      }
+    }
+
+  
+
+  
+
+  
+  // this is to get orders from the vendors to supplier
   try {
     const res = await fetch(`/api/orders?supplierId=${supplierId}`);
     const orders = await res.json();
@@ -50,6 +91,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       return;
     }
 
+  
+
+    
     // Step 1: Group orders by vendorId
     const groupedOrders = {};
 
@@ -81,18 +125,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       const orderDiv = document.createElement("div");
       orderDiv.className = "order-incoming";
-
-      // Apply inline styles
-      // orderDiv.style.border = "2px solid #ccc";
-      // orderDiv.style.borderRadius = "10px";
-      // orderDiv.style.padding = "16px";
-      // orderDiv.style.marginBottom = "20px";
-      // orderDiv.style.backgroundColor = "#fefefe";
-      // orderDiv.style.boxShadow = "0 4px 8px rgba(0, 0, 0, 0.1)";
-      // orderDiv.style.fontFamily = "Arial, sans-serif";
-      // orderDiv.style.transition = "transform 0.3s ease";
-      // orderDiv.style.cursor = "pointer";
-
+      
       orderDiv.innerHTML = `
         <div class="first-row" style="display: flex; justify-content: space-between; margin-bottom: 10px;">
           <div class="client-name" style="font-weight: bold; font-size: 18px; color: #333;">${vendorName}</div>
@@ -102,12 +135,15 @@ document.addEventListener("DOMContentLoaded", async () => {
         <div class="third-row" style="font-weight: bold; font-size: 16px; color: green;">Total: ₹${data.total}</div>
       `;
 
-    
+
       orderContainer.appendChild(orderDiv);
     });
   } catch (err) {
     console.error("Error fetching orders:", err);
   }
+
+
+  
 });
 
 // Handle form submission
@@ -136,7 +172,11 @@ addForm.addEventListener("submit", function (e) {
   reader.readAsDataURL(imageFile);
 });
 
-//testing 3
+
+
+
+//For posting the inventory items to the database
+
 document.addEventListener("DOMContentLoaded", () => {
   const addInventoryForm = document.getElementById("addInventoryForm");
 
@@ -155,6 +195,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const quantity = parseInt(document.getElementById("itemQuantity").value);
     const price = parseFloat(document.getElementById("itemPrice").value);
 
+    const category = document.getElementById("itemCategory").value;
+    
     const location = document.getElementById("itemLocation").value.trim();
 
     if (!itemName || isNaN(quantity) || isNaN(price) || !location) {
@@ -162,7 +204,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    const inventory = { itemName, quantity, price };
+    const inventory = { itemName, quantity, price, category };
     const newItem = { supplierId, name, inventory, location };
 
     console.log("New Item:", newItem);
@@ -183,11 +225,7 @@ document.addEventListener("DOMContentLoaded", () => {
       alert("Item added successfully!");
       addInventoryForm.reset();
       closeModal();
-      // const imageUrl = "./icons/add.png";
-      // const inventoryList = document.getElementById("inventoryList");
-      // const card = createInventoryCard(itemName, quantity, imageUrl);
-      // console.log("Created Card:", card)
-      // inventoryList.appendChild(card);
+
     } catch (error) {
       console.error("Error adding item:", error);
       alert("Error adding item. Check console.");
@@ -197,12 +235,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // Create inventory card
 function createInventoryCard(name, quantity, imageUrl) {
+  const defaultImage = "./icons/items.jpg";
   const item = document.createElement("div");
   item.classList.add("item");
 
   const image = document.createElement("div");
   image.classList.add("item-pic");
-  image.style.backgroundImage = `url(${imageUrl})`;
+  image.style.backgroundImage = `url(${imageUrl || defaultImage})`;
   image.style.backgroundSize = "cover";
   image.style.backgroundPosition = "center";
   image.style.borderRadius = "15px 15px 0 0";
@@ -211,7 +250,7 @@ function createInventoryCard(name, quantity, imageUrl) {
 
   const nameDiv = document.createElement("div");
   nameDiv.classList.add("item-name");
-  nameDiv.textContent = `${name} ${quantity}kg`;
+  nameDiv.textContent = `${name} ${quantity}Qty`;
   nameDiv.style.width = "248px";
   nameDiv.style.height = "40px";
 

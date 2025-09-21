@@ -11,6 +11,7 @@ const orderSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "SupplierData",
     required: true,
+    unique: true,
   },
   itemId: { type: mongoose.Schema.Types.ObjectId, required: true },
   itemName: String,

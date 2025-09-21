@@ -30,6 +30,7 @@ router.get('/suppliers', async (req, res) => {
   }
 });
 
+
 // trying something
 const Order = require("../models/Order");// your Order model
 const SupplierData = require("../models/user");
@@ -49,6 +50,27 @@ router.get("/orders", async (req, res) => {
     res.status(500).json({ error: "Server Error" });
   }
 });
+
+
+
+// This is to GET inventory for a specific supplier
+router.get('/suppliers/:supplierId/inventory', async (req, res) => {
+  const { supplierId } = req.params;
+
+  try {
+    const supplier = await Supplier.find({ supplierId: supplierId });
+    if (!supplier) {
+      return res.status(404).json({ msg: "Supplier not found" });
+    }
+
+    const combinedInventory = supplier.flatMap(supplier => supplier.inventory);
+    
+    res.status(200).json(combinedInventory); // Return the inventory array
+  } catch (err) {
+    res.status(500).json({ msg: err.message });
+  }
+});
+
 
 
 

@@ -36,6 +36,21 @@ router.post('/placeOrder', async (req, res) => {
 });
 
 
+// This API is for displaying the orders of a vendor in vendor dashboard
 
+router.get("/vendor/orders", async (req, res) => {
+  try {
+    const { vendorId } = req.query;
+
+    const orders = await Order.find({ vendorId })
+      .populate("supplierId", "name") // only get the supplier name
+      .sort({ date: -1 });
+
+    res.json(orders);
+  } catch (err) {
+    console.error("Error fetching orders:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
 
 module.exports = router;
