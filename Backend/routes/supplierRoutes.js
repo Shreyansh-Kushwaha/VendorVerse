@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const Supplier = require('../models/Supplier');
+const Order = require("../models/Order");
+const SupplierData = require("../models/user");
 
 // This is to POST
 router.post('/suppliers', async (req, res) => {
@@ -31,9 +33,8 @@ router.get('/suppliers', async (req, res) => {
 });
 
 
-// trying something
-const Order = require("../models/Order");// your Order model
-const SupplierData = require("../models/user");
+
+// This is for orders from vendors to suppliers
 
 router.get("/orders", async (req, res) => {
   const { supplierId } = req.query;
@@ -50,6 +51,31 @@ router.get("/orders", async (req, res) => {
     res.status(500).json({ error: "Server Error" });
   }
 });
+
+
+
+// This is to update the order Status by the Supplier
+
+router.put( "/orders", async (req, res) => {
+  const { supplierId } = req.query;
+  const statusString = req.body;
+  try {
+    const updatedStatus = await Order.findOneAndUpdate( {supplierId: supplierId } ,statusString , {
+        new: true, // This option returns the updated document
+        runValidators: true // This ensures the new data adheres to your schema rules
+      });
+
+    if(!updatedStatus){
+      return res.status(404).json({message: 'order not found for this supplierId'});
+    }
+
+    res.status(200).json({message: 'Status set Sucessfully '})
+
+  } catch (error) {
+    res.status(500).json({message: 'Error Updating' , error: error.message});
+  }
+});
+
 
 
 

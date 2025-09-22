@@ -90,10 +90,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       orderContainer.innerHTML = "<p>No orders yet.</p>";
       return;
     }
-
-  
-
-    
     
     const groupedOrders = {};
 
@@ -125,7 +121,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       const orderDiv = document.createElement("div");
       orderDiv.className = "order-incoming";
-      
+
       orderDiv.innerHTML = `
         <div class="first-row" style="display: flex; justify-content: space-between; margin-bottom: 10px;">
           <div class="client-name" style="font-weight: bold; font-size: 18px; color: #333;">${vendorName}</div>
@@ -146,9 +142,14 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       acceptbtn.addEventListener("click", () => {
         buttoncontainer.innerHTML = `<p style="font-weight: bold; color: green;">Accepted</p>`;
+        const statusString = { "status" : "Accepted" };
+        updateFunction(supplierId , statusString);
+
       });
       rejectbtn.addEventListener("click", () => {
         buttoncontainer.innerHTML = `<p style="font-weight: bold; color: red;">Rejected</p>`;
+        const statusString = { "status" : "Rejected" };
+        updateFunction(supplierId , statusString);
       });
 
       orderContainer.appendChild(orderDiv);
@@ -156,10 +157,40 @@ document.addEventListener("DOMContentLoaded", async () => {
   } catch (err) {
     console.error("Error fetching orders:", err);
   }
-
-
   
+
+// This is the helper function to set the status of the order 
+  async function updateFunction(supplierId, statusString) {
+  try {
+    const response = await fetch(`/api/orders?supplierId=${supplierId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(statusString)
+    });
+
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+
+    const data = await response.json();
+    console.log('Update successful:', data);
+
+  } catch (error) {
+    console.error('Error during update:', error);
+  }
+}
+
+
+
+
 });
+
+
+
+
+
 
 
 addForm.addEventListener("submit", function (e) {

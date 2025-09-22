@@ -18,7 +18,7 @@
   width: 100%;
   height: 50px;
   min-height: 50px;
-  background-color: #FF8940; /* red with softer tone */
+  background-color: #FF8940; 
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -94,7 +94,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: start;
-  background-color: #f0f0f0;
+  background-color: #e7e7e7;
   padding: 15px;
 }
 
@@ -177,7 +177,7 @@ color: black;
   background-color: #ffffff;
   border-radius: 12px;
   padding: 16px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   transition: transform 0.2s;
 }
 
@@ -322,6 +322,9 @@ color: black;
   background-color: #ccc;
 }
 
-
+.welcome-header {
+  margin-right: auto;
+  padding-left: 20px;
+}
 
 
