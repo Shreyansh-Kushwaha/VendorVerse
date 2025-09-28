@@ -1,96 +1,103 @@
-<!-- <!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Vendor Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
-
-    <link
-      href="https://fonts.googleapis.com/css2?family=Roboto&display=swap"
-      rel="stylesheet"
-    />
-    <link rel="stylesheet" href="style.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins&display=swap" rel="stylesheet" />
     <style>
       body {
-        font-family: "Roboto", sans-serif;
+        font-family: "Poppins", sans-serif;
+      }
+
+      #box {
+        box-shadow: 10px 10px 25px rgba(0, 0, 0, 0.8);
       }
     </style>
   </head>
 
-  <body class="bg-gray-100 p-4 font-sans">
-    <div class="bg-white rounded-xl shadow-xl p-6 max-w-3xl mx-auto">
-      <h2 class="text-2xl font-bold mb-2">
-        👋 Welcome <span id="vendorName">Vendor</span>!
-        <button class="ml-4 text-blue-500 underline">[हिंदी | EN]</button>
+  <body class="bg-[#FF8940] text-[#333] p-4 sm:p-6">
+    <div class="w-full max-w-4xl mx-auto bg-[#f5f5f5] rounded-2xl shadow-black p-4 sm:p-6 md:p-10" id="box">
+      <!-- Header -->
+      <h2 class="text-lg sm:text-2xl font-bold mb-4">
+        Welcome <span id="vendorName" class="text-[#FF8940] font-semibold">Vendor</span>!
+        <button class="ml-2 text-sm text-gray-500 underline">[हिंदी | EN]</button>
       </h2>
 
-      <button class="bg-yellow-400 px-4 py-2 rounded-lg mb-4 mt-2">
-          Repeat Last Order
+      <!-- Repeat Button -->
+      <button class="w-full sm:w-auto bg-[#FF8940] text-white px-4 py-2 rounded-lg text-sm sm:text-base font-medium hover:bg-[#e97833] transition mb-6 mt-2">
+        Repeat Last Order
       </button>
 
-      <div class="mb-4">
-        <h3 class="text-xl font-semibold">🔥 Today’s Best Deals:</h3>
-        <ul id="deals" class="list-disc pl-6">
-
+      <!-- Deals Section -->
+      <div class="mb-6">
+        <h3 class="text-base sm:text-xl font-semibold mb-2">Today’s Best Deals:</h3>
+        <ul id="deals" class="list-disc list-inside text-sm space-y-1 pl-4">
+          <!-- JS will populate -->
         </ul>
       </div>
 
-      <div class="mb-4">
-        <h3 class="text-xl font-semibold">📦 My Orders:</h3>
-        <ul id="orders" class="list-disc pl-6">
-
+      <!-- Orders Section -->
+      <div class="mb-6">
+        <h3 class="text-base sm:text-xl font-semibold mb-2">My Orders:</h3>
+        <ul id="orders" class="list-disc list-inside text-sm space-y-1 pl-4">
+          <!-- JS will populate -->
         </ul>
       </div>
 
-      <div class="mb-4">
-        <h3 class="text-xl font-semibold">🧺 Categories:</h3>
-        <div class="flex gap-4">
-          <button class="bg-green-200 px-3 py-1 rounded">Vegetables</button>
-          <button class="bg-green-200 px-3 py-1 rounded">Oil</button>
-          <button class="bg-green-200 px-3 py-1 rounded">Rice</button>
-          <button class="bg-green-200 px-3 py-1 rounded">Spices</button>
+      
+      <!-- Categories -->
+      <div class="mb-6">
+        <h3 class="text-base sm:text-xl font-semibold mb-3">Categories:</h3>
+        <div class="flex flex-wrap gap-2 sm:gap-4" id="categoryButtons">
+          <button class="category-btn bg-orange-100 text-[#FF8940] px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-200 transition" data-category="all">All</button>
+          <button class="category-btn bg-orange-100 text-[#FF8940] px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-200 transition" data-category="Vegetables">Vegetables</button>
+          <button class="category-btn bg-orange-100 text-[#FF8940] px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-200 transition" data-category="Fruits">Fruits</button>
+          <button class="category-btn bg-orange-100 text-[#FF8940] px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-200 transition" data-category="Spices">Spices</button>
+          <button class="category-btn bg-orange-100 text-[#FF8940] px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-200 transition" data-category="Grains">Grains</button>
+          <button class="category-btn bg-orange-100 text-[#FF8940] px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-200 transition" data-category="Dairy">Dairy</button>
+          <button class="category-btn bg-orange-100 text-[#FF8940] px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-200 transition" data-category="Others">Others</button>
         </div>
       </div>
 
-
-
-      <div class="mb-4">
+      
+      <!-- Search -->
+      <div class="mb-6">
         <input
           type="text"
           id="searchInput"
           placeholder="🔍 Search items..."
-          class="border border-gray-300 px-3 py-2 rounded w-full"
+          class="w-full border border-gray-300 px-4 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF8940]"
           onkeyup="filterTable()"
         />
       </div>
 
-
+      <!-- Table -->
       <div class="overflow-x-auto mt-6">
-        <table
-          class="min-w-full text-left border-collapse border border-gray-200"
-          id="itemTable"
-        >
+        <table class="min-w-[600px] w-full text-left border-collapse border border-gray-300 text-sm" id="itemTable">
           <thead>
-            <tr class="bg-gray-100 text-sm">
-              <th class="px-4 py-2 border">Item</th>
-              <th class="px-4 py-2 border">Price</th>
-              <th class="px-4 py-2 border">Supplier</th>
-              <th class="px-4 py-2 border">Location</th>
-              <th class="px-4 py-2 border">Action</th>
+            <tr class="bg-gray-100 font-semibold text-gray-700">
+              <th class="px-4 py-3 border">Item</th>
+              <th class="px-4 py-3 border">Price</th>
+              <th class="px-4 py-3 border">Supplier</th>
+              <th class="px-4 py-3 border">Location</th>
+              <th class="px-4 py-3 border">Action</th>
             </tr>
           </thead>
           <tbody id="tableBody" class="text-sm">
-
+            <!-- JS will populate -->
           </tbody>
         </table>
       </div>
 
-      <div class="flex justify-between mt-6">
-        <button class="bg-blue-500 text-white px-4 py-2 rounded">
-          📞 Call Supplier
+      <!-- Footer Buttons -->
+      <div class="flex flex-col sm:flex-row justify-between gap-4 mt-10">
+        <button id="logoutBtn" class="w-full sm:w-auto bg-[#FF8940] text-white px-5 py-2 rounded-lg font-medium hover:bg-[#e97833] transition">
+          Log Out
         </button>
-        <button class="bg-gray-500 text-white px-4 py-2 rounded">
-          💬 Help
+        <button class="w-full sm:w-auto bg-gray-600 text-white px-5 py-2 rounded-lg font-medium hover:bg-gray-700 transition">
+          Help
         </button>
       </div>
     </div>
@@ -98,107 +105,3 @@
     <script src="dashboard.js"></script>
   </body>
 </html>
- -->
-
-
- <!doctype html>
- <html lang="en">
-   <head>
-     <meta charset="UTF-8" />
-     <title>Vendor Dashboard</title>
-     <script src="https://cdn.tailwindcss.com"></script>
-
-     <link href="https://fonts.googleapis.com/css2?family=Poppins&display=swap" rel="stylesheet" />
-     <style>
-       body {
-         font-family: "Poppins", sans-serif;
-       }
-       .orange-btn {
-         @apply bg-[#FF8940] text-white;
-       }
-     </style>
-   </head>
-
-   <body class="bg-[#FF8940] p-8 text-[#333]">
-     <div class="max-w-3xl mx-auto bg-[#f5f5f5] rounded-2xl shadow-3xl shadow-black p-10 " id = "box">
-       <!-- Header -->
-       <h2 class="text-2xl font-bold mb-4">
-         Welcome <span id="vendorName" class="text-[#FF8940] font-semibold">Vendor</span>!
-         <button class="ml-4 text-sm text-gray-500 underline">[हिंदी | EN]</button>
-       </h2>
-
-       <!-- Repeat Button -->
-       <button class="bg-[#FF8940] text-white px-6 py-2 rounded-lg text-base font-medium hover:bg-[#e97833] transition mb-6 mt-2">
-           Repeat Last Order
-       </button>
-
-       <!-- Deals Section -->
-       <div class="mb-6">
-         <h3 class="text-xl font-semibold mb-2"> Today’s Best Deals:</h3>
-         <ul id="deals" class="list-disc list-inside text-sm space-y-1">
-           <!-- JS will populate -->
-         </ul>
-       </div>
-
-       <!-- Orders Section -->
-       <div class="mb-6">
-         <h3 class="text-xl font-semibold mb-2"> My Orders:</h3>
-         <ul id="orders" class="list-disc list-inside text-sm space-y-1">
-           <!-- JS will populate -->
-         </ul>
-       </div>
-
-       <!-- Categories -->
-       <div class="mb-6">
-         <h3 class="text-xl font-semibold mb-3"> Categories:</h3>
-         <div class="flex gap-4 flex-wrap">
-           <button class="bg-orange-100 text-[#FF8940] px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-orange-200 transition">Vegetables</button>
-           <button class="bg-orange-100 text-[#FF8940] px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-orange-200 transition">Oil</button>
-           <button class="bg-orange-100 text-[#FF8940] px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-orange-200 transition">Rice</button>
-           <button class="bg-orange-100 text-[#FF8940] px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-orange-200 transition">Spices</button>
-         </div>
-       </div>
-
-       <!-- Search -->
-       <div class="mb-6">
-         <input
-           type="text"
-           id="searchInput"
-           placeholder="🔍 Search items..."
-           class="w-full border border-gray-300 px-4 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF8940]"
-           onkeyup="filterTable()"
-         />
-       </div>
-
-       <!-- Table -->
-       <div class="overflow-x-auto mt-6">
-         <table class="min-w-full text-left border-collapse border border-gray-300 rounded-lg overflow-hidden text-sm" id="itemTable">
-           <thead>
-             <tr class="bg-gray-100 font-semibold text-gray-700">
-               <th class="px-4 py-3 border">Item</th>
-               <th class="px-4 py-3 border">Price</th>
-               <th class="px-4 py-3 border">Supplier</th>
-               <th class="px-4 py-3 border">Location</th>
-               <th class="px-4 py-3 border">Action</th>
-             </tr>
-           </thead>
-           <tbody id="tableBody" class="text-sm">
-             <!-- JS will populate -->
-           </tbody>
-         </table>
-       </div>
-
-       <!-- Footer Buttons -->
-       <div class="flex justify-between mt-10">
-         <button class="bg-[#FF8940] text-white px-5 py-2 rounded-lg font-medium hover:bg-[#e97833] transition">
-            Call Supplier
-         </button>
-         <button class="bg-gray-600 text-white px-5 py-2 rounded-lg font-medium hover:bg-gray-700 transition">
-            Help
-         </button>
-       </div>
-     </div>
-
-     <script src="dashboard.js"></script>
-   </body>
- </html>

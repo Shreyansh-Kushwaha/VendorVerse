@@ -5,11 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Supplier Dashboard</title>
   <link rel="stylesheet" href="supplier.css" />
+  
 </head>
 <body>
   <div class="page">
     <div class="logo-container">
-      <div class="logo">Log Out</div>
+      <h3 class="welcome-header" style=" color: white;">Welcome Supplier</h3>
+      <button id="profileBtn" class="nav-button">Profile</button>
+      <button id="logoutBtn" class="nav-button">Log Out</button>
+
+
     </div>
     <div class="main-container">
       <div class="inventory-tab-container">
@@ -28,13 +33,33 @@
               <input type="number" id="itemPrice" name="itemPrice" required />
               
               <label for="itemImage">Image:</label>
-              <input type="file" id="itemImage" name="itemImage" accept="image/*"  />
+              <input type="file" id="itemImage" name="itemImage" accept="image/*"  required/>
 
               <label for="itemQuantity">Quantity:</label>
               <input type="number" id="itemQuantity" name="itemQuantity" min="1" required />
 
+
+              
+
+              <label for="itemCategory">Category</label>
+              <select id="itemCategory" name="itemCategory" required>
+                <option value="">-- Select Category --</option>
+                <option value="vegetables">Vegetables</option>
+                <option value="fruits">Fruits</option>
+                <option value="spices">Spices</option>
+                <option value="grains">Grains</option>
+                <option value="dairy">Dairy</option>
+                <option value="others">Others</option>
+                
+              </select>
+
+
+              
+              
               <label for="itemLocation">Location:</label>
               <input type="text" id="itemLocation" name="itemLocation"  required />
+
+              
 
               <div class="modal-buttons">
                 <button type="submit" class="confirm-btn">Add Item</button>
@@ -75,7 +100,7 @@
         <div class="order-tab-container">
           <div class="order-tab-text">Orders</div>
           <div class="order-container" id="orderContainer">
-            <!-- Remove all hardcoded orders here -->
+            
           </div>
         </div>
 
@@ -89,9 +114,15 @@
 
   <script src="supplier.js"></script>
   <script>
-    document.querySelector(".logo").addEventListener("click", () => {
-      window.location.href = "/home.html"; // Redirect to home page
+
+    document.getElementById("logoutBtn").addEventListener("click", () => {
+      window.location.href = "/home.html"; 
     });
+
+    document.getElementById("profileBtn").addEventListener("click", () => {
+      window.location.href = "/profile/profile.html"; 
+    });
+    
   </script>
 </body>
 </html>
