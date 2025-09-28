@@ -16,13 +16,15 @@ const supplierSchema = new mongoose.Schema({
       itemName: String,
       quantity: Number,
       price: Number,
-      category: String
+      category: String,
+      imageUrl: String
     }
   ],
   location: {
     type: String,
     required: true
   }
+  
   
 });
 

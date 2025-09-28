@@ -4,16 +4,17 @@ const Supplier = require('../models/Supplier');
 const Order = require("../models/Order");
 const SupplierData = require("../models/user");
 
+
 // This is to POST
 router.post('/suppliers', async (req, res) => {
-  const { supplierId, name, inventory, location } = req.body;
+  const { supplierId, name, inventory, location, imageUrl } = req.body;
 
   if (!name || !inventory || !location) {
     return res.status(400).json({ msg: 'Name and inventory are required' });
   }
 
   try {
-    const newSupplier = new Supplier({supplierId, name, inventory, location });
+    const newSupplier = new Supplier({supplierId, name, inventory, location, imageUrl});
     await newSupplier.save();
     res.status(201).json({ msg: 'Supplier added', supplier: newSupplier });
   } catch (err) {
