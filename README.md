@@ -41,7 +41,7 @@ An efficient web platform built for **Indian street food vendors** to **connect 
 
 2. **Install dependencies**:
 
-      npm install node
+      npm install
 
 3. **Configure MongoDB Atlas URL in .env file**:
 
