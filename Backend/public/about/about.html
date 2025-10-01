@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en" class="scroll-smooth">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>About Us | VendorVerse</title>
+        
+        <!-- Tailwind CSS via CDN -->
+        <script src="https://cdn.tailwindcss.com"></script>
+
+        <!-- Google Fonts -->
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@400;500;600;700&display=swap"
+            rel="stylesheet"
+        />
+
+        <!-- Custom Tailwind Configuration -->
+        <script>
+            tailwind.config = {
+                theme: {
+                    extend: {
+                        fontFamily: {
+                            sans: ["Poppins", "sans-serif"],
+                            serif: ["Playfair Display", "serif"],
+                        },
+                    },
+                },
+            };
+        </script>
+    </head>
+
+    <style>
+        .animated-bg {
+            background: linear-gradient(-45deg, #f97316, #fb923c, #fdba74, #f97316);
+            background-size: 400% 400%;
+            animation: gradientBG 5s ease infinite;
+        }
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+    </style>
+
+
+
+    <body class="bg-slate-50 font-sans text-slate-800">
+        <!-- Header -->
+        <header class="sticky top-0 z-50 bg-white/90 backdrop-blur-sm shadow-sm border-b-2 border-orange-500">
+            <div class="container mx-auto flex h-14 items-center justify-between px-6">
+                <a href="../home.html" class="text-3xl font-poppins font-bold text-slate-900">VendorVerse</a>
+                <nav class="hidden items-center space-x-2 md:flex">
+                    <a href="about.html" class="rounded-md bg-orange-100 px-4 py-2 text-sm font-semibold text-orange-600 ring-1 ring-inset ring-orange-200">About Us</a>
+                    <a href="../signup/signup.html" class="rounded-md px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 transition-colors">Register</a>
+                    <a href="../login.html" class="rounded-md bg-orange-500 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-600 transition-colors">Login</a>
+                </nav>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main>
+            <!-- Hero Section -->
+            <section class="bg-orange-50 py-8 md:py-12">
+                <div class="container mx-auto px-6 text-center">
+                    <h1 class="text-4xl font-serif font-bold text-slate-900 md:text-6xl">
+                        The <span class="text-orange-600">Heartbeat</span> of the Streets
+                    </h1>
+                    <p class="mt-4 text-lg text-slate-600 max-w-2xl mx-auto">
+                        We're building a stronger, more connected street food
+                        community, one ingredient at a time.
+                    </p>
+                </div>
+            </section>
+
+            <!-- Our Story Section -->
+            <section class="py-8 md:py-12 bg-white">
+                <div class="container mx-auto px-6">
+                    <div class="max-w-4xl mx-auto">
+                        <h2 class="text-3xl font-serif font-bold text-center text-orange-600 mb-8">Our Story</h2>
+                        <div class="space-y-4 text-slate-600 leading-relaxed text-center">
+                            <p>
+                                VendorVerse was born from a simple observation: the
+                                street food vendors who fill our cities with flavor and
+                                life often face the biggest challenges. Sourcing fresh,
+                                quality ingredients is a daily battle against fluctuating
+                                prices, unreliable supply, and wasted time.
+                            </p>
+                            <p>
+                                We envisioned a platform where a pani puri vendor could
+                                find the freshest mint, or a dosa stall could source the
+                                best rice flour without ever leaving their cart. We
+                                decided to build that bridge.
+                                <strong class="text-slate-800">VendorVerse is that bridge.</strong>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Mission & Vision Section -->
+            <section class="py-8 md:py-12 bg-orange-50">
+                <div class="container mx-auto px-6">
+                    <div class="grid md:grid-cols-2 gap-10 max-w-5xl mx-auto items-start">
+                        <div class="text-center md:text-left p-6 rounded-lg bg-white shadow-sm border border-slate-100">
+                            <h3 class="text-2xl font-bold text-orange-600 mb-2">Our Mission</h3>
+                            <p class="text-slate-600 leading-relaxed">
+                                To empower every street food vendor with seamless access
+                                to quality, affordable ingredients, allowing them to
+                                focus on what they do best: creating food that brings
+                                people together.
+                            </p>
+                        </div>
+                        <div class="text-center md:text-left p-6 rounded-lg bg-white shadow-sm border border-slate-100">
+                            <h3 class="text-2xl font-bold text-orange-600 mb-2">Our Vision</h3>
+                            <p class="text-slate-600 leading-relaxed">
+                                To be the essential digital backbone of the street food
+                                industry, fostering a transparent and thriving ecosystem
+                                where vendors and suppliers can grow together.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Core Values Section -->
+            <section class=" animated-bg py-8 md:py-12 bg-orange-400">
+                <div class="container mx-auto px-6">
+                    <div class="max-w-5xl mx-auto text-center">
+                        <h2 class="text-3xl font-serif font-bold text-white mb-12 [text-shadow:2px_2px_4px_rgba(0,0,0,0.3)]">Our Core Values</h2>
+                        <div class="grid md:grid-cols-3 gap-8">
+                            <div class="bg-white p-6 rounded-xl shadow-lg border border-orange-200">
+                                <h4 class="text-xl font-bold text-orange-600 mb-3">Community First</h4>
+                                <p class="text-slate-600">
+                                    We believe in empowering vendors and suppliers by building stronger, connected communities.
+                                </p>
+                            </div>
+                            <div class="bg-white p-6 rounded-xl shadow-lg border border-orange-200">
+                                <h4 class="text-xl font-bold text-orange-600 mb-3">Transparency</h4>
+                                <p class="text-slate-600">
+                                    Honest pricing, reliable sourcing, and open communication at every step.
+                                </p>
+                            </div>
+                            <div class="bg-white p-6 rounded-xl shadow-lg border border-orange-200">
+                                <h4 class="text-xl font-bold text-orange-600 mb-3">Innovation</h4>
+                                <p class="text-slate-600">
+                                    We use technology to simplify operations and help the street food industry grow sustainably.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Benefits Section -->
+            <section class="ppy-8 md:py-12 bg-white">
+                <div class="container mx-auto px-6">
+                    <div class="max-w-5xl mx-auto">
+                        <h2 class="text-3xl font-serif font-bold text-center text-orange-600 mb-12">Why Partner With Us?</h2>
+                        <div class="grid md:grid-cols-2 gap-8">
+                            <!-- For Vendors -->
+                            <div class="bg-orange-50/50 p-8 rounded-xl shadow-lg border border-orange-600/100 hover:border-orange-300 transition-colors duration-300">
+                                <h4 class="text-xl font-bold text-slate-900 mb-4">For Street Food Vendors</h4>
+                                <ul class="space-y-3">
+                                    <li class="flex items-start">
+                                        <svg class="h-6 w-6 text-green-500 mr-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                                        <span class="text-slate-600"><strong>Save Time & Money:</strong> Compare prices and order in minutes.</span>
+                                    </li>
+                                    <li class="flex items-start">
+                                        <svg class="h-6 w-6 text-green-500 mr-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                                        <span class="text-slate-600"><strong>Access Quality:</strong> Connect with a network of trusted, vetted suppliers.</span>
+                                    </li>
+                                    <li class="flex items-start">
+                                        <svg class="h-6 w-6 text-green-500 mr-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                                        <span class="text-slate-600"><strong>Simplify Operations:</strong> Manage all your procurement from one simple platform.</span>
+                                    </li>
+                                </ul>
+                            </div>
+                            <!-- For Suppliers -->
+                            <div class="bg-orange-50/50 p-8 rounded-xl shadow-lg border border-orange-600/100 hover:border-orange-300 transition-colors duration-300">
+                                <h4 class="text-xl font-bold text-slate-900 mb-4">For Raw Material Suppliers</h4>
+                                <ul class="space-y-3">
+                                    <li class="flex items-start">
+                                        <svg class="h-6 w-6 text-green-500 mr-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                                        <span class="text-slate-600"><strong>Expand Your Reach:</strong> Instantly connect with hundreds of dedicated buyers.</span>
+                                    </li>
+                                    <li class="flex items-start">
+                                        <svg class="h-6 w-6 text-green-500 mr-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                                        <span class="text-slate-600"><strong>Streamline Orders:</strong> Receive and manage orders efficiently on our dashboard.</span>
+                                    </li>
+                                    <li class="flex items-start">
+                                        <svg class="h-6 w-6 text-green-500 mr-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                                        <span class="text-slate-600"><strong>Build Your Business:</strong> Grow your customer base with a steady stream of revenue.</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- CTA Section -->
+            <section class=" animated-bg py-8 md:py-12 bg-orange-400">
+                <div class="container mx-auto px-6">
+                    <div class="rounded-2xl shadow-xl max-w-4xl mx-auto p-10 md:p-16 text-center ">
+                        <h2 class="text-3xl font-serif font-bold text-white mb-4 sh [text-shadow:2px_2px_4px_rgba(0,0,0,0.3)] ">Join the VendorVerse Community</h2>
+                        <p class="text-orange-100 max-w-xl mx-auto mb-8 [text-shadow:2px_2px_4px_rgba(0,0,0,0.3)]">
+                            Whether you're crafting the perfect meal on a street corner or supplying the ingredients that make it possible, there's a place for you here.
+                        </p>
+                        <a href="../signup/signup.html" class="inline-block bg-white text-orange-600 font-semibold px-8 py-3 rounded-lg shadow-lg hover:bg-orange-50 transition-all duration-300 transform hover:-translate-y-1">
+                            Register Today & Get Started
+                        </a>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-slate-800 text-slate-400 py-3">
+            <div class="container mx-auto px-6 text-center">
+                <p>&copy; 2025 VendorVerse. All rights reserved.</p>
+            </div>
+        </footer>
+    </body>
+</html>
