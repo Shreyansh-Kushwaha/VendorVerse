@@ -36,29 +36,23 @@ app.use('/api', require('./routes/requestRoutes'));
 app.use('/api', require('./routes/supplierRoutes'));
 app.use('/api', require('./routes/authRoutes'));
 
-// Static frontend: prefer the built React app in ../Frontend/dist; fall back to legacy public/
+// Serve the React build
 const reactDist = path.join(__dirname, '..', 'Frontend', 'dist');
-const legacyPublic = path.join(__dirname, 'public');
-const useReact = fs.existsSync(path.join(reactDist, 'index.html'));
-const staticDir = useReact ? reactDist : legacyPublic;
-
-console.log(useReact
-  ? `🎨 Serving React build from ${reactDist}`
-  : `📁 Serving legacy public/ (run \`npm run build\` in Frontend/ to use the React app)`);
-
-app.use(express.static(staticDir));
-
-// SPA fallback for client-side routing (only when serving the React build)
-if (useReact) {
-  app.use((req, res, next) => {
-    if (req.method !== 'GET') return next();
-    if (req.path.startsWith('/api')) return next();
-    if (path.extname(req.path)) return next();
-    res.sendFile(path.join(reactDist, 'index.html'));
-  });
+if (!fs.existsSync(path.join(reactDist, 'index.html'))) {
+  console.warn(`⚠️  Frontend build not found. Run \`npm run build\` in Frontend/ — for dev, use \`npm run dev\` (Vite proxies /api here).`);
 } else {
-  app.get('/', (req, res) => res.redirect('/home.html'));
+  console.log(`🎨 Serving React build from ${reactDist}`);
 }
+
+app.use(express.static(reactDist));
+
+// SPA fallback for client-side routing
+app.use((req, res, next) => {
+  if (req.method !== 'GET') return next();
+  if (req.path.startsWith('/api')) return next();
+  if (path.extname(req.path)) return next();
+  res.sendFile(path.join(reactDist, 'index.html'));
+});
 
 // 404 + central error handler (API-only)
 app.use(notFound);
