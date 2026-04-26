@@ -1,0 +1,109 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body, #root {
+    height: 100%;
+  }
+  html {
+    /* Firefox scrollbar */
+    scrollbar-color: theme('colors.brand.500') theme('colors.brand.50');
+    scrollbar-width: thin;
+  }
+  html.dark {
+    scrollbar-color: theme('colors.brand.600') theme('colors.night.800');
+    color-scheme: dark;
+  }
+  body {
+    @apply font-sans bg-cream text-ink antialiased transition-colors duration-300;
+  }
+  body.dark, html.dark body {
+    @apply bg-night-900 text-gray-100;
+  }
+  h1, h2, h3 {
+    @apply font-display;
+  }
+
+  /* Branded text selection */
+  ::selection {
+    background: theme('colors.brand.500');
+    color: #fff;
+    text-shadow: none;
+  }
+  html.dark ::selection {
+    background: theme('colors.brand.600');
+    color: #fff;
+  }
+
+  /* Branded webkit scrollbar */
+  ::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+  }
+  ::-webkit-scrollbar-track {
+    background: theme('colors.brand.50');
+  }
+  ::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, theme('colors.brand.400'), theme('colors.brand.600'));
+    border-radius: 999px;
+    border: 3px solid theme('colors.brand.50');
+    background-clip: padding-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, theme('colors.brand.500'), theme('colors.brand.700'));
+    background-clip: padding-box;
+    border: 3px solid theme('colors.brand.50');
+  }
+  ::-webkit-scrollbar-corner {
+    background: theme('colors.brand.50');
+  }
+
+  html.dark ::-webkit-scrollbar-track {
+    background: theme('colors.night.800');
+  }
+  html.dark ::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, theme('colors.brand.500'), theme('colors.brand.700'));
+    border: 3px solid theme('colors.night.800');
+    background-clip: padding-box;
+  }
+  html.dark ::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, theme('colors.brand.400'), theme('colors.brand.600'));
+    border: 3px solid theme('colors.night.800');
+    background-clip: padding-box;
+  }
+  html.dark ::-webkit-scrollbar-corner {
+    background: theme('colors.night.800');
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-medium transition active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-primary {
+    @apply btn bg-brand-500 text-white hover:bg-brand-700 shadow-card;
+  }
+  .btn-ghost {
+    @apply btn bg-white text-brand-700 border border-brand-100 hover:bg-brand-50
+           dark:bg-night-800 dark:text-brand-300 dark:border-night-600 dark:hover:bg-night-700;
+  }
+  .btn-danger {
+    @apply btn bg-red-500 text-white hover:bg-red-600;
+  }
+  .input {
+    @apply w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm
+           focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition
+           dark:bg-night-800 dark:border-night-600 dark:text-gray-100 dark:placeholder-gray-500;
+  }
+  .label {
+    @apply block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300;
+  }
+  .card {
+    @apply bg-white rounded-2xl shadow-card transition-colors
+           dark:bg-night-800 dark:shadow-[0_4px_14px_rgba(0,0,0,0.5)];
+  }
+  .chip {
+    @apply px-3 py-1.5 rounded-full text-sm font-medium transition cursor-pointer select-none;
+  }
+}
