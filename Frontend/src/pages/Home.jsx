@@ -20,7 +20,7 @@ export default function Home() {
             <span className="inline-block bg-white/15 backdrop-blur px-3 py-1 rounded-full text-xs font-medium mb-4">
               For Indian street food vendors & suppliers
             </span>
-            <h1 className="font-display text-5xl sm:text-6xl lg:text-7xl leading-[0.95] drop-shadow-md">
+            <h1 className="font-display text-5xl sm:text-6xl lg:text-7xl xl:text-8xl leading-[0.9] drop-shadow-md whitespace-nowrap">
               pure<br/>&amp; fresh
             </h1>
             <p className="mt-5 text-base sm:text-lg text-white/90 max-w-md">
