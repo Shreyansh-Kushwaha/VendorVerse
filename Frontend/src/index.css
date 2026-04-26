@@ -28,12 +28,12 @@
   /* Branded text selection */
   ::selection {
     background: theme('colors.brand.500');
-    color: #fff;
+    color: #000;
     text-shadow: none;
   }
   html.dark ::selection {
     background: theme('colors.brand.600');
-    color: #fff;
+    color: #000;
   }
 
   /* Branded webkit scrollbar */
