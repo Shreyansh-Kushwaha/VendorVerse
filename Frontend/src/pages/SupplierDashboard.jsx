@@ -18,7 +18,7 @@ export default function SupplierDashboard() {
   const [orders, setOrders] = useState([]);
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState('inventory');
+  const [ordersOpen, setOrdersOpen] = useState(false);
 
   const [addOpen, setAddOpen] = useState(false);
   const [addForm, setAddForm] = useState({ itemName: '', price: '', quantity: '', category: '', location: user?.location || '' });
@@ -139,6 +139,7 @@ export default function SupplierDashboard() {
 
   const lowStockCount = useMemo(() => inventory.filter(i => i.quantity <= LOW_STOCK).length, [inventory]);
   const maxDaily = analytics ? Math.max(1, ...analytics.daily.map(d => d.revenue)) : 1;
+  const pendingCount = useMemo(() => orders.filter(o => (o.status || 'Pending') === 'Pending').length, [orders]);
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-6">
@@ -196,110 +197,124 @@ export default function SupplierDashboard() {
         </section>
       )}
 
-      {/* Tabs (mobile) */}
-      <div className="sm:hidden grid grid-cols-2 gap-1 p-1 bg-brand-50 dark:bg-night-700 rounded-xl">
-        {[{ v: 'inventory', label: 'Inventory' }, { v: 'orders', label: 'Orders' }].map((t) => (
+      {/* Inventory header + Incoming-orders notification button */}
+      <section>
+        <div className="flex items-center justify-between mb-4 gap-3">
+          <div>
+            <h2 className="font-display text-2xl text-ink dark:text-gray-100">Inventory</h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{inventory.length} item{inventory.length === 1 ? '' : 's'} listed</p>
+          </div>
           <button
-            key={t.v}
-            onClick={() => setTab(t.v)}
-            className={'rounded-lg py-2 text-sm font-medium transition ' + (tab === t.v ? 'bg-white shadow-card text-brand-700 dark:bg-night-800 dark:text-brand-300' : 'text-gray-600 dark:text-gray-400')}
+            type="button"
+            onClick={() => setOrdersOpen(true)}
+            className="relative inline-flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl bg-white dark:bg-night-800 border border-brand-100 dark:border-night-600 text-brand-700 dark:text-brand-300 hover:bg-brand-50 dark:hover:bg-night-700 shadow-card transition"
+            aria-label={`Incoming orders (${pendingCount} pending)`}
           >
-            {t.label}
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+              <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+            </svg>
+            <span className="hidden sm:inline text-sm font-medium">Incoming orders</span>
+            {pendingCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-[11px] font-bold grid place-items-center ring-2 ring-white dark:ring-night-900 animate-pulse">
+                +{pendingCount > 99 ? '99' : pendingCount}
+              </span>
+            )}
           </button>
-        ))}
-      </div>
+        </div>
 
-      <div className="grid sm:grid-cols-2 gap-6">
-        {/* Inventory */}
-        <section className={tab === 'inventory' ? '' : 'hidden sm:block'}>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-display text-xl text-ink dark:text-gray-100">Inventory</h2>
-            <span className="text-xs text-gray-500 dark:text-gray-400">{inventory.length} item{inventory.length === 1 ? '' : 's'}</span>
-          </div>
-          {loading ? (
-            <SkeletonGrid />
-          ) : inventory.length === 0 ? (
-            <EmptyState
-              title="No inventory yet"
-              hint="Add your first item to start receiving orders."
-              action={<button className="btn-primary mt-3" onClick={() => setAddOpen(true)}>Add inventory</button>}
-            />
-          ) : (
-            <div className="grid grid-cols-2 gap-3">
-              {inventory.map((it) => (
-                <button
-                  key={it._id}
-                  onClick={() => openEdit(it)}
-                  className="card overflow-hidden text-left group focus:outline-none focus:ring-2 focus:ring-brand-500"
-                >
-                  <div className="relative">
-                    <Thumb src={it.imageUrl} alt={it.itemName} square />
-                    {it.quantity <= LOW_STOCK && (
-                      <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500 text-white shadow">
-                        {it.quantity === 0 ? 'OUT' : 'LOW'}
-                      </span>
-                    )}
-                  </div>
-                  <div className="p-3">
-                    <div className="font-medium text-ink dark:text-gray-100 truncate">{it.itemName}</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400 capitalize">{it.category || 'others'}</div>
-                    <div className="mt-1.5 flex items-center justify-between">
-                      <span className="text-brand-700 dark:text-brand-400 font-semibold">₹{it.price}</span>
-                      <span className="text-xs text-gray-500 dark:text-gray-400">{it.quantity} qty</span>
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
-        </section>
-
-        {/* Orders */}
-        <section className={tab === 'orders' ? '' : 'hidden sm:block'}>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-display text-xl text-ink dark:text-gray-100">Incoming orders</h2>
-            <button onClick={loadAll} className="text-sm text-brand-700 dark:text-brand-400 hover:underline">Refresh</button>
-          </div>
-          {loading ? (
-            <SkeletonGrid />
-          ) : orders.length === 0 ? (
-            <EmptyState title="No orders yet" hint="When vendors place orders, they'll show up here." />
-          ) : (
-            <div className="space-y-3">
-              {orders.map((o) => (
-                <div key={o._id} className="card p-4">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <div className="font-medium text-ink dark:text-gray-100">{o.vendorId?.name || 'Vendor'}</div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">{new Date(o.date).toLocaleString()}</div>
-                    </div>
-                    <StatusPill status={o.status || 'Pending'} />
-                  </div>
-                  <div className="mt-2 text-sm text-gray-700 dark:text-gray-300">
-                    {o.itemName} × {o.quantity} <span className="text-gray-400">·</span> <span className="font-semibold text-emerald-700 dark:text-emerald-400">₹{(o.quantity || 0) * (o.price || 0)}</span>
-                  </div>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {o.status !== 'Rejected' && o.status !== 'Cancelled' && o.status !== 'Delivered' && (
-                      <button
-                        onClick={() => advanceStatus(o._id, NEXT_STATUS[o.status || 'Pending'])}
-                        className="btn bg-emerald-600 text-white hover:bg-emerald-700 text-sm py-1.5"
-                      >
-                        {STATUS_LABELS[NEXT_STATUS[o.status || 'Pending']]}
-                      </button>
-                    )}
-                    {o.status === 'Pending' && (
-                      <button
-                        onClick={() => advanceStatus(o._id, 'Rejected')}
-                        className="btn-danger text-sm py-1.5"
-                      >Reject</button>
-                    )}
+        {loading ? (
+          <SkeletonGrid />
+        ) : inventory.length === 0 ? (
+          <EmptyState
+            title="No inventory yet"
+            hint="Add your first item to start receiving orders."
+            action={<button className="btn-primary mt-3" onClick={() => setAddOpen(true)}>Add inventory</button>}
+          />
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+            {inventory.map((it) => (
+              <button
+                key={it._id}
+                onClick={() => openEdit(it)}
+                className="card overflow-hidden text-left group focus:outline-none focus:ring-2 focus:ring-brand-500"
+              >
+                <div className="relative">
+                  <Thumb src={it.imageUrl} alt={it.itemName} square />
+                  {it.quantity <= LOW_STOCK && (
+                    <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500 text-white shadow">
+                      {it.quantity === 0 ? 'OUT' : 'LOW'}
+                    </span>
+                  )}
+                </div>
+                <div className="p-3">
+                  <div className="font-medium text-ink dark:text-gray-100 truncate">{it.itemName}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 capitalize">{it.category || 'others'}</div>
+                  <div className="mt-1.5 flex items-center justify-between">
+                    <span className="text-brand-700 dark:text-brand-400 font-semibold">₹{it.price}</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">{it.quantity} qty</span>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </section>
-      </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* Incoming orders modal */}
+      <Modal
+        open={ordersOpen}
+        onClose={() => setOrdersOpen(false)}
+        title={`Incoming orders${pendingCount > 0 ? ` · ${pendingCount} pending` : ''}`}
+        size="xl"
+        footer={
+          <>
+            <button className="btn-ghost" onClick={loadAll}>Refresh</button>
+            <button className="btn-primary" onClick={() => setOrdersOpen(false)}>Close</button>
+          </>
+        }
+      >
+        {orders.length === 0 ? (
+          <div className="py-6 text-center text-gray-500 dark:text-gray-400 text-sm">
+            No orders yet. When vendors place orders, they'll show up here.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {orders.map((o) => (
+              <div key={o._id} className="rounded-xl border border-gray-100 dark:border-night-600 p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <div className="font-medium text-ink dark:text-gray-100">{o.vendorId?.name || 'Vendor'}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">{new Date(o.date).toLocaleString()}</div>
+                  </div>
+                  <StatusPill status={o.status || 'Pending'} />
+                </div>
+                <div className="mt-2 text-sm text-gray-700 dark:text-gray-300">
+                  {o.itemName} × {o.quantity}{' '}
+                  <span className="text-gray-400">·</span>{' '}
+                  <span className="font-semibold text-emerald-700 dark:text-emerald-400">₹{(o.quantity || 0) * (o.price || 0)}</span>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {o.status !== 'Rejected' && o.status !== 'Cancelled' && o.status !== 'Delivered' && (
+                    <button
+                      onClick={() => advanceStatus(o._id, NEXT_STATUS[o.status || 'Pending'])}
+                      className="btn bg-emerald-600 text-white hover:bg-emerald-700 text-sm py-1.5"
+                    >
+                      {STATUS_LABELS[NEXT_STATUS[o.status || 'Pending']]}
+                    </button>
+                  )}
+                  {o.status === 'Pending' && (
+                    <button
+                      onClick={() => advanceStatus(o._id, 'Rejected')}
+                      className="btn-danger text-sm py-1.5"
+                    >Reject</button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Modal>
 
       {/* Add modal */}
       <Modal
