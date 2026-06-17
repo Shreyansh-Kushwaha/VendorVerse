@@ -68,17 +68,6 @@ An efficient web platform built for **Indian street food vendors** to **connect 
 
 ---
 
-## 📬 Contact
-
-For queries or feedback, reach out to me:
-
-📧 Email: shreyanshkushwaha02@gmail.com
-
-🔗 LinkedIn: https://in.linkedin.com/in/Kushwaha-Shreyansh
-
-
----
-
 ## ⭐ Show Your Support
 
 If you like this project:
