@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import api from '../api.js';
 import { useToast } from '../components/Toast.jsx';
+import { money, perUnit, amount } from '../format.js';
 
 const FLOW = ['Pending', 'Accepted', 'Packed', 'OutForDelivery', 'Delivered'];
 const FLOW_LABELS = {
@@ -56,7 +57,7 @@ export default function OrderDetail() {
           <p className="text-sm text-gray-500 dark:text-gray-400">Order #{order._id.slice(-6).toUpperCase()}</p>
           <h1 className="font-display text-3xl text-ink dark:text-gray-100">{order.itemName}</h1>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-            {order.quantity} × ₹{order.price} • placed {new Date(order.date).toLocaleString()}
+            {amount(order.quantity, order.unit)} × {perUnit(order.price, order.unit)} • placed {new Date(order.date).toLocaleString()}
           </p>
         </div>
         <StatusPill status={status} />
@@ -127,8 +128,8 @@ export default function OrderDetail() {
       <section className="card p-5">
         <h2 className="font-display text-xl text-ink dark:text-gray-100 mb-3">Total</h2>
         <div className="flex justify-between items-center">
-          <span className="text-gray-600 dark:text-gray-400">{order.itemName} × {order.quantity}</span>
-          <span className="font-display text-2xl text-brand-700 dark:text-brand-400">₹{order.quantity * order.price}</span>
+          <span className="text-gray-600 dark:text-gray-400">{order.itemName} · {amount(order.quantity, order.unit)}</span>
+          <span className="font-display text-2xl text-brand-700 dark:text-brand-400">{money(order.quantity * order.price)}</span>
         </div>
       </section>
     </div>

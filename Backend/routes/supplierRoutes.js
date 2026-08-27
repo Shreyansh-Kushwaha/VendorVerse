@@ -7,6 +7,7 @@ const User = require('../models/user');
 const validate = require('../middleware/validate');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { releaseOrderStock } = require('../services/orders');
+const { UNITS, DEFAULT_UNIT } = require('../lib/units');
 
 const objectId = z.string().regex(/^[a-f\d]{24}$/i, 'Invalid id');
 
@@ -42,6 +43,7 @@ const addInventorySchema = z.object({
     itemName: z.string().min(1),
     quantity: z.number().int().nonnegative(),
     price: z.number().nonnegative(),
+    unit: z.enum(UNITS).default(DEFAULT_UNIT),
     category: z.string().min(1),
     imageUrl: z.string().url().optional(),
   }),
@@ -116,6 +118,7 @@ const editInventorySchema = z.object({
   itemName: z.string().min(1).optional(),
   quantity: z.number().int().nonnegative().optional(),
   price: z.number().nonnegative().optional(),
+  unit: z.enum(UNITS).optional(),
   category: z.string().min(1).optional(),
   imageUrl: z.string().url().optional(),
 });

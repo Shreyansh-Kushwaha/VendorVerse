@@ -1,5 +1,6 @@
 
 const mongoose = require('mongoose');
+const { UNITS, DEFAULT_UNIT } = require('../lib/units');
 
 const supplierSchema = new mongoose.Schema({
   supplierId: {
@@ -17,6 +18,7 @@ const supplierSchema = new mongoose.Schema({
       itemName: String,
       quantity: Number,
       price: Number,
+      unit: { type: String, enum: UNITS, default: DEFAULT_UNIT },
       category: String,
       imageUrl: String
     }

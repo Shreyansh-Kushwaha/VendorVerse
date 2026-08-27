@@ -4,6 +4,7 @@ import api from '../api.js';
 import { useAuth } from '../auth.jsx';
 import { useCart } from '../cart.jsx';
 import { useToast } from '../components/Toast.jsx';
+import { money, perUnit, amount } from '../format.js';
 
 const CATEGORIES = ['all', 'Vegetables', 'Fruits', 'Spices', 'Grains', 'Dairy', 'Others'];
 const FAV_KEY = 'vv_favorites';
@@ -43,6 +44,7 @@ export default function VendorDashboard() {
             itemName: it.itemName,
             price: it.price,
             quantity: it.quantity,
+            unit: it.unit,
             category: it.category || 'others',
             imageUrl: it.imageUrl,
             supplierId: s.supplierId,
@@ -91,6 +93,7 @@ export default function VendorDashboard() {
       itemId: item.itemId,
       itemName: item.itemName,
       price: item.price,
+      unit: item.unit,
       imageUrl: item.imageUrl,
       supplierId: item.supplierId,
       supplierName: item.supplierName,
@@ -105,6 +108,7 @@ export default function VendorDashboard() {
       itemId: lastOrder.itemId,
       itemName: lastOrder.itemName,
       price: lastOrder.price,
+      unit: lastOrder.unit,
       supplierId: lastOrder.supplierId?._id || lastOrder.supplierId,
       supplierName: lastOrder.supplierId?.name || 'Supplier',
       location: lastOrder.supplierId?.location || '',
@@ -132,7 +136,7 @@ export default function VendorDashboard() {
           )}
           {cart.count > 0 && (
             <Link to="/cart" className="btn-primary">
-              Cart ({cart.count}) · ₹{cart.subtotal}
+              Cart ({cart.count}) · {money(cart.subtotal)}
             </Link>
           )}
         </div>
@@ -142,8 +146,8 @@ export default function VendorDashboard() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Stat label="Items available" value={items.length} />
         <Stat label="My orders" value={analytics?.totalOrders ?? orders.length} />
-        <Stat label="Spend (7 days)" value={`₹${analytics?.weekSpend ?? 0}`} accent />
-        <Stat label="Total spend" value={`₹${analytics?.totalSpend ?? 0}`} />
+        <Stat label="Spend (7 days)" value={money(analytics?.weekSpend)} accent />
+        <Stat label="Total spend" value={money(analytics?.totalSpend)} />
       </div>
 
       {/* Today's deals */}
@@ -159,7 +163,7 @@ export default function VendorDashboard() {
               <div key={d.itemId} className="rounded-xl border border-brand-100 bg-brand-50/40 dark:border-night-600 dark:bg-night-700/50 p-3">
                 <div className="text-xs text-gray-500 dark:text-gray-400 truncate">From {d.supplierName}</div>
                 <div className="font-medium text-ink dark:text-gray-100 truncate">{d.itemName}</div>
-                <div className="text-brand-700 dark:text-brand-400 font-semibold">₹{d.price}</div>
+                <div className="text-brand-700 dark:text-brand-400 font-semibold">{perUnit(d.price, d.unit)}</div>
               </div>
             ))}
           </div>
@@ -230,7 +234,7 @@ export default function VendorDashboard() {
                         <Link to={`/suppliers/${it.supplierId}`} className="text-xs text-gray-500 dark:text-gray-400 truncate hover:text-brand-600 hover:underline">{it.supplierName} • {it.location}</Link>
                       </div>
                       <div className="flex flex-col items-end gap-1">
-                        <div className="text-brand-700 dark:text-brand-400 font-semibold whitespace-nowrap">₹{it.price}</div>
+                        <div className="text-brand-700 dark:text-brand-400 font-semibold whitespace-nowrap">{perUnit(it.price, it.unit)}</div>
                         <FavBtn on={favs.has(it.supplierId)} onClick={() => toggleFav(it.supplierId)} />
                       </div>
                     </div>
@@ -249,6 +253,7 @@ export default function VendorDashboard() {
                       <th className="px-4 py-3">Item</th>
                       <th className="px-4 py-3">Category</th>
                       <th className="px-4 py-3">Price</th>
+                      <th className="px-4 py-3">In stock</th>
                       <th className="px-4 py-3">Supplier</th>
                       <th className="px-4 py-3">Location</th>
                       <th className="px-4 py-3 text-right">Action</th>
@@ -264,7 +269,8 @@ export default function VendorDashboard() {
                           </div>
                         </td>
                         <td className="px-4 py-3 text-gray-600 dark:text-gray-400 capitalize">{it.category}</td>
-                        <td className="px-4 py-3 font-semibold text-brand-700 dark:text-brand-400">₹{it.price}</td>
+                        <td className="px-4 py-3 font-semibold text-brand-700 dark:text-brand-400 whitespace-nowrap">{perUnit(it.price, it.unit)}</td>
+                        <td className="px-4 py-3 text-gray-600 dark:text-gray-400 whitespace-nowrap">{amount(it.quantity, it.unit)}</td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
                             <Link to={`/suppliers/${it.supplierId}`} className="hover:text-brand-600 hover:underline">{it.supplierName}</Link>
@@ -297,7 +303,7 @@ export default function VendorDashboard() {
                 <Link to={`/orders/${o._id}`} className="min-w-0 flex-1 group">
                   <div className="font-medium text-ink dark:text-gray-100 truncate group-hover:text-brand-600 dark:group-hover:text-brand-400">{o.itemName}</div>
                   <div className="text-xs text-gray-500 dark:text-gray-400">
-                    Qty {o.quantity} • ₹{o.price} • Supplier: {o.supplierId?.name || '—'}
+                    {amount(o.quantity, o.unit)} • {perUnit(o.price, o.unit)} • Supplier: {o.supplierId?.name || '—'}
                   </div>
                 </Link>
                 <StatusPill status={o.status} />

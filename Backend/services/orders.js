@@ -31,7 +31,8 @@ async function describeFailure(supplierId, itemId, qty) {
   const doc = await Supplier.findOne({ supplierId, 'inventory._id': itemId });
   const item = doc?.inventory?.id(itemId);
   if (!item) return new OrderError(404, 'That item is no longer listed');
-  return new OrderError(409, `Only ${item.quantity} left of ${item.itemName}, you asked for ${qty}`);
+  const u = item.unit || 'kg';
+  return new OrderError(409, `Only ${item.quantity} ${u} left of ${item.itemName}, you asked for ${qty} ${u}`);
 }
 
 // The client sends what it wants to buy. Name and price are read off the listing
@@ -56,6 +57,7 @@ async function placeOrders(vendor, lines, { deliveryAddress, notes } = {}) {
         itemName: item.itemName,
         quantity: line.quantity,
         price: item.price,
+        unit: item.unit,
         statusHistory: [{ status: 'Pending' }],
       });
     }

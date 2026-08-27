@@ -4,6 +4,7 @@ import api from '../api.js';
 import { useAuth } from '../auth.jsx';
 import { useCart } from '../cart.jsx';
 import { useToast } from '../components/Toast.jsx';
+import { money, amount } from '../format.js';
 
 export default function Checkout() {
   const { user } = useAuth();
@@ -99,13 +100,13 @@ export default function Checkout() {
             <div key={sid} className="card p-4">
               <div className="flex items-center justify-between mb-2">
                 <div className="font-medium text-ink dark:text-gray-100">{group.supplierName}</div>
-                <div className="text-brand-700 dark:text-brand-400 font-semibold">₹{group.total}</div>
+                <div className="text-brand-700 dark:text-brand-400 font-semibold">{money(group.total)}</div>
               </div>
               <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
                 {group.items.map((it) => (
                   <li key={it.itemId} className="flex justify-between">
-                    <span>{it.itemName} × {it.quantity}</span>
-                    <span>₹{it.price * it.quantity}</span>
+                    <span>{it.itemName} · {amount(it.quantity, it.unit)}</span>
+                    <span>{money(it.price * it.quantity)}</span>
                   </li>
                 ))}
               </ul>
@@ -118,13 +119,13 @@ export default function Checkout() {
         <h2 className="font-display text-xl text-ink dark:text-gray-100 mb-4">Summary</h2>
         <dl className="space-y-2 text-sm">
           <div className="flex justify-between text-gray-700 dark:text-gray-300"><dt>Items</dt><dd>{count}</dd></div>
-          <div className="flex justify-between text-gray-700 dark:text-gray-300"><dt>Subtotal</dt><dd>₹{subtotal}</dd></div>
+          <div className="flex justify-between text-gray-700 dark:text-gray-300"><dt>Subtotal</dt><dd>{money(subtotal)}</dd></div>
           <div className="flex justify-between text-gray-500 dark:text-gray-400"><dt>Delivery</dt><dd>Free</dd></div>
         </dl>
         <div className="border-t border-gray-100 dark:border-night-700 my-4" />
         <div className="flex items-center justify-between">
           <span className="font-medium text-gray-700 dark:text-gray-300">Total</span>
-          <span className="font-display text-2xl text-brand-700 dark:text-brand-400">₹{subtotal}</span>
+          <span className="font-display text-2xl text-brand-700 dark:text-brand-400">{money(subtotal)}</span>
         </div>
         <button onClick={placeOrders} disabled={placing} className="btn-primary w-full mt-5">
           {placing ? 'Placing orders…' : `Place ${bySupplier.length} order${bySupplier.length === 1 ? '' : 's'}`}

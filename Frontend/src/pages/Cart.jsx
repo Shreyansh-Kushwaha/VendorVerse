@@ -1,5 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../cart.jsx';
+import { money, perUnit, amount } from '../format.js';
 
 export default function Cart() {
   const { items, update, remove, clear, count, subtotal } = useCart();
@@ -58,10 +59,11 @@ export default function Cart() {
                       className="px-2.5 py-1 text-gray-700 dark:text-gray-300 hover:bg-brand-50 dark:hover:bg-night-700 rounded-r-lg"
                       onClick={() => update(it.itemId, it.quantity + 1)}
                     >+</button>
+                    <span className="pr-2 text-xs text-gray-500 dark:text-gray-400">{it.unit || 'kg'}</span>
                   </div>
                   <div className="text-right">
-                    <div className="text-brand-700 dark:text-brand-400 font-semibold">₹{it.price * it.quantity}</div>
-                    <div className="text-[11px] text-gray-500 dark:text-gray-400">₹{it.price} each</div>
+                    <div className="text-brand-700 dark:text-brand-400 font-semibold">{money(it.price * it.quantity)}</div>
+                    <div className="text-[11px] text-gray-500 dark:text-gray-400">{perUnit(it.price, it.unit)}</div>
                   </div>
                 </div>
               </div>
@@ -74,7 +76,7 @@ export default function Cart() {
         <h2 className="font-display text-xl text-ink dark:text-gray-100 mb-4">Order summary</h2>
         <dl className="space-y-2 text-sm">
           <div className="flex justify-between text-gray-700 dark:text-gray-300">
-            <dt>Subtotal</dt><dd>₹{subtotal}</dd>
+            <dt>Subtotal</dt><dd>{money(subtotal)}</dd>
           </div>
           <div className="flex justify-between text-gray-700 dark:text-gray-300">
             <dt>Items</dt><dd>{count}</dd>
@@ -86,7 +88,7 @@ export default function Cart() {
         <div className="border-t border-gray-100 dark:border-night-700 my-4" />
         <div className="flex items-center justify-between">
           <span className="text-gray-700 dark:text-gray-300 font-medium">Total</span>
-          <span className="font-display text-2xl text-brand-700 dark:text-brand-400">₹{subtotal}</span>
+          <span className="font-display text-2xl text-brand-700 dark:text-brand-400">{money(subtotal)}</span>
         </div>
         <button onClick={() => navigate('/checkout')} className="btn-primary w-full mt-5">
           Proceed to checkout

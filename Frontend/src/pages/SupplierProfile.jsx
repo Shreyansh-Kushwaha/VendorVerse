@@ -4,6 +4,7 @@ import api from '../api.js';
 import { useAuth } from '../auth.jsx';
 import { useCart } from '../cart.jsx';
 import { useToast } from '../components/Toast.jsx';
+import { perUnit, amount } from '../format.js';
 
 export default function SupplierProfile() {
   const { id } = useParams();
@@ -117,9 +118,10 @@ export default function SupplierProfile() {
                 <div className="p-3">
                   <div className="font-medium text-ink dark:text-gray-100 truncate">{it.itemName}</div>
                   <div className="flex items-center justify-between mt-1">
-                    <span className="text-brand-700 dark:text-brand-400 font-semibold">₹{it.price}</span>
+                    <span className="text-brand-700 dark:text-brand-400 font-semibold">{perUnit(it.price, it.unit)}</span>
                     <span className="text-xs text-gray-500 dark:text-gray-400 capitalize">{it.category}</span>
                   </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{amount(it.quantity, it.unit)} in stock</div>
                   {isVendor && (
                     <button
                       className="btn-primary w-full mt-3 py-1.5 text-sm"
@@ -128,6 +130,7 @@ export default function SupplierProfile() {
                           itemId: it._id,
                           itemName: it.itemName,
                           price: it.price,
+                          unit: it.unit,
                           imageUrl: it.imageUrl,
                           supplierId: supplier._id,
                           supplierName: supplier.name,

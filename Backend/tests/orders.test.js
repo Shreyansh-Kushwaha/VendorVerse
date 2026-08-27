@@ -70,7 +70,7 @@ test('you cannot order more than is in stock', async () => {
 
   const res = await vendor.post('/api/placeOrder').send({ supplierId: idS, itemId, quantity: 6 });
   assert.strictEqual(res.status, 409);
-  assert.match(res.body.msg, /Only 5 left of Ginger/);
+  assert.match(res.body.msg, /Only 5 kg left of Ginger/);
 
   assert.strictEqual(await stockOf(itemId), 5, 'a rejected order must not touch stock');
   assert.strictEqual(await Order.countDocuments({ itemId }), 0, 'no order row written');

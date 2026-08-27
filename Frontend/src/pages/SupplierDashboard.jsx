@@ -3,6 +3,7 @@ import api, { uploadImage } from '../api.js';
 import { useAuth } from '../auth.jsx';
 import { useToast } from '../components/Toast.jsx';
 import Modal from '../components/Modal.jsx';
+import { UNITS, DEFAULT_UNIT, money, perUnit, amount } from '../format.js';
 
 const CATEGORY_OPTIONS = ['vegetables', 'fruits', 'spices', 'grains', 'dairy', 'others'];
 const FLOW = ['Pending', 'Accepted', 'Packed', 'OutForDelivery', 'Delivered'];
@@ -21,12 +22,12 @@ export default function SupplierDashboard() {
   const [ordersOpen, setOrdersOpen] = useState(false);
 
   const [addOpen, setAddOpen] = useState(false);
-  const [addForm, setAddForm] = useState({ itemName: '', price: '', quantity: '', category: '', location: user?.location || '' });
+  const [addForm, setAddForm] = useState({ itemName: '', price: '', quantity: '', unit: DEFAULT_UNIT, category: '', location: user?.location || '' });
   const [imageFile, setImageFile] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
   const [editing, setEditing] = useState(null); // {item, mode: 'edit'|'delete'}
-  const [editForm, setEditForm] = useState({ itemName: '', price: '', quantity: '', category: '' });
+  const [editForm, setEditForm] = useState({ itemName: '', price: '', quantity: '', unit: DEFAULT_UNIT, category: '' });
   const [editBusy, setEditBusy] = useState(false);
 
   const loadAll = async () => {
@@ -64,13 +65,14 @@ export default function SupplierDashboard() {
           itemName: addForm.itemName,
           quantity: Number(addForm.quantity),
           price: Number(addForm.price),
+          unit: addForm.unit,
           category: addForm.category,
           imageUrl,
         },
       });
       toast.success('Item added');
       setAddOpen(false);
-      setAddForm({ itemName: '', price: '', quantity: '', category: '', location: user?.location || '' });
+      setAddForm({ itemName: '', price: '', quantity: '', unit: DEFAULT_UNIT, category: '', location: user?.location || '' });
       setImageFile(null);
       loadAll();
     } catch (err) {
@@ -86,6 +88,7 @@ export default function SupplierDashboard() {
       itemName: item.itemName,
       price: String(item.price),
       quantity: String(item.quantity),
+      unit: item.unit || DEFAULT_UNIT,
       category: item.category || 'others',
     });
   };
@@ -98,6 +101,7 @@ export default function SupplierDashboard() {
         itemName: editForm.itemName,
         price: Number(editForm.price),
         quantity: Number(editForm.quantity),
+        unit: editForm.unit,
         category: editForm.category,
       });
       toast.success('Item updated');
@@ -157,7 +161,7 @@ export default function SupplierDashboard() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Stat label="Total revenue" value={`₹${analytics?.totalRevenue ?? 0}`} accent />
+        <Stat label="Total revenue" value={money(analytics?.totalRevenue)} accent />
         <Stat label="Items in stock" value={inventory.length} />
         <Stat label="Total orders" value={analytics?.totalOrders ?? orders.length} />
         <Stat
@@ -180,7 +184,7 @@ export default function SupplierDashboard() {
               const day = new Date(d.day).toLocaleDateString(undefined, { weekday: 'short' });
               return (
                 <div key={d.day} className="flex-1 flex flex-col items-center gap-1 group">
-                  <div className="text-[10px] text-gray-500 dark:text-gray-400 opacity-0 group-hover:opacity-100 transition">₹{d.revenue}</div>
+                  <div className="text-[10px] text-gray-500 dark:text-gray-400 opacity-0 group-hover:opacity-100 transition">{money(d.revenue)}</div>
                   <div className="w-full flex-1 flex items-end">
                     <div
                       className="w-full rounded-t-md bg-gradient-to-t from-brand-600 to-brand-400 transition-all"
@@ -249,8 +253,8 @@ export default function SupplierDashboard() {
                   <div className="font-medium text-ink dark:text-gray-100 truncate">{it.itemName}</div>
                   <div className="text-xs text-gray-500 dark:text-gray-400 capitalize">{it.category || 'others'}</div>
                   <div className="mt-1.5 flex items-center justify-between">
-                    <span className="text-brand-700 dark:text-brand-400 font-semibold">₹{it.price}</span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">{it.quantity} qty</span>
+                    <span className="text-brand-700 dark:text-brand-400 font-semibold">{perUnit(it.price, it.unit)}</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">{amount(it.quantity, it.unit)} left</span>
                   </div>
                 </div>
               </button>
@@ -288,9 +292,9 @@ export default function SupplierDashboard() {
                   <StatusPill status={o.status || 'Pending'} />
                 </div>
                 <div className="mt-2 text-sm text-gray-700 dark:text-gray-300">
-                  {o.itemName} × {o.quantity}{' '}
+                  {o.itemName} · {amount(o.quantity, o.unit)}{' '}
                   <span className="text-gray-400">·</span>{' '}
-                  <span className="font-semibold text-emerald-700 dark:text-emerald-400">₹{(o.quantity || 0) * (o.price || 0)}</span>
+                  <span className="font-semibold text-emerald-700 dark:text-emerald-400">{money((o.quantity || 0) * (o.price || 0))}</span>
                 </div>
                 {o.deliveryAddress && (
                   <div className="mt-2 flex items-start gap-1.5 text-sm text-gray-600 dark:text-gray-400">
@@ -346,13 +350,19 @@ export default function SupplierDashboard() {
             <label className="label" htmlFor="itemName">Item name</label>
             <input id="itemName" required className="input" value={addForm.itemName} onChange={updateAdd('itemName')} />
           </div>
+          <div>
+            <label className="label" htmlFor="unit">Sold by</label>
+            <select id="unit" required className="input" value={addForm.unit} onChange={updateAdd('unit')}>
+              {UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
+            </select>
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="label" htmlFor="price">Price (₹)</label>
+              <label className="label" htmlFor="price">Price per {addForm.unit}</label>
               <input id="price" type="number" min="0" step="0.01" required className="input" value={addForm.price} onChange={updateAdd('price')} />
             </div>
             <div>
-              <label className="label" htmlFor="quantity">Quantity</label>
+              <label className="label" htmlFor="quantity">Stock ({addForm.unit})</label>
               <input id="quantity" type="number" min="0" required className="input" value={addForm.quantity} onChange={updateAdd('quantity')} />
             </div>
           </div>
@@ -398,13 +408,19 @@ export default function SupplierDashboard() {
               <label className="label">Item name</label>
               <input className="input" value={editForm.itemName} onChange={updateEdit('itemName')} />
             </div>
+            <div>
+              <label className="label">Sold by</label>
+              <select className="input" value={editForm.unit} onChange={updateEdit('unit')}>
+                {UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
+              </select>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="label">Price (₹)</label>
+                <label className="label">Price per {editForm.unit}</label>
                 <input type="number" min="0" step="0.01" className="input" value={editForm.price} onChange={updateEdit('price')} />
               </div>
               <div>
-                <label className="label">Quantity</label>
+                <label className="label">Stock ({editForm.unit})</label>
                 <input type="number" min="0" className="input" value={editForm.quantity} onChange={updateEdit('quantity')} />
               </div>
             </div>

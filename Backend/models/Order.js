@@ -17,6 +17,9 @@ const orderSchema = new mongoose.Schema({
   itemName: String,
   quantity: Number,
   price: Number,
+  // Snapshot of the listing's unit so the order still reads correctly if the
+  // supplier later relists the item in something else.
+  unit: String,
   date: { type: Date, default: Date.now },
   // Where this goes and anything the vendor wants the supplier to know. Captured
   // at checkout, so it survives a later change to the vendor's profile location.

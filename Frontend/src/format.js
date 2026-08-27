@@ -1,0 +1,18 @@
+// Units a supplier can list in. Mirrors Backend/lib/units.js.
+export const UNITS = ['kg', 'g', 'L', 'ml', 'piece', 'dozen', 'crate', 'sack'];
+export const DEFAULT_UNIT = 'kg';
+
+// Indian digit grouping — 1,20,000 rather than 120,000.
+export function money(n) {
+  return `₹${Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
+}
+
+// "₹40/kg" — the whole point of carrying a unit around.
+export function perUnit(price, unit) {
+  return `${money(price)}/${unit || DEFAULT_UNIT}`;
+}
+
+// "10 kg"
+export function amount(qty, unit) {
+  return `${qty ?? 0} ${unit || DEFAULT_UNIT}`;
+}
