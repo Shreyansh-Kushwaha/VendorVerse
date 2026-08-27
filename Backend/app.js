@@ -5,6 +5,7 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const rateLimit = require('express-rate-limit');
 
+const mongoose = require('mongoose');
 const { notFound, errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
@@ -45,9 +46,17 @@ if (process.env.NODE_ENV !== 'test') {
   }));
 }
 
-// Health (no DB call — fast and cacheable)
+// Health. Reports the driver's own connection state, so it stays a cheap
+// in-process check but stops claiming ok while the database is unreachable.
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', uptime: process.uptime(), ts: Date.now() });
+  const state = mongoose.connection.readyState;
+  const up = state === 1;
+  res.status(up ? 200 : 503).json({
+    status: up ? 'ok' : 'degraded',
+    db: mongoose.STATES[state],
+    uptime: process.uptime(),
+    ts: Date.now(),
+  });
 });
 
 // API routes
