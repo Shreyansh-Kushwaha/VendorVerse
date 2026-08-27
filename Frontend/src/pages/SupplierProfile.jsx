@@ -5,6 +5,7 @@ import { useAuth } from '../auth.jsx';
 import { useCart } from '../cart.jsx';
 import { useToast } from '../components/Toast.jsx';
 import { perUnit, amount } from '../format.js';
+import { useFavorites } from '../favorites.js';
 
 export default function SupplierProfile() {
   const { id } = useParams();
@@ -14,7 +15,8 @@ export default function SupplierProfile() {
   const [supplier, setSupplier] = useState(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [favorited, setFavorited] = useState(() => isFavorite(id));
+  const { isFavorite, toggle } = useFavorites();
+  const favorited = isFavorite(id);
 
   useEffect(() => {
     let cancelled = false;
@@ -38,10 +40,8 @@ export default function SupplierProfile() {
   }, [supplier, search]);
 
   const toggleFavorite = () => {
-    const next = !favorited;
-    setFavorited(next);
-    setFavorite(id, next);
-    toast.info(next ? 'Saved to favorites' : 'Removed from favorites');
+    toggle(id);
+    toast.info(favorited ? 'Removed from favorites' : 'Saved to favorites');
   };
 
   if (loading) return <div className="max-w-5xl mx-auto px-4 sm:px-6 py-12 text-gray-500 dark:text-gray-400">Loading supplier…</div>;
@@ -150,17 +150,4 @@ export default function SupplierProfile() {
       </section>
     </div>
   );
-}
-
-const FAV_KEY = 'vv_favorites';
-function getFavorites() {
-  try { return JSON.parse(localStorage.getItem(FAV_KEY) || '[]'); } catch { return []; }
-}
-function isFavorite(id) {
-  return getFavorites().includes(id);
-}
-function setFavorite(id, on) {
-  const list = new Set(getFavorites());
-  if (on) list.add(id); else list.delete(id);
-  localStorage.setItem(FAV_KEY, JSON.stringify([...list]));
 }

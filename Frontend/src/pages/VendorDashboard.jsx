@@ -5,12 +5,12 @@ import { useAuth } from '../auth.jsx';
 import { useCart } from '../cart.jsx';
 import { useToast } from '../components/Toast.jsx';
 import { money, perUnit, amount } from '../format.js';
+import { useFavorites } from '../favorites.js';
+import StatusPill from '../components/ui/StatusPill.jsx';
+import Thumb from '../components/ui/Thumb.jsx';
+import Stat from '../components/ui/Stat.jsx';
 
 const CATEGORIES = ['all', 'Vegetables', 'Fruits', 'Spices', 'Grains', 'Dairy', 'Others'];
-const FAV_KEY = 'vv_favorites';
-
-function readFavs() { try { return new Set(JSON.parse(localStorage.getItem(FAV_KEY) || '[]')); } catch { return new Set(); } }
-function writeFavs(set) { localStorage.setItem(FAV_KEY, JSON.stringify([...set])); }
 
 export default function VendorDashboard() {
   const { user } = useAuth();
@@ -25,7 +25,7 @@ export default function VendorDashboard() {
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('all');
   const [favOnly, setFavOnly] = useState(false);
-  const [favs, setFavs] = useState(readFavs);
+  const { favorites, toggle: toggleFav } = useFavorites();
 
   const loadAll = async () => {
     setLoading(true);
@@ -65,25 +65,15 @@ export default function VendorDashboard() {
 
   useEffect(() => { loadAll(); /* eslint-disable-next-line */ }, []);
 
-  const toggleFav = (supplierId) => {
-    setFavs((prev) => {
-      const next = new Set(prev);
-      if (next.has(supplierId)) next.delete(supplierId);
-      else next.add(supplierId);
-      writeFavs(next);
-      return next;
-    });
-  };
-
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return items.filter((it) => {
-      if (favOnly && !favs.has(it.supplierId)) return false;
+      if (favOnly && !favorites.has(it.supplierId)) return false;
       const matchCat = category === 'all' || it.category?.toLowerCase() === category.toLowerCase();
       const matchQ = !q || it.itemName?.toLowerCase().includes(q) || it.supplierName?.toLowerCase().includes(q);
       return matchCat && matchQ;
     });
-  }, [items, search, category, favOnly, favs]);
+  }, [items, search, category, favOnly, favorites]);
 
   const deals = useMemo(() => items.slice(0, 4), [items]);
   const lastOrder = orders[0];
@@ -235,7 +225,7 @@ export default function VendorDashboard() {
                       </div>
                       <div className="flex flex-col items-end gap-1">
                         <div className="text-brand-700 dark:text-brand-400 font-semibold whitespace-nowrap">{perUnit(it.price, it.unit)}</div>
-                        <FavBtn on={favs.has(it.supplierId)} onClick={() => toggleFav(it.supplierId)} />
+                        <FavBtn on={favorites.has(it.supplierId)} onClick={() => toggleFav(it.supplierId)} />
                       </div>
                     </div>
                     <button onClick={() => addToCart(it)} className="btn-primary w-full mt-3 py-1.5 text-sm">Add to cart</button>
@@ -264,7 +254,7 @@ export default function VendorDashboard() {
                       <tr key={`${it.supplierId}-${it.itemId}`} className="border-t border-gray-100 dark:border-night-700 hover:bg-brand-50/30 dark:hover:bg-night-700/40">
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-3">
-                            <Thumb src={it.imageUrl} alt={it.itemName} sm />
+                            <Thumb src={it.imageUrl} alt={it.itemName} size="sm" />
                             <span className="font-medium">{it.itemName}</span>
                           </div>
                         </td>
@@ -274,7 +264,7 @@ export default function VendorDashboard() {
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
                             <Link to={`/suppliers/${it.supplierId}`} className="hover:text-brand-600 hover:underline">{it.supplierName}</Link>
-                            <FavBtn on={favs.has(it.supplierId)} onClick={() => toggleFav(it.supplierId)} />
+                            <FavBtn on={favorites.has(it.supplierId)} onClick={() => toggleFav(it.supplierId)} />
                           </div>
                         </td>
                         <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{it.location}</td>
@@ -331,36 +321,6 @@ function FavBtn({ on, onClick }) {
       </svg>
     </button>
   );
-}
-
-function Stat({ label, value, accent }) {
-  return (
-    <div className="card p-4">
-      <div className="text-xs text-gray-500 dark:text-gray-400">{label}</div>
-      <div className={'font-display text-2xl mt-1 ' + (accent ? 'text-brand-600 dark:text-brand-400' : 'text-ink dark:text-gray-100')}>{value}</div>
-    </div>
-  );
-}
-
-function Thumb({ src, alt, sm }) {
-  const [err, setErr] = useState(false);
-  const cls = sm ? 'h-10 w-10' : 'h-16 w-16';
-  if (!src || err) return <div className={`${cls} rounded-lg bg-brand-100 text-brand-700 dark:bg-night-700 dark:text-brand-300 grid place-items-center font-bold shrink-0`}>{alt?.[0]?.toUpperCase() || '?'}</div>;
-  return <img src={src} alt={alt} onError={() => setErr(true)} className={`${cls} rounded-lg object-cover shrink-0`} />;
-}
-
-function StatusPill({ status }) {
-  const s = (status || 'Pending');
-  const map = {
-    Pending:        'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300',
-    Accepted:       'bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300',
-    Packed:         'bg-purple-100 text-purple-800 dark:bg-purple-500/15 dark:text-purple-300',
-    OutForDelivery: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-500/15 dark:text-indigo-300',
-    Delivered:      'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300',
-    Rejected:       'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300',
-    Cancelled:      'bg-gray-100 text-gray-700 dark:bg-night-700 dark:text-gray-300',
-  };
-  return <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${map[s] || ''}`}>{s}</span>;
 }
 
 function SkeletonRow() {

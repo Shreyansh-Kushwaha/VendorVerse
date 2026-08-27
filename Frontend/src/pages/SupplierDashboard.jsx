@@ -4,6 +4,9 @@ import { useAuth } from '../auth.jsx';
 import { useToast } from '../components/Toast.jsx';
 import Modal from '../components/Modal.jsx';
 import { UNITS, DEFAULT_UNIT, money, perUnit, amount } from '../format.js';
+import StatusPill from '../components/ui/StatusPill.jsx';
+import Thumb from '../components/ui/Thumb.jsx';
+import Stat from '../components/ui/Stat.jsx';
 
 const CATEGORY_OPTIONS = ['vegetables', 'fruits', 'spices', 'grains', 'dairy', 'others'];
 const NEXT_STATUS = { Pending: 'Accepted', Accepted: 'Packed', Packed: 'OutForDelivery', OutForDelivery: 'Delivered' };
@@ -241,7 +244,7 @@ export default function SupplierDashboard() {
                 className="card overflow-hidden text-left group focus:outline-none focus:ring-2 focus:ring-brand-500"
               >
                 <div className="relative">
-                  <Thumb src={it.imageUrl} alt={it.itemName} square />
+                  <Thumb src={it.imageUrl} alt={it.itemName} size="square" rounded={false} />
                   {it.quantity <= LOW_STOCK && (
                     <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500 text-white shadow">
                       {it.quantity === 0 ? 'OUT' : 'LOW'}
@@ -434,40 +437,6 @@ export default function SupplierDashboard() {
       </Modal>
     </div>
   );
-}
-
-function Stat({ label, value, accent, warn }) {
-  return (
-    <div className="card p-4">
-      <div className="text-xs text-gray-500 dark:text-gray-400">{label}</div>
-      <div className={
-        'font-display text-3xl mt-1 ' +
-        (warn ? 'text-red-600 dark:text-red-400' :
-         accent ? 'text-brand-600 dark:text-brand-400' :
-         'text-ink dark:text-gray-100')
-      }>{value}</div>
-    </div>
-  );
-}
-
-function StatusPill({ status }) {
-  const map = {
-    Pending:        'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300',
-    Accepted:       'bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300',
-    Packed:         'bg-purple-100 text-purple-800 dark:bg-purple-500/15 dark:text-purple-300',
-    OutForDelivery: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-500/15 dark:text-indigo-300',
-    Delivered:      'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300',
-    Rejected:       'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300',
-    Cancelled:      'bg-gray-100 text-gray-700 dark:bg-night-700 dark:text-gray-300',
-  };
-  return <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${map[status] || ''}`}>{status}</span>;
-}
-
-function Thumb({ src, alt, square }) {
-  const [err, setErr] = useState(false);
-  const cls = square ? 'aspect-square w-full' : 'h-16 w-16';
-  if (!src || err) return <div className={`${cls} bg-brand-100 text-brand-700 dark:bg-night-700 dark:text-brand-300 grid place-items-center font-bold`}>{alt?.[0]?.toUpperCase() || '?'}</div>;
-  return <img src={src} alt={alt} onError={() => setErr(true)} className={`${cls} object-cover`} />;
 }
 
 function EmptyState({ title, hint, action }) {

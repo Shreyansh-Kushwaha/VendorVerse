@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../cart.jsx';
-import { money, perUnit, amount } from '../format.js';
+import { money, perUnit } from '../format.js';
+import Thumb from '../components/ui/Thumb.jsx';
 
 export default function Cart() {
   const { items, update, remove, clear, count, subtotal } = useCart();
@@ -97,11 +98,4 @@ export default function Cart() {
       </aside>
     </div>
   );
-}
-
-function Thumb({ src, alt }) {
-  if (!src) {
-    return <div className="h-16 w-16 rounded-lg bg-brand-100 text-brand-700 dark:bg-night-700 dark:text-brand-300 grid place-items-center font-bold shrink-0">{alt?.[0]?.toUpperCase() || '?'}</div>;
-  }
-  return <img src={src} alt={alt} className="h-16 w-16 rounded-lg object-cover shrink-0" />;
 }
