@@ -69,7 +69,8 @@ export default function Checkout() {
         <div>
           <h1 className="font-display text-3xl text-ink dark:text-gray-100">Checkout</h1>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-            You're placing {bySupplier.length} order{bySupplier.length === 1 ? '' : 's'} across {bySupplier.length} supplier{bySupplier.length === 1 ? '' : 's'}.
+            {count} item{count === 1 ? '' : 's'} from {bySupplier.length} supplier{bySupplier.length === 1 ? '' : 's'}.
+            Each supplier delivers and is paid separately.
           </p>
         </div>
 
@@ -78,19 +79,17 @@ export default function Checkout() {
           <div className="space-y-3">
             <div>
               <label className="label" htmlFor="address">Delivery address</label>
-              <input id="address" className="input" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Stall address or landmark" />
-              {!address.trim() && (
-                <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
-                  Leave this blank and we will use your profile location.
-                </p>
-              )}
+              <input id="address" className="input" required value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Stall address or landmark" />
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Prefilled from your profile. Change it for this order if you need to.
+              </p>
             </div>
             <div>
               <label className="label" htmlFor="notes">Notes for the supplier (optional)</label>
               <textarea id="notes" className="input min-h-[80px]" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. ring the bell, deliver before 8 AM" />
             </div>
-            <p className="text-xs text-gray-500 dark:text-gray-500">
-              Payment is on delivery for now. Online payments coming soon.
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              You pay each supplier in cash when their delivery arrives. Online payment is coming.
             </p>
           </div>
         </div>
@@ -121,6 +120,7 @@ export default function Checkout() {
           <div className="flex justify-between text-gray-700 dark:text-gray-300"><dt>Items</dt><dd>{count}</dd></div>
           <div className="flex justify-between text-gray-700 dark:text-gray-300"><dt>Subtotal</dt><dd>{money(subtotal)}</dd></div>
           <div className="flex justify-between text-gray-500 dark:text-gray-400"><dt>Delivery</dt><dd>Free</dd></div>
+          <div className="flex justify-between text-gray-500 dark:text-gray-400"><dt>Deliveries</dt><dd>{bySupplier.length}</dd></div>
         </dl>
         <div className="border-t border-gray-100 dark:border-night-700 my-4" />
         <div className="flex items-center justify-between">
@@ -128,7 +128,7 @@ export default function Checkout() {
           <span className="tnum text-2xl font-medium tracking-tight text-ink dark:text-gray-100">{money(subtotal)}</span>
         </div>
         <button onClick={placeOrders} disabled={placing} className="btn-primary w-full mt-5">
-          {placing ? 'Placing orders…' : `Place ${bySupplier.length} order${bySupplier.length === 1 ? '' : 's'}`}
+          {placing ? 'Placing…' : `Place order · ${money(subtotal)}`}
         </button>
         <Link to="/cart" className="btn-ghost w-full mt-2">Back to cart</Link>
       </aside>

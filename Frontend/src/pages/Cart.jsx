@@ -82,7 +82,7 @@ export default function Cart() {
             <dt>Items</dt><dd>{count}</dd>
           </div>
           <div className="flex justify-between text-gray-500 dark:text-gray-400">
-            <dt>Delivery</dt><dd>Calculated at checkout</dd>
+            <dt>Delivery</dt><dd>Free</dd>
           </div>
         </dl>
         <div className="border-t border-gray-100 dark:border-night-700 my-4" />

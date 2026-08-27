@@ -1,8 +1,8 @@
 export default function Privacy() {
   return (
-    <article className="max-w-3xl mx-auto px-4 sm:px-6 py-10 sm:py-14 prose-styles">
+    <article className="max-w-3xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
       <h1 className="font-display text-4xl text-ink dark:text-gray-100">Privacy Policy</h1>
-      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Last updated: {new Date().toLocaleDateString()}</p>
+      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Last updated: 27 August 2026</p>
 
       <Section title="What we collect">
         <p>When you use VendorVerse we collect:</p>

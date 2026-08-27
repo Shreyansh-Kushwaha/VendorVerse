@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import api, { uploadImage } from '../api.js';
 import { useAuth } from '../auth.jsx';
 import { useToast } from '../components/Toast.jsx';
@@ -8,22 +9,31 @@ import { UNITS, DEFAULT_UNIT, money, perUnit, amount } from '../format.js';
 import StatusPill from '../components/ui/StatusPill.jsx';
 import Thumb from '../components/ui/Thumb.jsx';
 import Stat from '../components/ui/Stat.jsx';
+import QuantityStepper from '../components/ui/QuantityStepper.jsx';
 
 const CATEGORY_OPTIONS = ['vegetables', 'fruits', 'spices', 'grains', 'dairy', 'others'];
 const NEXT_STATUS = { Pending: 'Accepted', Accepted: 'Packed', Packed: 'OutForDelivery', OutForDelivery: 'Delivered' };
-const STATUS_LABELS = { Pending: 'Pending', Accepted: 'Accept', Packed: 'Mark packed', OutForDelivery: 'Out for delivery', Delivered: 'Mark delivered' };
+const STATUS_LABELS = { Accepted: 'Accept', Packed: 'Mark packed', OutForDelivery: 'Out for delivery', Delivered: 'Mark delivered' };
+const CLOSED = ['Delivered', 'Rejected', 'Cancelled'];
 const LOW_STOCK = 5;
+const TABS = { orders: 'Orders', inventory: 'Inventory', money: 'Money' };
 
 export default function SupplierDashboard() {
   const { user } = useAuth();
   const toast = useToast();
   const { onNotification } = useNotifications();
+  const [params, setParams] = useSearchParams();
+  const tab = TABS[params.get('tab')] ? params.get('tab') : 'orders';
+  const setTab = (t) => setParams(t === 'orders' ? {} : { tab: t }, { replace: true });
 
   const [inventory, setInventory] = useState([]);
   const [orders, setOrders] = useState([]);
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showAllOrders, setShowAllOrders] = useState(false);
+
+  const [invSearch, setInvSearch] = useState('');
+  const [stockFilter, setStockFilter] = useState('all'); // all | low | out
 
   const [addOpen, setAddOpen] = useState(false);
   const [addForm, setAddForm] = useState({ itemName: '', price: '', quantity: '', unit: DEFAULT_UNIT, category: '', location: user?.location || '' });
@@ -36,7 +46,6 @@ export default function SupplierDashboard() {
   const confirmingDelete = editing?.mode === 'delete';
 
   const loadAll = useCallback(async () => {
-    setLoading(true);
     try {
       const [inv, ord, an] = await Promise.all([
         api.get(`/suppliers/${user._id}/inventory`),
@@ -55,8 +64,6 @@ export default function SupplierDashboard() {
 
   useEffect(() => { loadAll(); }, [loadAll]);
 
-  // Pull fresh data the moment something happens, instead of waiting for the
-  // user to hit refresh.
   const loadRef = useRef(loadAll);
   useEffect(() => { loadRef.current = loadAll; });
   useEffect(() => onNotification(() => loadRef.current()), [onNotification]);
@@ -140,225 +147,262 @@ export default function SupplierDashboard() {
     }
   };
 
+  // Correcting stock is the most frequent write in the product. It used to cost
+  // four interactions through a modal; now it writes from the row itself, shown
+  // immediately and saved once the tapping stops.
+  const stockTimers = useRef({});
+  useEffect(() => {
+    const timers = stockTimers.current;
+    return () => Object.values(timers).forEach(clearTimeout);
+  }, []);
+
+  const setStock = (item, next) => {
+    const previous = item.quantity;
+    setInventory((inv) => inv.map(i => (i._id === item._id ? { ...i, quantity: next } : i)));
+
+    clearTimeout(stockTimers.current[item._id]);
+    stockTimers.current[item._id] = setTimeout(async () => {
+      try {
+        await api.patch(`/suppliers/${user._id}/inventory/${item._id}`, { quantity: next });
+      } catch (err) {
+        setInventory((inv) => inv.map(i => (i._id === item._id ? { ...i, quantity: previous } : i)));
+        toast.error(err.response?.data?.msg || `Could not update ${item.itemName} stock`);
+      }
+    }, 700);
+  };
+
   const advanceStatus = async (orderId, newStatus) => {
     try {
       await api.patch(`/orders/${orderId}/status`, { status: newStatus });
-      toast.success(`Order → ${newStatus}`);
+      toast.success(`Order marked ${newStatus === 'OutForDelivery' ? 'out for delivery' : newStatus.toLowerCase()}`);
       loadAll();
     } catch {
       toast.error('Could not update status');
     }
   };
 
-  const lowStockCount = useMemo(() => inventory.filter(i => i.quantity <= LOW_STOCK).length, [inventory]);
-  const maxDaily = analytics ? Math.max(1, ...analytics.daily.map(d => d.revenue)) : 1;
+  const lowStock = useMemo(() => inventory.filter(i => i.quantity > 0 && i.quantity <= LOW_STOCK), [inventory]);
+  const outOfStock = useMemo(() => inventory.filter(i => i.quantity <= 0), [inventory]);
   const pendingCount = useMemo(() => orders.filter(o => (o.status || 'Pending') === 'Pending').length, [orders]);
-  // Default to the orders that still need a decision. Completed history is a
-  // click away rather than something to scroll past every morning.
+  const openCount = useMemo(() => orders.filter(o => !CLOSED.includes(o.status || 'Pending')).length, [orders]);
+
   const visibleOrders = useMemo(
-    () => (showAllOrders ? orders : orders.filter(o => !['Delivered', 'Rejected', 'Cancelled'].includes(o.status || 'Pending'))),
+    () => (showAllOrders ? orders : orders.filter(o => !CLOSED.includes(o.status || 'Pending'))),
     [orders, showAllOrders],
   );
 
+  const visibleInventory = useMemo(() => {
+    const q = invSearch.trim().toLowerCase();
+    return inventory.filter((i) => {
+      if (q && !i.itemName?.toLowerCase().includes(q)) return false;
+      if (stockFilter === 'low') return i.quantity > 0 && i.quantity <= LOW_STOCK;
+      if (stockFilter === 'out') return i.quantity <= 0;
+      return true;
+    });
+  }, [inventory, invSearch, stockFilter]);
+
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-6">
-      {/* Greeting */}
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+    <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Supplier dashboard</p>
-          <h1 className="font-display text-3xl sm:text-4xl text-ink dark:text-gray-100">
-            Welcome, <span className="text-brand-600 dark:text-brand-400">{user?.name?.split(' ')[0] || 'Supplier'}</span>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Supplier</p>
+          <h1 className="text-2xl tracking-tight text-ink dark:text-gray-100 sm:text-3xl">
+            {user?.name?.split(' ')[0] || 'Supplier'}
+            {pendingCount > 0 && (
+              <span className="ml-2 align-middle text-base font-normal text-gray-500 dark:text-gray-400">
+                {pendingCount} waiting on you
+              </span>
+            )}
           </h1>
         </div>
-        <button onClick={() => setAddOpen(true)} className="btn-primary">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
-          Add inventory
+        <button onClick={() => setAddOpen(true)} className="btn-primary self-start sm:self-auto">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+          Add item
         </button>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Stat label="Total revenue" value={money(analytics?.totalRevenue)} />
-        <Stat label="Items in stock" value={inventory.length} />
-        <Stat label="Total orders" value={analytics?.totalOrders ?? orders.length} />
-        <Stat
-          label="Low stock"
-          value={lowStockCount}
-          warn={lowStockCount > 0}
-        />
+      <div role="tablist" aria-label="Dashboard sections" className="mt-5 flex gap-1 border-b border-gray-200 dark:border-night-600">
+        {Object.entries(TABS).map(([key, label]) => {
+          const on = key === tab;
+          const badge = key === 'orders' ? openCount : key === 'inventory' ? inventory.length : 0;
+          return (
+            <button
+              key={key} role="tab" aria-selected={on} onClick={() => setTab(key)}
+              className={'-mb-px border-b-2 px-3 py-2.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink dark:focus-visible:ring-gray-100 ' +
+                (on
+                  ? 'border-ink font-medium text-ink dark:border-gray-100 dark:text-gray-100'
+                  : 'border-transparent text-gray-500 hover:text-ink dark:text-gray-400 dark:hover:text-gray-100')}
+            >
+              {label}
+              {badge > 0 && <span className="tnum ml-1.5 text-gray-400">{badge}</span>}
+            </button>
+          );
+        })}
       </div>
 
-      {/* Incoming orders — the reason a supplier opens this page */}
-      <section>
-        <div className="flex flex-wrap items-end justify-between gap-3 mb-4">
-          <div>
-            <h2 className="font-display text-2xl text-ink dark:text-gray-100">
-              Incoming orders
-              {pendingCount > 0 && (
-                <span className="ml-2 align-middle inline-flex items-center justify-center min-w-[24px] h-6 px-2 rounded-full bg-red-500 text-white text-xs font-bold">
-                  {pendingCount > 99 ? '99+' : pendingCount}
-                </span>
-              )}
-            </h2>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              {pendingCount > 0
-                ? `${pendingCount} waiting on you`
-                : 'Nothing waiting on you right now'}
+      {tab === 'orders' && (
+        <section className="mt-6">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {openCount > 0 ? `${openCount} open order${openCount === 1 ? '' : 's'}` : 'Nothing waiting on you right now'}
             </p>
-          </div>
-          <div className="flex items-center gap-2">
             <button
-              type="button"
-              onClick={() => setShowAllOrders(v => !v)}
+              type="button" onClick={() => setShowAllOrders(v => !v)}
               className={'chip ' + (showAllOrders
-                ? 'bg-brand-600 text-white'
-                : 'bg-brand-50 text-brand-700 hover:bg-brand-100 dark:bg-night-700 dark:text-brand-300 dark:hover:bg-night-600')}
+                ? 'bg-ink text-white dark:bg-gray-100 dark:text-ink'
+                : 'border border-gray-200 text-gray-600 hover:bg-gray-50 dark:border-night-600 dark:text-gray-300 dark:hover:bg-night-700')}
             >
               {showAllOrders ? 'Showing all' : 'Showing open'}
             </button>
-            <button type="button" onClick={loadAll} className="btn-ghost text-sm">Refresh</button>
           </div>
-        </div>
 
-        {loading ? (
-          <div className="card p-5 animate-pulse space-y-3">
-            <div className="h-4 bg-gray-200 dark:bg-night-700 rounded w-1/3" />
-            <div className="h-4 bg-gray-200 dark:bg-night-700 rounded w-2/3" />
-          </div>
-        ) : visibleOrders.length === 0 ? (
-          <EmptyState
-            title={showAllOrders ? 'No orders yet' : 'You are all caught up'}
-            hint={showAllOrders
-              ? "When vendors place orders, they'll show up here."
-              : 'Every order has been dealt with. Switch to all to see past ones.'}
-          />
-        ) : (
-          <div className="grid gap-3 sm:grid-cols-2">
-            {visibleOrders.map((o) => (
-              <div key={o._id} className="rounded-xl border border-gray-100 dark:border-night-600 p-4">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <div className={'font-medium ' + (o.vendorId?.name ? 'text-ink dark:text-gray-100' : 'text-gray-400 dark:text-gray-500 italic')}>
-                      {o.vendorId?.name || 'Deleted account'}
+          {loading ? (
+            <SkeletonList />
+          ) : visibleOrders.length === 0 ? (
+            <EmptyState
+              title={showAllOrders ? 'No orders yet' : 'You are all caught up'}
+              hint={showAllOrders
+                ? 'When vendors place orders, they show up here.'
+                : 'Every order has been dealt with. Switch to all to see past ones.'}
+            />
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {visibleOrders.map((o) => {
+                const status = o.status || 'Pending';
+                const next = NEXT_STATUS[status];
+                return (
+                  <div key={o._id} className="card flex flex-col gap-2 p-4">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className={'truncate font-medium ' + (o.vendorId?.name ? 'text-ink dark:text-gray-100' : 'italic text-gray-400 dark:text-gray-500')}>
+                          {o.vendorId?.name || 'Deleted account'}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">{new Date(o.date).toLocaleString()}</div>
+                      </div>
+                      <StatusPill status={status} />
                     </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">{new Date(o.date).toLocaleString()}</div>
-                  </div>
-                  <StatusPill status={o.status || 'Pending'} />
-                </div>
-                <div className="mt-2 text-sm text-gray-700 dark:text-gray-300">
-                  {o.itemName} · {amount(o.quantity, o.unit)}{' '}
-                  <span className="text-gray-400">·</span>{' '}
-                  <span className="tnum font-semibold text-ink dark:text-gray-100">{money((o.quantity || 0) * (o.price || 0))}</span>
-                </div>
-                {o.deliveryAddress && (
-                  <div className="mt-2 flex items-start gap-1.5 text-sm text-gray-600 dark:text-gray-400">
-                    <svg className="mt-0.5 shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" />
-                    </svg>
-                    <span>{o.deliveryAddress}</span>
-                  </div>
-                )}
-                {o.notes && (
-                  <p className="mt-1.5 text-xs text-gray-600 dark:text-gray-400 italic border-l-2 border-brand-200 dark:border-night-600 pl-2 whitespace-pre-wrap">
-                    {o.notes}
-                  </p>
-                )}
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {o.status !== 'Rejected' && o.status !== 'Cancelled' && o.status !== 'Delivered' && (
-                    <button
-                      onClick={() => advanceStatus(o._id, NEXT_STATUS[o.status || 'Pending'])}
-                      className="btn-primary text-sm"
-                    >
-                      {STATUS_LABELS[NEXT_STATUS[o.status || 'Pending']]}
-                    </button>
-                  )}
-                  {o.status === 'Pending' && (
-                    <button
-                      onClick={() => advanceStatus(o._id, 'Rejected')}
-                      className="btn-danger text-sm"
-                    >Reject</button>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
 
-      {/* Revenue chart */}
-      {analytics && (
-        <section className="card p-5">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-display text-xl text-ink dark:text-gray-100">Revenue · last 7 days</h2>
-            <span className="text-xs text-gray-500 dark:text-gray-400">Excludes rejected/cancelled</span>
-          </div>
-          <div className="flex items-end gap-2 h-32">
-            {analytics.daily.map((d) => {
-              const pct = (d.revenue / maxDaily) * 100;
-              const day = new Date(d.day).toLocaleDateString(undefined, { weekday: 'short' });
-              return (
-                <div key={d.day} className="flex-1 flex flex-col items-center gap-1 group">
-                  <div className="text-[10px] text-gray-500 dark:text-gray-400 opacity-0 group-hover:opacity-100 transition">{money(d.revenue)}</div>
-                  <div className="w-full flex-1 flex items-end">
-                    <div
-                      className="w-full rounded-t-md bg-gradient-to-t from-brand-600 to-brand-400 transition-all"
-                      style={{ height: `${Math.max(pct, 2)}%` }}
-                    />
+                    <div className="tnum text-sm text-gray-600 dark:text-gray-300">
+                      {o.itemName} · {amount(o.quantity, o.unit)} ·{' '}
+                      <span className="font-semibold text-ink dark:text-gray-100">{money((o.quantity || 0) * (o.price || 0))}</span>
+                    </div>
+
+                    {o.deliveryAddress && (
+                      <div className="flex items-start gap-1.5 text-sm text-gray-600 dark:text-gray-400">
+                        <svg className="mt-0.5 shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" />
+                        </svg>
+                        <span>{o.deliveryAddress}</span>
+                      </div>
+                    )}
+                    {o.notes && (
+                      <p className="border-l-2 border-gray-200 pl-2 text-xs italic text-gray-600 dark:border-night-600 dark:text-gray-400 whitespace-pre-wrap">
+                        {o.notes}
+                      </p>
+                    )}
+
+                    {next && (
+                      <div className="mt-1 flex flex-wrap gap-2">
+                        <button onClick={() => advanceStatus(o._id, next)} className="btn-primary text-sm">
+                          {STATUS_LABELS[next]}
+                        </button>
+                        {status === 'Pending' && (
+                          <button onClick={() => advanceStatus(o._id, 'Rejected')} className="btn-danger text-sm">Reject</button>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  <div className="text-[10px] text-gray-500 dark:text-gray-400">{day}</div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </section>
       )}
 
-      {/* Inventory */}
-      <section>
-        <div className="flex items-end justify-between mb-4 gap-3">
-          <div>
-            <h2 className="font-display text-2xl text-ink dark:text-gray-100">Inventory</h2>
-            <p className="text-xs text-gray-500 dark:text-gray-400">{inventory.length} item{inventory.length === 1 ? '' : 's'} listed</p>
+      {tab === 'inventory' && (
+        <section className="mt-6">
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <input
+              className="input sm:max-w-xs" placeholder="Search your items…"
+              value={invSearch} onChange={(e) => setInvSearch(e.target.value)}
+            />
+            <div className="flex flex-wrap gap-2">
+              {[
+                ['all', `All ${inventory.length}`],
+                ['low', `Low ${lowStock.length}`],
+                ['out', `Out ${outOfStock.length}`],
+              ].map(([key, label]) => (
+                <button
+                  key={key} onClick={() => setStockFilter(key)} aria-pressed={stockFilter === key}
+                  className={'chip ' + (stockFilter === key
+                    ? 'bg-ink text-white dark:bg-gray-100 dark:text-ink'
+                    : 'border border-gray-200 text-gray-600 hover:bg-gray-50 dark:border-night-600 dark:text-gray-300 dark:hover:bg-night-700')}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
 
-        {loading ? (
-          <SkeletonGrid />
-        ) : inventory.length === 0 ? (
-          <EmptyState
-            title="No inventory yet"
-            hint="Add your first item to start receiving orders."
-            action={<button className="btn-primary mt-3" onClick={() => setAddOpen(true)}>Add inventory</button>}
-          />
-        ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-            {inventory.map((it) => (
-              <button
-                key={it._id}
-                onClick={() => openEdit(it)}
-                className="card overflow-hidden text-left group focus:outline-none focus:ring-2 focus:ring-brand-500"
-              >
-                <div className="relative">
-                  <Thumb src={it.imageUrl} alt={it.itemName} size="square" rounded={false} />
-                  {it.quantity <= LOW_STOCK && (
-                    <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500 text-white shadow">
-                      {it.quantity === 0 ? 'OUT' : 'LOW'}
-                    </span>
-                  )}
-                </div>
-                <div className="p-3">
-                  <div className="font-medium text-ink dark:text-gray-100 truncate">{it.itemName}</div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400 capitalize">{it.category || 'others'}</div>
-                  <div className="mt-1.5 flex items-center justify-between">
-                    <span className="tnum text-ink dark:text-gray-100 font-semibold">{perUnit(it.price, it.unit)}</span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">{amount(it.quantity, it.unit)} left</span>
+          {loading ? (
+            <SkeletonList />
+          ) : visibleInventory.length === 0 ? (
+            <EmptyState
+              title={inventory.length === 0 ? 'No inventory yet' : 'Nothing matches'}
+              hint={inventory.length === 0
+                ? 'Add your first item to start receiving orders. You do not appear in search until you list something.'
+                : 'Try a different search or stock filter.'}
+              action={inventory.length === 0
+                ? <button className="btn-primary mt-4" onClick={() => setAddOpen(true)}>Add item</button>
+                : null}
+            />
+          ) : (
+            <ul className="card divide-y divide-gray-200 dark:divide-night-600">
+              {visibleInventory.map((it) => (
+                <li key={it._id} className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:gap-4">
+                  <div className="flex min-w-0 flex-1 items-center gap-3">
+                    <Thumb src={it.imageUrl} alt={it.itemName} size="sm" />
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="truncate font-medium text-ink dark:text-gray-100">{it.itemName}</span>
+                        {it.quantity <= 0 ? (
+                          <span className="shrink-0 rounded bg-red-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-red-700 dark:bg-red-500/10 dark:text-red-400">Out</span>
+                        ) : it.quantity <= LOW_STOCK ? (
+                          <span className="shrink-0 rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">Low</span>
+                        ) : null}
+                      </div>
+                      <div className="tnum truncate text-xs text-gray-500 dark:text-gray-400">
+                        {perUnit(it.price, it.unit)} · <span className="capitalize">{it.category || 'others'}</span>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </button>
-            ))}
+
+                  <div className="flex items-center justify-between gap-3 sm:justify-end">
+                    <QuantityStepper
+                      value={it.quantity} min={0} unit={it.unit || DEFAULT_UNIT}
+                      label={`${it.itemName} stock`}
+                      onChange={(n) => setStock(it, n)}
+                    />
+                    <button onClick={() => openEdit(it)} className="btn-ghost text-sm">Edit</button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
+
+      {tab === 'money' && (
+        <section className="mt-6 space-y-6">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <Stat label="Total revenue" value={money(analytics?.totalRevenue)} />
+            <Stat label="Total orders" value={analytics?.totalOrders ?? orders.length} />
+            <Stat label="Items listed" value={inventory.length} />
+            <Stat label="Low or out" value={lowStock.length + outOfStock.length} warn={lowStock.length + outOfStock.length > 0} />
           </div>
-        )}
-      </section>
+          <RevenueChart daily={analytics?.daily} />
+        </section>
+      )}
 
       {/* Add modal */}
       <Modal
@@ -410,10 +454,10 @@ export default function SupplierDashboard() {
             <label className="label" htmlFor="image">Image (max 5 MB)</label>
             <input
               id="image" type="file" accept="image/*" required
-              className="block w-full text-sm text-gray-600 dark:text-gray-400 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100 dark:file:bg-night-700 dark:file:text-brand-300 dark:hover:file:bg-night-600"
+              className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-md file:border-0 file:bg-gray-100 file:px-4 file:py-2 file:text-ink hover:file:bg-gray-200 dark:text-gray-400 dark:file:bg-night-700 dark:file:text-gray-100"
               onChange={(e) => setImageFile(e.target.files?.[0] || null)}
             />
-            {imageFile && <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Selected: {imageFile.name}</p>}
+            {imageFile && <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Selected: {imageFile.name}</p>}
           </div>
         </form>
       </Modal>
@@ -422,16 +466,12 @@ export default function SupplierDashboard() {
       <Modal
         open={!!editing}
         onClose={() => !editBusy && setEditing(null)}
-        title={editing
-          ? (confirmingDelete ? `Delete ${editing.item.itemName}?` : `Edit · ${editing.item.itemName}`)
-          : ''}
+        title={editing ? (confirmingDelete ? `Delete ${editing.item.itemName}?` : `Edit ${editing.item.itemName}`) : ''}
         footer={confirmingDelete ? (
           <>
-            <button className="btn-ghost" type="button" onClick={() => setEditing({ ...editing, mode: 'edit' })} disabled={editBusy}>
-              Back
-            </button>
-            <button className="btn-danger" type="button" onClick={deleteItem} disabled={editBusy}>
-              {editBusy ? 'Deleting…' : 'Yes, delete it'}
+            <button className="btn-ghost" type="button" onClick={() => setEditing({ ...editing, mode: 'edit' })} disabled={editBusy}>Back</button>
+            <button className="btn-danger-solid" type="button" onClick={deleteItem} disabled={editBusy}>
+              {editBusy ? 'Deleting…' : `Delete ${editing?.item.itemName}`}
             </button>
           </>
         ) : (
@@ -442,12 +482,10 @@ export default function SupplierDashboard() {
         )}
       >
         {editing && confirmingDelete && (
-          <div className="space-y-3">
-            <div className="rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/30 p-3 text-sm text-red-700 dark:text-red-300">
-              <strong>{editing.item.itemName}</strong> will be removed from your catalog along with its{' '}
-              {amount(editing.item.quantity, editing.item.unit)} of stock. Orders already placed for it are not affected.
-              This cannot be undone.
-            </div>
+          <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300">
+            <strong>{editing.item.itemName}</strong> will be removed from your catalog along with its{' '}
+            {amount(editing.item.quantity, editing.item.unit)} of stock. Orders already placed for it are not
+            affected. This cannot be undone.
           </div>
         )}
 
@@ -480,11 +518,11 @@ export default function SupplierDashboard() {
               </select>
             </div>
 
-            <div className="pt-3 border-t border-gray-100 dark:border-night-600">
+            <div className="border-t border-gray-200 pt-3 dark:border-night-600">
               <button
                 type="button"
                 onClick={() => setEditing({ ...editing, mode: 'delete' })}
-                className="text-sm text-red-600 dark:text-red-400 hover:underline"
+                className="text-sm text-red-700 hover:underline dark:text-red-400"
               >
                 Delete this item
               </button>
@@ -496,28 +534,60 @@ export default function SupplierDashboard() {
   );
 }
 
+// Values used to appear on :hover only, which is unreachable on the phone most
+// suppliers use. They are printed above the bars instead.
+function RevenueChart({ daily }) {
+  if (!daily?.length) return null;
+  const max = Math.max(1, ...daily.map(d => d.revenue));
+  const total = daily.reduce((s, d) => s + d.revenue, 0);
+
+  return (
+    <div className="card p-5">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="text-base text-ink dark:text-gray-100">Revenue · last 7 days</h2>
+        <span className="tnum text-sm font-semibold text-ink dark:text-gray-100">{money(total)}</span>
+      </div>
+      <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">Excludes rejected and cancelled orders.</p>
+
+      <div className="mt-5 flex h-40 items-end gap-1.5 sm:gap-2">
+        {daily.map((d) => {
+          const pct = (d.revenue / max) * 100;
+          return (
+            <div key={d.day} className="flex flex-1 flex-col items-center gap-1.5">
+              <div className="tnum text-[10px] text-gray-500 dark:text-gray-400">
+                {d.revenue > 0 ? money(d.revenue) : '—'}
+              </div>
+              <div className="flex w-full flex-1 items-end">
+                <div
+                  className="w-full rounded-t bg-ink dark:bg-gray-100"
+                  style={{ height: `${Math.max(pct, 1.5)}%` }}
+                />
+              </div>
+              <div className="text-[10px] text-gray-500 dark:text-gray-400">
+                {new Date(d.day).toLocaleDateString(undefined, { weekday: 'short' })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function EmptyState({ title, hint, action }) {
   return (
-    <div className="card p-8 text-center">
+    <div className="card p-10 text-center">
       <div className="font-medium text-ink dark:text-gray-100">{title}</div>
-      <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">{hint}</div>
+      <div className="mx-auto mt-1 max-w-sm text-sm text-gray-500 dark:text-gray-400">{hint}</div>
       {action}
     </div>
   );
 }
 
-function SkeletonGrid() {
+function SkeletonList() {
   return (
-    <div className="grid grid-cols-2 gap-3">
-      {[1, 2, 3, 4].map((i) => (
-        <div key={i} className="card overflow-hidden animate-pulse">
-          <div className="aspect-square bg-gray-200 dark:bg-night-700" />
-          <div className="p-3 space-y-2">
-            <div className="h-3 bg-gray-200 dark:bg-night-700 rounded w-2/3" />
-            <div className="h-3 bg-gray-200 dark:bg-night-700 rounded w-1/3" />
-          </div>
-        </div>
-      ))}
+    <div className="animate-pulse space-y-3">
+      {[1, 2, 3].map(i => <div key={i} className="h-20 rounded-xl bg-gray-100 dark:bg-night-800" />)}
     </div>
   );
 }
