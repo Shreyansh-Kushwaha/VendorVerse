@@ -1,4 +1,5 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const router = express.Router();
 const { z } = require('zod');
 const Supplier = require('../models/Supplier');
@@ -8,6 +9,9 @@ const validate = require('../middleware/validate');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { releaseOrderStock } = require('../services/orders');
 const { UNITS, DEFAULT_UNIT } = require('../lib/units');
+const { CATEGORIES } = require('../lib/categories');
+
+const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const { notifySafely } = require('../services/notifications');
 
 // Packed is an internal step. The vendor does not need a mail for it.
@@ -57,7 +61,7 @@ const addInventorySchema = z.object({
     quantity: z.number().int().nonnegative(),
     price: z.number().nonnegative(),
     unit: z.enum(UNITS).default(DEFAULT_UNIT),
-    category: z.string().min(1),
+    category: z.enum(CATEGORIES),
     imageUrl: z.string().url().optional(),
   }),
 });
@@ -81,12 +85,83 @@ router.post('/suppliers',
 // =====================================================================
 // Suppliers: list (public) + per-supplier profile + per-supplier inventory
 // =====================================================================
-router.get('/suppliers', requireAuth, async (req, res, next) => {
-  try {
-    const suppliers = await Supplier.find();
-    res.json(suppliers);
-  } catch (err) { next(err); }
-});
+// =====================================================================
+// Catalog: one flat, filtered, paginated page of items.
+// Replaces the old GET /suppliers, which sent every supplier's entire
+// inventory and left the browser to flatten and filter it.
+// =====================================================================
+router.get('/items',
+  requireAuth,
+  validate({
+    query: z.object({
+      q: z.string().trim().max(100).optional(),
+      category: z.enum(['all', ...CATEGORIES]).default('all'),
+      // Comma separated supplier ids, used by the favourites filter.
+      suppliers: z.string().max(2000).optional(),
+      page: z.coerce.number().int().min(1).default(1),
+      limit: z.coerce.number().int().min(1).max(60).default(24),
+    }),
+  }),
+  async (req, res, next) => {
+    try {
+      const { q, category, suppliers, page, limit } = req.query;
+
+      const preMatch = {};
+      if (suppliers !== undefined) {
+        const ids = suppliers.split(',')
+          .map(id => id.trim())
+          .filter(id => /^[a-f\d]{24}$/i.test(id))
+          .map(id => new mongoose.Types.ObjectId(id));
+        // An explicit but empty filter means "none", not "everything".
+        if (ids.length === 0) {
+          return res.json({ items: [], total: 0, page, limit, pages: 0 });
+        }
+        preMatch.supplierId = { $in: ids };
+      }
+
+      const postMatch = {};
+      if (category !== 'all') postMatch['inventory.category'] = category;
+      if (q) {
+        const rx = new RegExp(escapeRegex(q), 'i');
+        postMatch.$or = [{ 'inventory.itemName': rx }, { name: rx }];
+      }
+
+      const [result] = await Supplier.aggregate([
+        ...(preMatch.supplierId ? [{ $match: preMatch }] : []),
+        { $unwind: '$inventory' },
+        ...(Object.keys(postMatch).length ? [{ $match: postMatch }] : []),
+        { $sort: { 'inventory.itemName': 1, 'inventory._id': 1 } },
+        {
+          $facet: {
+            rows: [
+              { $skip: (page - 1) * limit },
+              { $limit: limit },
+              {
+                $project: {
+                  _id: 0,
+                  itemId: '$inventory._id',
+                  itemName: '$inventory.itemName',
+                  price: '$inventory.price',
+                  unit: '$inventory.unit',
+                  quantity: '$inventory.quantity',
+                  category: '$inventory.category',
+                  imageUrl: '$inventory.imageUrl',
+                  supplierId: '$supplierId',
+                  supplierName: '$name',
+                  location: '$location',
+                },
+              },
+            ],
+            total: [{ $count: 'n' }],
+          },
+        },
+      ]);
+
+      const total = result.total[0]?.n || 0;
+      res.json({ items: result.rows, total, page, limit, pages: Math.ceil(total / limit) });
+    } catch (err) { next(err); }
+  },
+);
 
 router.get('/suppliers/:supplierId',
   validate({ params: z.object({ supplierId: objectId }) }),
@@ -132,7 +207,7 @@ const editInventorySchema = z.object({
   quantity: z.number().int().nonnegative().optional(),
   price: z.number().nonnegative().optional(),
   unit: z.enum(UNITS).optional(),
-  category: z.string().min(1).optional(),
+  category: z.enum(CATEGORIES).optional(),
   imageUrl: z.string().url().optional(),
 });
 
