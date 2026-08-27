@@ -17,7 +17,7 @@ export default function About() {
       </section>
 
       <section className="mt-10 grid sm:grid-cols-3 gap-4">
-        <Pillar title="Trust" body="Every supplier is verified before listing. We promote suppliers with consistently good ratings." />
+        <Pillar title="Transparency" body="Every listing shows its price per unit and what is actually in stock. The order status is the same for both sides." />
         <Pillar title="Fairness" body="We don't take a cut from vendors. Our incentives are aligned with the people we serve." />
         <Pillar title="Simplicity" body="The whole flow — discover, order, track — works on a phone in three minutes." />
       </section>

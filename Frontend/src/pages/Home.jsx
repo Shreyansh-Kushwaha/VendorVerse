@@ -53,17 +53,17 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Stats strip */}
+      {/* How the deal works */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 -mt-10 relative z-10">
         <div className="card grid grid-cols-2 sm:grid-cols-4 divide-x divide-gray-100 dark:divide-night-700">
           {[
-            { v: '1,200+', l: 'Vendors served' },
-            { v: '350+',   l: 'Suppliers onboarded' },
-            { v: '15k+',   l: 'Orders fulfilled' },
-            { v: '4.7★',   l: 'Average rating' },
+            { v: 'Direct',    l: 'No middleman between you and the supplier' },
+            { v: 'Per kg',    l: 'Every price carries its unit, so you can compare' },
+            { v: 'Free',      l: 'No commission from vendors during beta' },
+            { v: 'On delivery', l: 'Pay the supplier when the order arrives' },
           ].map((s) => (
-            <div key={s.l} className="p-5 text-center">
-              <div className="font-display text-2xl sm:text-3xl text-brand-600 dark:text-brand-400">{s.v}</div>
+            <div key={s.v} className="p-5 text-center">
+              <div className="font-display text-xl sm:text-2xl text-brand-600 dark:text-brand-400">{s.v}</div>
               <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{s.l}</div>
             </div>
           ))}
@@ -81,7 +81,7 @@ export default function Home() {
             steps={[
               ['Browse', 'Discover suppliers near you with live inventory and prices.'],
               ['Add to cart', 'Pick items from one or many suppliers in a single order.'],
-              ['Track', 'Watch your order move from accepted to delivered in real time.'],
+              ['Track', 'Follow your order from accepted through packed to delivered.'],
             ]}
           />
           <RoleCard
@@ -100,7 +100,7 @@ export default function Home() {
       <section className="max-w-6xl mx-auto px-4 sm:px-6 mt-14">
         <div className="grid sm:grid-cols-3 gap-4">
           {[
-            { t: 'Discover', d: 'Browse trusted suppliers near you with prices, locations and live inventory.' },
+            { t: 'Discover', d: 'Browse local suppliers with their prices, locations and what is actually in stock.' },
             { t: 'Compare', d: 'Filter by category and search items in seconds — no more phone calls.' },
             { t: 'Order',    d: 'Place multi-supplier orders with one tap and track them right from your dashboard.' },
           ].map((f) => (
@@ -109,26 +109,6 @@ export default function Home() {
               <h3 className="font-display text-xl text-ink dark:text-gray-100">{f.t}</h3>
               <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{f.d}</p>
             </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Testimonials */}
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 mt-14">
-        <h2 className="font-display text-3xl text-center text-ink dark:text-gray-100">What people say</h2>
-        <div className="mt-6 grid md:grid-cols-3 gap-4">
-          {[
-            { q: '“Saved me 2 hours every morning. I just open the app and reorder my usual.”', n: 'Ramesh', r: 'Pani Puri stall, Mumbai' },
-            { q: '“The price comparison is gold. Got onions for ₹8 less per kg this week.”', n: 'Sunita', r: 'Chaat corner, Pune' },
-            { q: '“As a supplier, I now get orders without the back-and-forth on WhatsApp.”', n: 'Imran', r: 'Vegetable wholesaler, Delhi' },
-          ].map((t) => (
-            <figure key={t.n} className="card p-5">
-              <blockquote className="text-gray-700 dark:text-gray-300 italic">{t.q}</blockquote>
-              <figcaption className="mt-3 text-sm">
-                <div className="font-medium text-ink dark:text-gray-100">{t.n}</div>
-                <div className="text-gray-500 dark:text-gray-400">{t.r}</div>
-              </figcaption>
-            </figure>
           ))}
         </div>
       </section>
@@ -191,9 +171,9 @@ function RoleCard({ title, color, steps }) {
 const FAQS = [
   { q: 'Is VendorVerse free to use?', a: 'Yes — both vendors and suppliers can sign up and use the platform free of charge during our beta.' },
   { q: 'How do I pay for orders?', a: 'Right now orders are pay-on-delivery, with the supplier directly. Online payments via UPI are coming soon.' },
-  { q: 'Can a supplier deliver outside their city?', a: 'It depends on the supplier. Each supplier sets their own delivery range, listed on their profile.' },
+  { q: 'Can a supplier deliver outside their city?', a: 'That is between you and the supplier for now. Each listing shows the supplier location, and you can leave delivery instructions at checkout. Automatic matching by area is on our roadmap.' },
   { q: 'How are prices set?', a: 'Suppliers set their own prices. Vendors can compare suppliers side-by-side to find the best deal.' },
-  { q: 'What if I have an issue with an order?', a: 'You can reject the order from your dashboard, or contact us through the Help page so we can mediate.' },
+  { q: 'What if I have an issue with an order?', a: 'A vendor can cancel while the order is still Pending, and a supplier can reject it from their dashboard. After that, reach us through the Help page so we can mediate.' },
 ];
 
 function Faq({ q, a }) {
