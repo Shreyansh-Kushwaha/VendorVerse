@@ -25,6 +25,9 @@ const orderSchema = new mongoose.Schema({
     enum: ORDER_STATUSES,
     default: 'Pending',
   },
+  // Set once the stock for this order has been handed back, so a repeated
+  // reject or cancel cannot inflate inventory.
+  stockReleased: { type: Boolean, default: false },
   statusHistory: [{
     status: { type: String, enum: ORDER_STATUSES },
     at: { type: Date, default: Date.now },

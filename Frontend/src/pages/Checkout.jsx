@@ -32,12 +32,12 @@ export default function Checkout() {
     setPlacing(true);
     try {
       const payload = {
+        // Name and price are read off the live listing by the server — the cart
+        // only says what and how much.
         items: items.map(it => ({
           supplierId: it.supplierId,
           itemId: it.itemId,
-          itemName: it.itemName,
           quantity: it.quantity,
-          price: it.price,
         })),
       };
       const { data } = await api.post('/placeOrders', payload);

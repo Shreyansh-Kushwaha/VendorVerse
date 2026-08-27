@@ -6,6 +6,7 @@ const Order = require('../models/Order');
 const User = require('../models/user');
 const validate = require('../middleware/validate');
 const { requireAuth, requireRole } = require('../middleware/auth');
+const { releaseOrderStock } = require('../services/orders');
 
 const objectId = z.string().regex(/^[a-f\d]{24}$/i, 'Invalid id');
 
@@ -192,6 +193,9 @@ router.patch('/orders/:orderId/status',
       if (!order) return res.status(404).json({ msg: 'Order not found' });
       if (String(order.supplierId) !== String(req.user._id)) {
         return res.status(403).json({ msg: 'That is not your order' });
+      }
+      if (req.body.status === 'Rejected' || req.body.status === 'Cancelled') {
+        await releaseOrderStock(order);
       }
       order.status = req.body.status;
       order.statusHistory.push({ status: req.body.status });

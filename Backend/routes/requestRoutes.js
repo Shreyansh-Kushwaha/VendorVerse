@@ -7,6 +7,7 @@ const Request = require('../models/Request');
 const Order = require('../models/Order');
 const validate = require('../middleware/validate');
 const { requireAuth, requireRole } = require('../middleware/auth');
+const { placeOrders } = require('../services/orders');
 
 const objectId = z.string().regex(/^[a-f\d]{24}$/i, 'Invalid id');
 
@@ -78,9 +79,7 @@ router.post('/vendor/request',
 const placeOrderSchema = z.object({
   supplierId: objectId,
   itemId: objectId,
-  itemName: z.string().min(1),
   quantity: z.number().int().positive(),
-  price: z.number().nonnegative(),
 });
 
 // Single order
@@ -90,12 +89,7 @@ router.post('/placeOrder',
   validate({ body: placeOrderSchema }),
   async (req, res, next) => {
     try {
-      const order = new Order({
-        ...req.body,
-        vendorId: req.user._id,
-        statusHistory: [{ status: 'Pending' }],
-      });
-      await order.save();
+      const [order] = await placeOrders(req.user._id, [req.body]);
       res.status(201).json({ msg: 'Order placed', order });
     } catch (err) { next(err); }
   },
@@ -108,12 +102,7 @@ router.post('/placeOrders',
   validate({ body: z.object({ items: z.array(placeOrderSchema).min(1) }) }),
   async (req, res, next) => {
     try {
-      const docs = req.body.items.map(i => ({
-        ...i,
-        vendorId: req.user._id,
-        statusHistory: [{ status: 'Pending' }],
-      }));
-      const created = await Order.insertMany(docs);
+      const created = await placeOrders(req.user._id, req.body.items);
       res.status(201).json({ msg: 'Orders placed', count: created.length, orders: created });
     } catch (err) { next(err); }
   },
