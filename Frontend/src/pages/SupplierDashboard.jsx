@@ -33,6 +33,7 @@ export default function SupplierDashboard() {
   const [editing, setEditing] = useState(null); // {item, mode: 'edit'|'delete'}
   const [editForm, setEditForm] = useState({ itemName: '', price: '', quantity: '', unit: DEFAULT_UNIT, category: '' });
   const [editBusy, setEditBusy] = useState(false);
+  const confirmingDelete = editing?.mode === 'delete';
 
   const loadAll = async () => {
     setLoading(true);
@@ -419,16 +420,36 @@ export default function SupplierDashboard() {
       <Modal
         open={!!editing}
         onClose={() => !editBusy && setEditing(null)}
-        title={editing ? `Edit · ${editing.item.itemName}` : ''}
-        footer={
+        title={editing
+          ? (confirmingDelete ? `Delete ${editing.item.itemName}?` : `Edit · ${editing.item.itemName}`)
+          : ''}
+        footer={confirmingDelete ? (
+          <>
+            <button className="btn-ghost" type="button" onClick={() => setEditing({ ...editing, mode: 'edit' })} disabled={editBusy}>
+              Back
+            </button>
+            <button className="btn-danger" type="button" onClick={deleteItem} disabled={editBusy}>
+              {editBusy ? 'Deleting…' : 'Yes, delete it'}
+            </button>
+          </>
+        ) : (
           <>
             <button className="btn-ghost" type="button" onClick={() => setEditing(null)} disabled={editBusy}>Close</button>
-            <button className="btn-danger" type="button" onClick={deleteItem} disabled={editBusy}>Delete</button>
             <button className="btn-primary" type="button" onClick={saveEdit} disabled={editBusy}>{editBusy ? 'Saving…' : 'Save'}</button>
           </>
-        }
+        )}
       >
-        {editing && (
+        {editing && confirmingDelete && (
+          <div className="space-y-3">
+            <div className="rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/30 p-3 text-sm text-red-700 dark:text-red-300">
+              <strong>{editing.item.itemName}</strong> will be removed from your catalog along with its{' '}
+              {amount(editing.item.quantity, editing.item.unit)} of stock. Orders already placed for it are not affected.
+              This cannot be undone.
+            </div>
+          </div>
+        )}
+
+        {editing && !confirmingDelete && (
           <div className="space-y-3">
             <div>
               <label className="label">Item name</label>
@@ -455,6 +476,16 @@ export default function SupplierDashboard() {
               <select className="input" value={editForm.category} onChange={updateEdit('category')}>
                 {CATEGORY_OPTIONS.map((c) => <option key={c} value={c} className="capitalize">{c}</option>)}
               </select>
+            </div>
+
+            <div className="pt-3 border-t border-gray-100 dark:border-night-600">
+              <button
+                type="button"
+                onClick={() => setEditing({ ...editing, mode: 'delete' })}
+                className="text-sm text-red-600 dark:text-red-400 hover:underline"
+              >
+                Delete this item
+              </button>
             </div>
           </div>
         )}
