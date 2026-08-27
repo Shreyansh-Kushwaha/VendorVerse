@@ -10,6 +10,9 @@ const { releaseOrderStock } = require('../services/orders');
 const { UNITS, DEFAULT_UNIT } = require('../lib/units');
 const { notifySafely } = require('../services/notifications');
 
+// Packed is an internal step. The vendor does not need a mail for it.
+const EMAIL_ON_STATUS = new Set(['Accepted', 'Rejected', 'OutForDelivery', 'Delivered']);
+
 const STATUS_WORDING = {
   Accepted:       'has been accepted',
   Packed:         'has been packed',
@@ -229,6 +232,7 @@ router.patch('/orders/:orderId/status',
         title: `Your ${order.itemName} order ${STATUS_WORDING[to] || `is now ${to}`}`,
         body: `${order.quantity} ${order.unit || 'kg'} from ${req.user.name}`,
         orderId: order._id,
+        email: EMAIL_ON_STATUS.has(to),
       });
 
       res.json({ msg: 'Status updated', order });

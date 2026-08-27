@@ -12,6 +12,8 @@ A marketplace that connects **Indian street food vendors** with **local raw-mate
 - 🛒 Cart and checkout across multiple suppliers in one go
 - 📍 Delivery address and notes captured at checkout and shown to the supplier
 - 🚚 Order workflow — Pending → Accepted → Packed → Out for delivery → Delivered
+- 🔔 Live notifications — suppliers hear about new orders, vendors about status changes
+- 📧 Optional email alerts so a supplier finds out with the tab closed
 - 📊 Revenue and spend analytics for both sides
 - 🌗 Dark mode, responsive, installable as a PWA
 
@@ -44,6 +46,9 @@ A marketplace that connects **Indian street food vendors** with **local raw-mate
 | `CLOUDINARY_API_KEY` | for image upload | |
 | `CLOUDINARY_API_SECRET` | for image upload | |
 | `CORS_ORIGINS` | no | Comma separated. Leave empty when Express serves the built SPA. |
+| `SMTP_HOST` `SMTP_PORT` `SMTP_USER` `SMTP_PASS` | no | Email alerts. Leave `SMTP_HOST` empty to turn email off — in-app and live alerts still work. |
+| `MAIL_FROM` | no | From address on alert emails |
+| `APP_URL` | no | Public base URL, used for the "View order" link in emails |
 | `PORT` | no | Defaults to 3000 |
 | `NODE_ENV` | no | Set to `production` on deploy so cookies are marked Secure |
 
@@ -69,7 +74,7 @@ Production — build the SPA first, then the backend serves it from one process.
 
     cd Backend && npm test
 
-Integration tests run against a real MongoDB spun up in memory, no Atlas connection needed. They cover authentication, per-endpoint authorization, stock reservation under concurrency, order status rules and unit handling.
+Integration tests run against a real MongoDB spun up in memory, no Atlas connection needed. They cover authentication, per-endpoint authorization, stock reservation under concurrency, order status rules, unit handling, notification delivery over SSE, and the email channel against a stub transport.
 
 ---
 
@@ -92,6 +97,9 @@ All routes are under `/api`. Everything except registration, login and public su
 | `PATCH` | `/orders/:id/status` | that order's supplier |
 | `GET` | `/orders/:id` | that order's buyer or seller |
 | `POST` | `/upload` | signed in |
+| `GET` | `/notifications` | signed in |
+| `POST` | `/notifications/:id/read` `/notifications/read-all` | that recipient only |
+| `GET` | `/notifications/stream` | signed in, server-sent events |
 | `GET` | `/health` | anyone |
 
 Item name and price are always read from the live listing — the client cannot set either.
@@ -100,8 +108,6 @@ Item name and price are always read from the live listing — the client cannot 
 
 ## 📢 Roadmap
 
-- 📧 Notify suppliers when an order arrives
-- 🙅 Let vendors cancel an order while it is still Pending
 - ⭐ Supplier ratings and reviews
 - 📍 Match vendors to suppliers who deliver to their area
 - 💳 Online payment via UPI

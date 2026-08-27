@@ -148,6 +148,7 @@ router.post('/orders/:orderId/cancel',
         title: `${req.user.name} cancelled an order`,
         body: `${order.quantity} ${order.unit || 'kg'} ${order.itemName} · the stock is back in your inventory`,
         orderId: order._id,
+        email: true, // they may already be packing it
       });
 
       res.json({ msg: 'Order cancelled', order });

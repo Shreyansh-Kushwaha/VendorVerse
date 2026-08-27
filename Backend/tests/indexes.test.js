@@ -9,6 +9,7 @@ const { MongoMemoryServer } = require('mongodb-memory-server');
 const request = require('supertest');
 
 const app = require('../app');
+const { flushEmails } = require('../services/notifications');
 const Supplier = require('../models/Supplier');
 const Order = require('../models/Order');
 
@@ -28,6 +29,7 @@ test.before(async () => {
 });
 
 test.after(async () => {
+  await flushEmails();
   await mongoose.disconnect();
   await mongod.stop();
 });

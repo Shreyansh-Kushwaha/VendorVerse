@@ -83,6 +83,7 @@ async function placeOrders(vendor, lines, { deliveryAddress, notes } = {}) {
           ? describeLine(group[0])
           : `${group.length} items · ${group.map(describeLine).join(', ')}`,
         orderId: group[0]._id,
+        email: true, // a new order is the whole reason to get a mail
       })));
 
     return created;
