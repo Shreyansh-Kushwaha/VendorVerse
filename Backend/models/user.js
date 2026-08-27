@@ -26,6 +26,12 @@ const userSchema = new mongoose.Schema({
   businessName: {
     type: String,
   },
+  // Only the hash of the reset token is stored, so a database leak does not
+  // hand somebody a working password reset link.
+  resetTokenHash: { type: String, select: false },
+  resetTokenExpires: { type: Date, select: false },
+  // Any session issued before this moment is treated as stale.
+  passwordChangedAt: { type: Date },
 }, { timestamps: true }); 
 
 module.exports = mongoose.model('SupplierData', userSchema);

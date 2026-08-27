@@ -14,6 +14,7 @@ A marketplace that connects **Indian street food vendors** with **local raw-mate
 - 🚚 Order workflow — Pending → Accepted → Packed → Out for delivery → Delivered
 - 🔔 Live notifications — suppliers hear about new orders, vendors about status changes
 - 📧 Optional email alerts so a supplier finds out with the tab closed
+- 🔑 Password reset by email, with single-use one-hour links
 - 📊 Revenue and spend analytics for both sides
 - 🌗 Dark mode, responsive, installable as a PWA
 
@@ -91,6 +92,7 @@ All routes are under `/api`. Everything except registration, login and public su
 | Method | Route | Who |
 |---|---|---|
 | `POST` | `/register` `/login` `/logout` | anyone |
+| `POST` | `/forgot-password` `/reset-password` | anyone, rate limited |
 | `GET` | `/me` | signed in |
 | `PATCH` `DELETE` | `/users/:id` | that user only |
 | `GET` | `/suppliers` | signed in |

@@ -16,6 +16,18 @@ async function requireAuth(req, res, next) {
   try {
     const user = await User.findById(payload.sub).select('-password');
     if (!user) return res.status(401).json({ msg: 'Account no longer exists' });
+
+    // A password change or reset retires every session issued before it. The
+    // token's iat is whole seconds, so compare in seconds — otherwise a cookie
+    // minted in the same second as the change looks stale and logs the user out
+    // of the tab they just used to change it.
+    if (user.passwordChangedAt) {
+      const changedAtSec = Math.floor(user.passwordChangedAt.getTime() / 1000);
+      if (payload.iat < changedAtSec) {
+        return res.status(401).json({ msg: 'Your password changed, please sign in again' });
+      }
+    }
+
     req.user = user;
     next();
   } catch (err) { next(err); }

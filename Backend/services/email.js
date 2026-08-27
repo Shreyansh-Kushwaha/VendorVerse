@@ -56,20 +56,48 @@ function render({ title, body, orderId }) {
   return { text, html };
 }
 
-async function sendNotificationEmail(recipient, note) {
+async function sendMail({ to, subject, text, html }) {
   const t = getTransport();
   if (!t) return { skipped: 'not-configured' };
-  if (!recipient?.email) return { skipped: 'no-address' };
+  if (!to) return { skipped: 'no-address' };
 
-  const { text, html } = render(note);
   await t.sendMail({
     from: process.env.MAIL_FROM || 'VendorVerse <no-reply@vendorverse.app>',
-    to: recipient.email,
-    subject: note.title,
+    to,
+    subject,
     text,
     html,
   });
   return { sent: true };
 }
 
-module.exports = { sendNotificationEmail, setTransport, render };
+async function sendNotificationEmail(recipient, note) {
+  const { text, html } = render(note);
+  return sendMail({ to: recipient?.email, subject: note.title, text, html });
+}
+
+async function sendPasswordResetEmail(user, resetUrl) {
+  const text = [
+    `Hi ${user.name},`,
+    '',
+    'Somebody asked to reset the password on your VendorVerse account.',
+    'Open this link within the next hour to choose a new one:',
+    resetUrl,
+    '',
+    'If that was not you, ignore this email. Your password stays as it is.',
+    '',
+    '— VendorVerse',
+  ].join('\n');
+
+  const html = `
+    <div style="font-family:system-ui,-apple-system,Segoe UI,sans-serif;max-width:520px">
+      <h2 style="color:#B85A1C;margin:0 0 8px">Reset your password</h2>
+      <p style="color:#333;margin:0 0 16px">Hi ${escapeHtml(user.name)}, use the button below to choose a new password. The link works for one hour.</p>
+      <p><a href="${escapeHtml(resetUrl)}" style="background:#FF8940;color:#fff;padding:10px 18px;border-radius:10px;text-decoration:none;display:inline-block">Choose a new password</a></p>
+      <p style="color:#888;font-size:12px;margin-top:24px">If you did not ask for this, ignore this email and nothing changes.</p>
+    </div>`;
+
+  return sendMail({ to: user.email, subject: 'Reset your VendorVerse password', text, html });
+}
+
+module.exports = { sendMail, sendNotificationEmail, sendPasswordResetEmail, setTransport, render };

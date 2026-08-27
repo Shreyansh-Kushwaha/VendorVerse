@@ -46,7 +46,10 @@ export default function Login() {
             />
           </div>
           <div>
-            <label className="label" htmlFor="password">Password</label>
+            <div className="flex items-center justify-between">
+              <label className="label" htmlFor="password">Password</label>
+              <Link to="/forgot-password" className="text-xs text-brand-700 dark:text-brand-300 hover:underline mb-1">Forgot password?</Link>
+            </div>
             <input
               id="password" type="password" required autoComplete="current-password"
               className="input" placeholder="••••••••"

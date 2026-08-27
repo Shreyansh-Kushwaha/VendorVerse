@@ -72,7 +72,7 @@ if (process.env.NODE_ENV !== 'test') {
     message: { msg: 'Too many requests, please slow down.' },
   }));
 
-  app.use(['/api/login', '/api/register'], rateLimit({
+  app.use(['/api/login', '/api/register', '/api/forgot-password', '/api/reset-password'], rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 20,
     standardHeaders: true,
