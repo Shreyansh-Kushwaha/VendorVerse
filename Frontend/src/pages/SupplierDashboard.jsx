@@ -178,7 +178,7 @@ export default function SupplierDashboard() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Stat label="Total revenue" value={money(analytics?.totalRevenue)} accent />
+        <Stat label="Total revenue" value={money(analytics?.totalRevenue)} />
         <Stat label="Items in stock" value={inventory.length} />
         <Stat label="Total orders" value={analytics?.totalOrders ?? orders.length} />
         <Stat
@@ -216,7 +216,7 @@ export default function SupplierDashboard() {
             >
               {showAllOrders ? 'Showing all' : 'Showing open'}
             </button>
-            <button type="button" onClick={loadAll} className="btn-ghost py-1.5 text-sm">Refresh</button>
+            <button type="button" onClick={loadAll} className="btn-ghost text-sm">Refresh</button>
           </div>
         </div>
 
@@ -248,7 +248,7 @@ export default function SupplierDashboard() {
                 <div className="mt-2 text-sm text-gray-700 dark:text-gray-300">
                   {o.itemName} · {amount(o.quantity, o.unit)}{' '}
                   <span className="text-gray-400">·</span>{' '}
-                  <span className="font-semibold text-emerald-700 dark:text-emerald-400">{money((o.quantity || 0) * (o.price || 0))}</span>
+                  <span className="tnum font-semibold text-ink dark:text-gray-100">{money((o.quantity || 0) * (o.price || 0))}</span>
                 </div>
                 {o.deliveryAddress && (
                   <div className="mt-2 flex items-start gap-1.5 text-sm text-gray-600 dark:text-gray-400">
@@ -267,7 +267,7 @@ export default function SupplierDashboard() {
                   {o.status !== 'Rejected' && o.status !== 'Cancelled' && o.status !== 'Delivered' && (
                     <button
                       onClick={() => advanceStatus(o._id, NEXT_STATUS[o.status || 'Pending'])}
-                      className="btn bg-emerald-600 text-white hover:bg-emerald-700 text-sm py-1.5"
+                      className="btn-primary text-sm"
                     >
                       {STATUS_LABELS[NEXT_STATUS[o.status || 'Pending']]}
                     </button>
@@ -275,7 +275,7 @@ export default function SupplierDashboard() {
                   {o.status === 'Pending' && (
                     <button
                       onClick={() => advanceStatus(o._id, 'Rejected')}
-                      className="btn-danger text-sm py-1.5"
+                      className="btn-danger text-sm"
                     >Reject</button>
                   )}
                 </div>
@@ -350,7 +350,7 @@ export default function SupplierDashboard() {
                   <div className="font-medium text-ink dark:text-gray-100 truncate">{it.itemName}</div>
                   <div className="text-xs text-gray-500 dark:text-gray-400 capitalize">{it.category || 'others'}</div>
                   <div className="mt-1.5 flex items-center justify-between">
-                    <span className="text-brand-700 dark:text-brand-400 font-semibold">{perUnit(it.price, it.unit)}</span>
+                    <span className="tnum text-ink dark:text-gray-100 font-semibold">{perUnit(it.price, it.unit)}</span>
                     <span className="text-xs text-gray-500 dark:text-gray-400">{amount(it.quantity, it.unit)} left</span>
                   </div>
                 </div>

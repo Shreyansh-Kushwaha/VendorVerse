@@ -100,7 +100,7 @@ export default function Checkout() {
             <div key={sid} className="card p-4">
               <div className="flex items-center justify-between mb-2">
                 <div className="font-medium text-ink dark:text-gray-100">{group.supplierName}</div>
-                <div className="text-brand-700 dark:text-brand-400 font-semibold">{money(group.total)}</div>
+                <div className="tnum text-ink dark:text-gray-100 font-semibold">{money(group.total)}</div>
               </div>
               <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
                 {group.items.map((it) => (
@@ -125,7 +125,7 @@ export default function Checkout() {
         <div className="border-t border-gray-100 dark:border-night-700 my-4" />
         <div className="flex items-center justify-between">
           <span className="font-medium text-gray-700 dark:text-gray-300">Total</span>
-          <span className="font-display text-2xl text-brand-700 dark:text-brand-400">{money(subtotal)}</span>
+          <span className="tnum text-2xl font-medium tracking-tight text-ink dark:text-gray-100">{money(subtotal)}</span>
         </div>
         <button onClick={placeOrders} disabled={placing} className="btn-primary w-full mt-5">
           {placing ? 'Placing orders…' : `Place ${bySupplier.length} order${bySupplier.length === 1 ? '' : 's'}`}

@@ -117,18 +117,21 @@ export default function OrderDetail() {
               return (
                 <li key={step} className="flex gap-3 pb-5 last:pb-0 relative">
                   {idx < FLOW.length - 1 && (
-                    <span className={'absolute left-3 top-6 bottom-0 w-px ' + (idx < currentIdx ? 'bg-brand-500' : 'bg-gray-200 dark:bg-night-600')} />
+                    <span className={'absolute left-3 top-6 bottom-0 w-px ' + (idx < currentIdx ? 'bg-ink dark:bg-gray-100' : 'bg-gray-200 dark:bg-night-600')} />
                   )}
-                  <span className={
-                    'relative h-6 w-6 rounded-full grid place-items-center shrink-0 transition ' +
-                    (reached
-                      ? 'bg-brand-500 text-white'
-                      : 'bg-gray-100 text-gray-400 dark:bg-night-700 dark:text-gray-500')
-                  }>
+                  <span
+                    aria-current={isCurrent ? 'step' : undefined}
+                    className={
+                      'relative grid h-6 w-6 shrink-0 place-items-center rounded-full transition-colors ' +
+                      (reached
+                        ? 'bg-ink text-white dark:bg-gray-100 dark:text-ink'
+                        : 'bg-gray-100 text-gray-400 dark:bg-night-700 dark:text-gray-500') +
+                      (isCurrent ? ' ring-2 ring-ink ring-offset-2 dark:ring-gray-100 dark:ring-offset-night-800' : '')
+                    }
+                  >
                     {reached ? (
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12l5 5L20 7"/></svg>
                     ) : <span className="h-1.5 w-1.5 rounded-full bg-current" />}
-                    {isCurrent && <span className="absolute inline-flex h-full w-full rounded-full bg-brand-500 opacity-40 animate-ping" />}
                   </span>
                   <div className="flex-1 -mt-0.5">
                     <div className={'font-medium ' + (reached ? 'text-ink dark:text-gray-100' : 'text-gray-400 dark:text-gray-500')}>{FLOW_LABELS[step]}</div>
@@ -167,7 +170,7 @@ export default function OrderDetail() {
         <h2 className="font-display text-xl text-ink dark:text-gray-100 mb-3">Total</h2>
         <div className="flex justify-between items-center">
           <span className="text-gray-600 dark:text-gray-400">{order.itemName} · {amount(order.quantity, order.unit)}</span>
-          <span className="font-display text-2xl text-brand-700 dark:text-brand-400">{money(order.quantity * order.price)}</span>
+          <span className="tnum text-2xl font-medium tracking-tight text-ink dark:text-gray-100">{money(order.quantity * order.price)}</span>
         </div>
       </section>
       <Modal

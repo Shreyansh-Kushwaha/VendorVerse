@@ -10,51 +10,45 @@ export default function Home() {
   return (
     <div>
       {/* Hero */}
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-brand-500 via-brand-400 to-brand-600" />
-        <div className="absolute -top-24 -right-24 h-96 w-96 rounded-full bg-white/10 blur-3xl" />
-        <div className="absolute -bottom-24 -left-24 h-96 w-96 rounded-full bg-black/10 blur-3xl" />
-
-        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-24 grid md:grid-cols-2 gap-10 items-center">
-          <div className="text-white">
-            <span className="inline-block bg-white/15 backdrop-blur px-3 py-1 rounded-full text-xs font-medium mb-4">
-              For Indian street food vendors & suppliers
+      <section className="border-b border-gray-200 dark:border-night-700">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-24 grid md:grid-cols-2 gap-10 items-center">
+          <div>
+            <span className="inline-block text-sm font-medium text-gray-500 dark:text-gray-400 mb-4">
+              For Indian street food vendors &amp; suppliers
             </span>
-            <h1 className="font-display text-5xl sm:text-6xl lg:text-7xl xl:text-8xl leading-[0.9] drop-shadow-md whitespace-nowrap">
-              pure<br/>&amp; fresh
+            {/* Was set whitespace-nowrap, which overflowed narrow viewports. */}
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tighter leading-[1.05] text-ink dark:text-gray-100 text-balance">
+              Buy your day&rsquo;s ingredients from local suppliers.
             </h1>
-            <p className="mt-5 text-base sm:text-lg text-white/90 max-w-md">
-              VendorVerse connects vendors directly with trusted local suppliers — discover, compare and order raw ingredients in minutes.
+            <p className="mt-5 text-base sm:text-lg text-gray-600 dark:text-gray-400 max-w-md">
+              Compare prices per kilo before you order, then track the delivery from accepted to your stall.
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
-              <Link to={ctaHref} className="btn bg-white text-brand-700 hover:bg-brand-50 shadow-pop">
+              <Link to={ctaHref} className="btn-primary">
                 {ctaLabel}
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
               </Link>
               {!user && (
-                <Link to="/login" className="btn bg-white/10 text-white border border-white/30 hover:bg-white/20">
+                <Link to="/login" className="btn-ghost">
                   I already have an account
                 </Link>
               )}
             </div>
           </div>
 
-          <div className="relative">
-            <div className="absolute -inset-4 bg-white/10 rounded-3xl blur-2xl" />
-            <div className="relative aspect-[4/3] rounded-3xl overflow-hidden shadow-pop ring-4 ring-white/30">
-              <img src="/home/tractor.jpg" alt="Fresh from the farm" className="h-full w-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-              <div className="absolute bottom-4 left-4 right-4 text-white">
-                <p className="text-xs uppercase tracking-wider opacity-80">Today on the platform</p>
-                <p className="font-display text-2xl">Farm-fresh ingredients, delivered direct.</p>
-              </div>
+          <div className="relative aspect-[4/3] rounded-xl overflow-hidden border border-gray-200 dark:border-night-600">
+            <img src="/home/tractor.jpg" alt="Fresh from the farm" className="h-full w-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+            <div className="absolute bottom-4 left-4 right-4 text-white">
+              <p className="text-xs uppercase tracking-wider opacity-80">Today on the platform</p>
+              <p className="text-xl font-medium tracking-tight">Farm-fresh ingredients, delivered direct.</p>
             </div>
           </div>
         </div>
       </section>
 
       {/* How the deal works */}
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 -mt-10 relative z-10">
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 mt-14">
         <div className="card grid grid-cols-2 sm:grid-cols-4 divide-x divide-gray-100 dark:divide-night-700">
           {[
             { v: 'Direct',    l: 'No middleman between you and the supplier' },
@@ -77,7 +71,6 @@ export default function Home() {
         <div className="mt-8 grid md:grid-cols-2 gap-6">
           <RoleCard
             title="For vendors"
-            color="from-brand-500 to-brand-600"
             steps={[
               ['Browse', 'Discover suppliers near you with live inventory and prices.'],
               ['Add to cart', 'Pick items from one or many suppliers in a single order.'],
@@ -86,7 +79,6 @@ export default function Home() {
           />
           <RoleCard
             title="For suppliers"
-            color="from-emerald-500 to-emerald-600"
             steps={[
               ['List inventory', 'Add items with photos, price and quantity in seconds.'],
               ['Receive orders', 'Vendors place orders directly — no phone tag.'],
@@ -146,10 +138,9 @@ export default function Home() {
   );
 }
 
-function RoleCard({ title, color, steps }) {
+function RoleCard({ title, steps }) {
   return (
     <div className="card overflow-hidden">
-      <div className={`h-2 bg-gradient-to-r ${color}`} />
       <div className="p-6">
         <h3 className="font-display text-2xl text-ink dark:text-gray-100">{title}</h3>
         <ol className="mt-4 space-y-4">

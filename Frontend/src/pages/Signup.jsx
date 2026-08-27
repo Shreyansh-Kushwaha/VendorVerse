@@ -54,7 +54,7 @@ export default function Signup() {
                 className={
                   'rounded-lg p-3 text-left transition ' +
                   (active
-                    ? 'bg-white dark:bg-night-800 shadow-card text-brand-700 dark:text-brand-300'
+                    ? 'bg-white dark:bg-night-700 border border-gray-200 dark:border-night-600 text-ink dark:text-gray-100'
                     : 'text-gray-600 dark:text-gray-400 hover:bg-white/60 dark:hover:bg-night-800/60')
                 }
               >

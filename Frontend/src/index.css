@@ -16,8 +16,10 @@
   body.dark, html.dark body {
     @apply bg-night-900 text-gray-100;
   }
+  /* Preflight resets heading weight to inherit. Playfair only shipped 700, so
+     headings looked bold by accident; Inter ships 400 and they would not. */
   h1, h2, h3 {
-    @apply tracking-tight;
+    @apply font-semibold tracking-tight;
   }
 
   ::selection {

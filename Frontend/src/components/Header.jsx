@@ -30,7 +30,7 @@ export default function Header() {
     <header className="sticky top-0 z-30 bg-white/90 dark:bg-night-900/90 backdrop-blur border-b border-brand-100 dark:border-night-700 transition-colors">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2" onClick={() => setOpen(false)}>
-          <div className="h-9 w-9 rounded-xl bg-brand-500 grid place-items-center text-white font-bold shadow-card">
+          <div className="grid h-9 w-9 place-items-center rounded-lg bg-ink text-sm font-semibold text-white dark:bg-gray-100 dark:text-ink">
             V
           </div>
           <span className="font-display text-2xl font-bold text-ink dark:text-gray-100">VendorVerse</span>
@@ -48,7 +48,7 @@ export default function Header() {
               {showCart && <CartButton count={cartCount} />}
               <NotificationBell />
               <ThemeToggle className="ml-2" />
-              <button onClick={handleLogout} className="btn-primary ml-2">Log out</button>
+              <button onClick={handleLogout} className="btn-ghost ml-2">Log out</button>
             </>
           ) : (
             <>
@@ -92,7 +92,7 @@ export default function Header() {
                 <NavLink onClick={() => setOpen(false)} to="/profile" className={({isActive}) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
                   Profile
                 </NavLink>
-                <button onClick={handleLogout} className="btn-primary mt-2">Log out</button>
+                <button onClick={handleLogout} className="btn-ghost mt-2">Log out</button>
               </>
             ) : (
               <>

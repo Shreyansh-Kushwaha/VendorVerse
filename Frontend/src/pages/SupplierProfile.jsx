@@ -60,10 +60,9 @@ export default function SupplierProfile() {
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-6">
       <div className="card overflow-hidden">
-        <div className="h-32 bg-gradient-to-br from-brand-400 via-brand-500 to-brand-600" />
-        <div className="px-6 pb-6 -mt-12">
+        <div className="px-6 py-6">
           <div className="flex items-end justify-between gap-3 flex-wrap">
-            <div className="h-24 w-24 rounded-2xl bg-white dark:bg-night-700 shadow-pop ring-4 ring-white dark:ring-night-800 grid place-items-center font-display text-3xl text-brand-700 dark:text-brand-300">
+            <div className="grid h-16 w-16 place-items-center rounded-xl border border-gray-200 bg-gray-50 text-xl font-medium text-gray-600 dark:border-night-600 dark:bg-night-700 dark:text-gray-300">
               {initials}
             </div>
             {isVendor && (
@@ -83,7 +82,7 @@ export default function SupplierProfile() {
           <div className="mt-4">
             <h1 className="font-display text-3xl text-ink dark:text-gray-100">{supplier.name}</h1>
             {supplier.businessName && <p className="text-sm text-gray-600 dark:text-gray-400">{supplier.businessName}</p>}
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">📍 {supplier.location}</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{supplier.location}</p>
             {supplier.memberSince && (
               <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
                 Member since {new Date(supplier.memberSince).toLocaleDateString()}
@@ -118,13 +117,13 @@ export default function SupplierProfile() {
                 <div className="p-3">
                   <div className="font-medium text-ink dark:text-gray-100 truncate">{it.itemName}</div>
                   <div className="flex items-center justify-between mt-1">
-                    <span className="text-brand-700 dark:text-brand-400 font-semibold">{perUnit(it.price, it.unit)}</span>
+                    <span className="tnum text-ink dark:text-gray-100 font-semibold">{perUnit(it.price, it.unit)}</span>
                     <span className="text-xs text-gray-500 dark:text-gray-400 capitalize">{it.category}</span>
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{amount(it.quantity, it.unit)} in stock</div>
                   {isVendor && (
                     <button
-                      className="btn-primary w-full mt-3 py-1.5 text-sm"
+                      className="btn-ghost w-full mt-3 text-sm"
                       onClick={() => {
                         cart.add({
                           itemId: it._id,

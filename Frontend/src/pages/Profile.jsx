@@ -25,9 +25,8 @@ export default function Profile() {
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
       <div className="card overflow-hidden">
-        <div className="h-28 bg-gradient-to-br from-brand-400 via-brand-500 to-brand-600" />
-        <div className="px-6 sm:px-8 pb-8 -mt-12">
-          <div className="h-24 w-24 rounded-2xl bg-white dark:bg-night-700 shadow-pop ring-4 ring-white dark:ring-night-800 grid place-items-center font-display text-3xl text-brand-700 dark:text-brand-300">
+        <div className="px-6 sm:px-8 py-8">
+          <div className="grid h-16 w-16 place-items-center rounded-xl border border-gray-200 bg-gray-50 text-xl font-medium text-gray-600 dark:border-night-600 dark:bg-night-700 dark:text-gray-300">
             {initials}
           </div>
           <div className="mt-4 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">

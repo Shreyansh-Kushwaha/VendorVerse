@@ -10,7 +10,6 @@ export default function Cart() {
   if (items.length === 0) {
     return (
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-16 text-center">
-        <div className="text-6xl mb-3">🛒</div>
         <h1 className="font-display text-3xl text-ink dark:text-gray-100">Your cart is empty</h1>
         <p className="text-gray-600 dark:text-gray-400 mt-2">Browse suppliers and add items to start an order.</p>
         <Link to="/vendor" className="btn-primary mt-6">Browse items</Link>
@@ -45,25 +44,25 @@ export default function Cart() {
                   </button>
                 </div>
                 <div className="mt-3 flex items-center justify-between">
-                  <div className="inline-flex items-center gap-1 rounded-lg border border-gray-200 dark:border-night-600">
+                  <div className="inline-flex items-center rounded-md border border-gray-200 dark:border-night-600">
                     <button
-                      className="px-2.5 py-1 text-gray-700 dark:text-gray-300 hover:bg-brand-50 dark:hover:bg-night-700 rounded-l-lg"
+                      className="h-11 w-11 text-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-night-700 rounded-l-md"
                       onClick={() => update(it.itemId, it.quantity - 1)}
                     >−</button>
                     <input
                       type="number" min={1}
                       value={it.quantity}
                       onChange={(e) => update(it.itemId, parseInt(e.target.value) || 1)}
-                      className="w-12 text-center bg-transparent text-ink dark:text-gray-100 focus:outline-none"
+                      className="tnum w-12 bg-transparent text-center text-ink dark:text-gray-100 focus:outline-none"
                     />
                     <button
-                      className="px-2.5 py-1 text-gray-700 dark:text-gray-300 hover:bg-brand-50 dark:hover:bg-night-700 rounded-r-lg"
+                      className="h-11 w-11 text-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-night-700 rounded-r-md"
                       onClick={() => update(it.itemId, it.quantity + 1)}
                     >+</button>
                     <span className="pr-2 text-xs text-gray-500 dark:text-gray-400">{it.unit || 'kg'}</span>
                   </div>
                   <div className="text-right">
-                    <div className="text-brand-700 dark:text-brand-400 font-semibold">{money(it.price * it.quantity)}</div>
+                    <div className="tnum text-ink dark:text-gray-100 font-semibold">{money(it.price * it.quantity)}</div>
                     <div className="text-[11px] text-gray-500 dark:text-gray-400">{perUnit(it.price, it.unit)}</div>
                   </div>
                 </div>
@@ -89,7 +88,7 @@ export default function Cart() {
         <div className="border-t border-gray-100 dark:border-night-700 my-4" />
         <div className="flex items-center justify-between">
           <span className="text-gray-700 dark:text-gray-300 font-medium">Total</span>
-          <span className="font-display text-2xl text-brand-700 dark:text-brand-400">{money(subtotal)}</span>
+          <span className="tnum text-2xl font-medium tracking-tight text-ink dark:text-gray-100">{money(subtotal)}</span>
         </div>
         <button onClick={() => navigate('/checkout')} className="btn-primary w-full mt-5">
           Proceed to checkout

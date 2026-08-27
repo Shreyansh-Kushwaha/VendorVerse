@@ -135,7 +135,7 @@ export default function VendorDashboard() {
         <div>
           <p className="text-sm text-gray-500 dark:text-gray-400">Vendor dashboard</p>
           <h1 className="font-display text-3xl sm:text-4xl text-ink dark:text-gray-100">
-            Hello, <span className="text-brand-600 dark:text-brand-400">{user?.name?.split(' ')[0] || 'Vendor'}</span> 👋
+            Hello, <span className="text-brand-600 dark:text-brand-400">{user?.name?.split(' ')[0] || 'Vendor'}</span>
           </h1>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -157,7 +157,7 @@ export default function VendorDashboard() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Stat label="Items available" value={catalog.total} />
         <Stat label="My orders" value={analytics?.totalOrders ?? orders.length} />
-        <Stat label="Spend (7 days)" value={money(analytics?.weekSpend)} accent />
+        <Stat label="Spend (7 days)" value={money(analytics?.weekSpend)} />
         <Stat label="Total spend" value={money(analytics?.totalSpend)} />
       </div>
 
@@ -232,11 +232,11 @@ export default function VendorDashboard() {
                         <Link to={`/suppliers/${it.supplierId}`} className="text-xs text-gray-500 dark:text-gray-400 truncate hover:text-brand-600 hover:underline">{it.supplierName} • {it.location}</Link>
                       </div>
                       <div className="flex flex-col items-end gap-1">
-                        <div className="text-brand-700 dark:text-brand-400 font-semibold whitespace-nowrap">{perUnit(it.price, it.unit)}</div>
+                        <div className="tnum text-ink dark:text-gray-100 font-semibold whitespace-nowrap">{perUnit(it.price, it.unit)}</div>
                         <FavBtn on={favorites.has(it.supplierId)} onClick={() => toggleFav(it.supplierId)} />
                       </div>
                     </div>
-                    <button onClick={() => addToCart(it)} className="btn-primary w-full mt-3 py-1.5 text-sm">Add to cart</button>
+                    <button onClick={() => addToCart(it)} className="btn-ghost w-full mt-3 text-sm">Add to cart</button>
                   </div>
                 </div>
               ))}
@@ -267,7 +267,7 @@ export default function VendorDashboard() {
                           </div>
                         </td>
                         <td className="px-4 py-3 text-gray-600 dark:text-gray-400 capitalize">{it.category}</td>
-                        <td className="px-4 py-3 font-semibold text-brand-700 dark:text-brand-400 whitespace-nowrap">{perUnit(it.price, it.unit)}</td>
+                        <td className="px-4 py-3 font-semibold tnum text-ink dark:text-gray-100 whitespace-nowrap">{perUnit(it.price, it.unit)}</td>
                         <td className="px-4 py-3 text-gray-600 dark:text-gray-400 whitespace-nowrap">{amount(it.quantity, it.unit)}</td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
@@ -277,7 +277,7 @@ export default function VendorDashboard() {
                         </td>
                         <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{it.location}</td>
                         <td className="px-4 py-3 text-right">
-                          <button onClick={() => addToCart(it)} className="btn-primary py-1.5 text-sm">Add to cart</button>
+                          <button onClick={() => addToCart(it)} className="btn-ghost text-sm">Add to cart</button>
                         </td>
                       </tr>
                     ))}
