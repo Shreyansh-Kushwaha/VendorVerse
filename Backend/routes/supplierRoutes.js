@@ -8,6 +8,16 @@ const validate = require('../middleware/validate');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { releaseOrderStock } = require('../services/orders');
 const { UNITS, DEFAULT_UNIT } = require('../lib/units');
+const { notifySafely } = require('../services/notifications');
+
+const STATUS_WORDING = {
+  Accepted:       'has been accepted',
+  Packed:         'has been packed',
+  OutForDelivery: 'is out for delivery',
+  Delivered:      'has been delivered',
+  Rejected:       'was rejected by the supplier',
+  Cancelled:      'was cancelled',
+};
 
 const objectId = z.string().regex(/^[a-f\d]{24}$/i, 'Invalid id');
 
@@ -213,6 +223,14 @@ router.patch('/orders/:orderId/status',
       order.status = req.body.status;
       order.statusHistory.push({ status: req.body.status });
       await order.save();
+
+      await notifySafely(order.vendorId, {
+        type: 'order_status',
+        title: `Your ${order.itemName} order ${STATUS_WORDING[to] || `is now ${to}`}`,
+        body: `${order.quantity} ${order.unit || 'kg'} from ${req.user.name}`,
+        orderId: order._id,
+      });
+
       res.json({ msg: 'Status updated', order });
     } catch (err) { next(err); }
   },

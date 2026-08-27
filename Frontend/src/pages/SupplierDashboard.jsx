@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import api, { uploadImage } from '../api.js';
 import { useAuth } from '../auth.jsx';
 import { useToast } from '../components/Toast.jsx';
+import { useNotifications } from '../notifications.jsx';
 import Modal from '../components/Modal.jsx';
 import { UNITS, DEFAULT_UNIT, money, perUnit, amount } from '../format.js';
 import StatusPill from '../components/ui/StatusPill.jsx';
@@ -16,6 +17,7 @@ const LOW_STOCK = 5;
 export default function SupplierDashboard() {
   const { user } = useAuth();
   const toast = useToast();
+  const { onNotification } = useNotifications();
 
   const [inventory, setInventory] = useState([]);
   const [orders, setOrders] = useState([]);
@@ -51,6 +53,12 @@ export default function SupplierDashboard() {
   };
 
   useEffect(() => { loadAll(); /* eslint-disable-next-line */ }, []);
+
+  // Pull fresh data the moment something happens, instead of waiting for the
+  // user to hit refresh.
+  const loadRef = useRef(loadAll);
+  loadRef.current = loadAll;
+  useEffect(() => onNotification(() => loadRef.current()), [onNotification]);
 
   const updateAdd = (k) => (e) => setAddForm({ ...addForm, [k]: e.target.value });
   const updateEdit = (k) => (e) => setEditForm({ ...editForm, [k]: e.target.value });

@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import api from '../api.js';
 import { useAuth } from '../auth.jsx';
 import { useToast } from '../components/Toast.jsx';
+import { useNotifications } from '../notifications.jsx';
 import Modal from '../components/Modal.jsx';
 import { money, perUnit, amount } from '../format.js';
 import StatusPill from '../components/ui/StatusPill.jsx';
@@ -20,25 +21,30 @@ export default function OrderDetail() {
   const { id } = useParams();
   const { user } = useAuth();
   const toast = useToast();
+  const { onNotification } = useNotifications();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [cancelling, setCancelling] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const { data } = await api.get(`/orders/${id}`);
-        if (!cancelled) setOrder(data);
-      } catch (err) {
-        if (!cancelled) toast.error(err.response?.data?.msg || 'Order not found');
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => { cancelled = true; };
+  const load = useCallback(async ({ quiet = false } = {}) => {
+    try {
+      const { data } = await api.get(`/orders/${id}`);
+      setOrder(data);
+    } catch (err) {
+      if (!quiet) toast.error(err.response?.data?.msg || 'Order not found');
+    } finally {
+      setLoading(false);
+    }
   }, [id, toast]);
+
+  useEffect(() => { load(); }, [load]);
+
+  // The supplier moving this order along shows up here without a refresh.
+  useEffect(
+    () => onNotification((n) => { if (String(n.orderId) === String(id)) load({ quiet: true }); }),
+    [onNotification, id, load],
+  );
 
   const cancelOrder = async () => {
     setCancelling(true);

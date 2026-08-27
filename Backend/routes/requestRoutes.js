@@ -7,6 +7,7 @@ const Order = require('../models/Order');
 const validate = require('../middleware/validate');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { placeOrders, releaseOrderStock } = require('../services/orders');
+const { notifySafely } = require('../services/notifications');
 
 const objectId = z.string().regex(/^[a-f\d]{24}$/i, 'Invalid id');
 
@@ -141,6 +142,14 @@ router.post('/orders/:orderId/cancel',
       order.status = 'Cancelled';
       order.statusHistory.push({ status: 'Cancelled' });
       await order.save();
+
+      await notifySafely(order.supplierId, {
+        type: 'order_cancelled',
+        title: `${req.user.name} cancelled an order`,
+        body: `${order.quantity} ${order.unit || 'kg'} ${order.itemName} · the stock is back in your inventory`,
+        orderId: order._id,
+      });
+
       res.json({ msg: 'Order cancelled', order });
     } catch (err) { next(err); }
   },

@@ -5,6 +5,8 @@ import App from './App.jsx';
 import { AuthProvider } from './auth.jsx';
 import { ThemeProvider } from './theme.jsx';
 import { CartProvider } from './cart.jsx';
+import { ToastProvider } from './components/Toast.jsx';
+import { NotificationProvider } from './notifications.jsx';
 import './index.css';
 
 // Register service worker (production builds only — Vite dev doesn't expose /sw.js)
@@ -20,7 +22,11 @@ createRoot(document.getElementById('root')).render(
       <ThemeProvider>
         <AuthProvider>
           <CartProvider>
-            <App />
+            <ToastProvider>
+              <NotificationProvider>
+                <App />
+              </NotificationProvider>
+            </ToastProvider>
           </CartProvider>
         </AuthProvider>
       </ThemeProvider>

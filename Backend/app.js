@@ -63,6 +63,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api', require('./routes/requestRoutes'));
 app.use('/api', require('./routes/supplierRoutes'));
 app.use('/api', require('./routes/authRoutes'));
+app.use('/api', require('./routes/notificationRoutes'));
 
 // Serve the React build
 const reactDist = path.join(__dirname, '..', 'Frontend', 'dist');

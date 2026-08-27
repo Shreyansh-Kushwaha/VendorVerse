@@ -3,6 +3,7 @@ import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth.jsx';
 import { useCart } from '../cart.jsx';
 import ThemeToggle from './ThemeToggle.jsx';
+import NotificationBell from './NotificationBell.jsx';
 
 export default function Header() {
   const { user, logout } = useAuth();
@@ -45,6 +46,7 @@ export default function Header() {
                 Profile
               </NavLink>
               {showCart && <CartButton count={cartCount} />}
+              <NotificationBell />
               <ThemeToggle className="ml-2" />
               <button onClick={handleLogout} className="btn-primary ml-2">Log out</button>
             </>
@@ -61,6 +63,7 @@ export default function Header() {
 
         <div className="flex items-center gap-2 md:hidden">
           {showCart && <CartButton count={cartCount} />}
+          {user && <NotificationBell />}
           <ThemeToggle />
           <button
             aria-label="Toggle menu"

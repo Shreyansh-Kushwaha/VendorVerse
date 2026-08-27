@@ -24,7 +24,7 @@ async function connectDB() {
 
   // Reconcile indexes with current schemas. Never fatal — a stale index should
   // not stop the app from serving.
-  for (const model of ['Order', 'Supplier']) {
+  for (const model of ['Order', 'Supplier', 'Notification']) {
     try {
       await require(`../models/${model}`).syncIndexes();
     } catch (err) {

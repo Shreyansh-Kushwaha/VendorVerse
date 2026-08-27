@@ -1,5 +1,8 @@
 const Supplier = require('../models/Supplier');
 const Order = require('../models/Order');
+const { notifySafely } = require('./notifications');
+
+const describeLine = (o) => `${o.quantity} ${o.unit || 'kg'} ${o.itemName}`;
 
 class OrderError extends Error {
   constructor(status, message) {
@@ -62,7 +65,27 @@ async function placeOrders(vendor, lines, { deliveryAddress, notes } = {}) {
       });
     }
 
-    return await Order.insertMany(docs);
+    const created = await Order.insertMany(docs);
+
+    // One ping per supplier, not one per line, so a five item cart does not
+    // land as five separate alerts.
+    const bySupplier = new Map();
+    for (const o of created) {
+      const key = String(o.supplierId);
+      if (!bySupplier.has(key)) bySupplier.set(key, []);
+      bySupplier.get(key).push(o);
+    }
+    await Promise.all([...bySupplier.entries()].map(([supplierId, group]) =>
+      notifySafely(supplierId, {
+        type: 'order_placed',
+        title: `New order from ${vendor.name}`,
+        body: group.length === 1
+          ? describeLine(group[0])
+          : `${group.length} items · ${group.map(describeLine).join(', ')}`,
+        orderId: group[0]._id,
+      })));
+
+    return created;
   } catch (err) {
     // Put back everything this attempt took so a partial failure leaves no hole.
     await Promise.all(reserved.map(r =>

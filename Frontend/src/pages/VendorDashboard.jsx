@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../api.js';
 import { useAuth } from '../auth.jsx';
 import { useCart } from '../cart.jsx';
 import { useToast } from '../components/Toast.jsx';
+import { useNotifications } from '../notifications.jsx';
 import { money, perUnit, amount } from '../format.js';
 import { useFavorites } from '../favorites.js';
 import StatusPill from '../components/ui/StatusPill.jsx';
@@ -16,6 +17,7 @@ export default function VendorDashboard() {
   const { user } = useAuth();
   const cart = useCart();
   const toast = useToast();
+  const { onNotification } = useNotifications();
   const navigate = useNavigate();
 
   const [items, setItems] = useState([]);
@@ -64,6 +66,12 @@ export default function VendorDashboard() {
   };
 
   useEffect(() => { loadAll(); /* eslint-disable-next-line */ }, []);
+
+  // Pull fresh data the moment something happens, instead of waiting for the
+  // user to hit refresh.
+  const loadRef = useRef(loadAll);
+  loadRef.current = loadAll;
+  useEffect(() => onNotification(() => loadRef.current()), [onNotification]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
