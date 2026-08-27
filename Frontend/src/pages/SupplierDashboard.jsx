@@ -21,7 +21,7 @@ export default function SupplierDashboard() {
   const [orders, setOrders] = useState([]);
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [ordersOpen, setOrdersOpen] = useState(false);
+  const [showAllOrders, setShowAllOrders] = useState(false);
 
   const [addOpen, setAddOpen] = useState(false);
   const [addForm, setAddForm] = useState({ itemName: '', price: '', quantity: '', unit: DEFAULT_UNIT, category: '', location: user?.location || '' });
@@ -144,6 +144,12 @@ export default function SupplierDashboard() {
   const lowStockCount = useMemo(() => inventory.filter(i => i.quantity <= LOW_STOCK).length, [inventory]);
   const maxDaily = analytics ? Math.max(1, ...analytics.daily.map(d => d.revenue)) : 1;
   const pendingCount = useMemo(() => orders.filter(o => (o.status || 'Pending') === 'Pending').length, [orders]);
+  // Default to the orders that still need a decision. Completed history is a
+  // click away rather than something to scroll past every morning.
+  const visibleOrders = useMemo(
+    () => (showAllOrders ? orders : orders.filter(o => !['Delivered', 'Rejected', 'Cancelled'].includes(o.status || 'Pending'))),
+    [orders, showAllOrders],
+  );
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-6">
@@ -173,118 +179,53 @@ export default function SupplierDashboard() {
         />
       </div>
 
-      {/* Revenue chart */}
-      {analytics && (
-        <section className="card p-5">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-display text-xl text-ink dark:text-gray-100">Revenue · last 7 days</h2>
-            <span className="text-xs text-gray-500 dark:text-gray-400">Excludes rejected/cancelled</span>
-          </div>
-          <div className="flex items-end gap-2 h-32">
-            {analytics.daily.map((d) => {
-              const pct = (d.revenue / maxDaily) * 100;
-              const day = new Date(d.day).toLocaleDateString(undefined, { weekday: 'short' });
-              return (
-                <div key={d.day} className="flex-1 flex flex-col items-center gap-1 group">
-                  <div className="text-[10px] text-gray-500 dark:text-gray-400 opacity-0 group-hover:opacity-100 transition">{money(d.revenue)}</div>
-                  <div className="w-full flex-1 flex items-end">
-                    <div
-                      className="w-full rounded-t-md bg-gradient-to-t from-brand-600 to-brand-400 transition-all"
-                      style={{ height: `${Math.max(pct, 2)}%` }}
-                    />
-                  </div>
-                  <div className="text-[10px] text-gray-500 dark:text-gray-400">{day}</div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      )}
-
-      {/* Inventory header + Incoming-orders notification button */}
+      {/* Incoming orders — the reason a supplier opens this page */}
       <section>
-        <div className="flex items-center justify-between mb-4 gap-3">
+        <div className="flex flex-wrap items-end justify-between gap-3 mb-4">
           <div>
-            <h2 className="font-display text-2xl text-ink dark:text-gray-100">Inventory</h2>
-            <p className="text-xs text-gray-500 dark:text-gray-400">{inventory.length} item{inventory.length === 1 ? '' : 's'} listed</p>
+            <h2 className="font-display text-2xl text-ink dark:text-gray-100">
+              Incoming orders
+              {pendingCount > 0 && (
+                <span className="ml-2 align-middle inline-flex items-center justify-center min-w-[24px] h-6 px-2 rounded-full bg-red-500 text-white text-xs font-bold">
+                  {pendingCount > 99 ? '99+' : pendingCount}
+                </span>
+              )}
+            </h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              {pendingCount > 0
+                ? `${pendingCount} waiting on you`
+                : 'Nothing waiting on you right now'}
+            </p>
           </div>
-          <button
-            type="button"
-            onClick={() => setOrdersOpen(true)}
-            className="relative inline-flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl bg-white dark:bg-night-800 border border-brand-100 dark:border-night-600 text-brand-700 dark:text-brand-300 hover:bg-brand-50 dark:hover:bg-night-700 shadow-card transition"
-            aria-label={`Incoming orders (${pendingCount} pending)`}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
-              <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
-            </svg>
-            <span className="hidden sm:inline text-sm font-medium">Incoming orders</span>
-            {pendingCount > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-[11px] font-bold grid place-items-center ring-2 ring-white dark:ring-night-900 animate-pulse">
-                +{pendingCount > 99 ? '99' : pendingCount}
-              </span>
-            )}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowAllOrders(v => !v)}
+              className={'chip ' + (showAllOrders
+                ? 'bg-brand-600 text-white'
+                : 'bg-brand-50 text-brand-700 hover:bg-brand-100 dark:bg-night-700 dark:text-brand-300 dark:hover:bg-night-600')}
+            >
+              {showAllOrders ? 'Showing all' : 'Showing open'}
+            </button>
+            <button type="button" onClick={loadAll} className="btn-ghost py-1.5 text-sm">Refresh</button>
+          </div>
         </div>
 
         {loading ? (
-          <SkeletonGrid />
-        ) : inventory.length === 0 ? (
+          <div className="card p-5 animate-pulse space-y-3">
+            <div className="h-4 bg-gray-200 dark:bg-night-700 rounded w-1/3" />
+            <div className="h-4 bg-gray-200 dark:bg-night-700 rounded w-2/3" />
+          </div>
+        ) : visibleOrders.length === 0 ? (
           <EmptyState
-            title="No inventory yet"
-            hint="Add your first item to start receiving orders."
-            action={<button className="btn-primary mt-3" onClick={() => setAddOpen(true)}>Add inventory</button>}
+            title={showAllOrders ? 'No orders yet' : 'You are all caught up'}
+            hint={showAllOrders
+              ? "When vendors place orders, they'll show up here."
+              : 'Every order has been dealt with. Switch to all to see past ones.'}
           />
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-            {inventory.map((it) => (
-              <button
-                key={it._id}
-                onClick={() => openEdit(it)}
-                className="card overflow-hidden text-left group focus:outline-none focus:ring-2 focus:ring-brand-500"
-              >
-                <div className="relative">
-                  <Thumb src={it.imageUrl} alt={it.itemName} size="square" rounded={false} />
-                  {it.quantity <= LOW_STOCK && (
-                    <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500 text-white shadow">
-                      {it.quantity === 0 ? 'OUT' : 'LOW'}
-                    </span>
-                  )}
-                </div>
-                <div className="p-3">
-                  <div className="font-medium text-ink dark:text-gray-100 truncate">{it.itemName}</div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400 capitalize">{it.category || 'others'}</div>
-                  <div className="mt-1.5 flex items-center justify-between">
-                    <span className="text-brand-700 dark:text-brand-400 font-semibold">{perUnit(it.price, it.unit)}</span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">{amount(it.quantity, it.unit)} left</span>
-                  </div>
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* Incoming orders modal */}
-      <Modal
-        open={ordersOpen}
-        onClose={() => setOrdersOpen(false)}
-        title={`Incoming orders${pendingCount > 0 ? ` · ${pendingCount} pending` : ''}`}
-        size="xl"
-        footer={
-          <>
-            <button className="btn-ghost" onClick={loadAll}>Refresh</button>
-            <button className="btn-primary" onClick={() => setOrdersOpen(false)}>Close</button>
-          </>
-        }
-      >
-        {orders.length === 0 ? (
-          <div className="py-6 text-center text-gray-500 dark:text-gray-400 text-sm">
-            No orders yet. When vendors place orders, they'll show up here.
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {orders.map((o) => (
+          <div className="grid gap-3 sm:grid-cols-2">
+            {visibleOrders.map((o) => (
               <div key={o._id} className="rounded-xl border border-gray-100 dark:border-night-600 p-4">
                 <div className="flex items-start justify-between gap-2">
                   <div>
@@ -331,7 +272,82 @@ export default function SupplierDashboard() {
             ))}
           </div>
         )}
-      </Modal>
+      </section>
+
+      {/* Revenue chart */}
+      {analytics && (
+        <section className="card p-5">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-display text-xl text-ink dark:text-gray-100">Revenue · last 7 days</h2>
+            <span className="text-xs text-gray-500 dark:text-gray-400">Excludes rejected/cancelled</span>
+          </div>
+          <div className="flex items-end gap-2 h-32">
+            {analytics.daily.map((d) => {
+              const pct = (d.revenue / maxDaily) * 100;
+              const day = new Date(d.day).toLocaleDateString(undefined, { weekday: 'short' });
+              return (
+                <div key={d.day} className="flex-1 flex flex-col items-center gap-1 group">
+                  <div className="text-[10px] text-gray-500 dark:text-gray-400 opacity-0 group-hover:opacity-100 transition">{money(d.revenue)}</div>
+                  <div className="w-full flex-1 flex items-end">
+                    <div
+                      className="w-full rounded-t-md bg-gradient-to-t from-brand-600 to-brand-400 transition-all"
+                      style={{ height: `${Math.max(pct, 2)}%` }}
+                    />
+                  </div>
+                  <div className="text-[10px] text-gray-500 dark:text-gray-400">{day}</div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* Inventory */}
+      <section>
+        <div className="flex items-end justify-between mb-4 gap-3">
+          <div>
+            <h2 className="font-display text-2xl text-ink dark:text-gray-100">Inventory</h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{inventory.length} item{inventory.length === 1 ? '' : 's'} listed</p>
+          </div>
+        </div>
+
+        {loading ? (
+          <SkeletonGrid />
+        ) : inventory.length === 0 ? (
+          <EmptyState
+            title="No inventory yet"
+            hint="Add your first item to start receiving orders."
+            action={<button className="btn-primary mt-3" onClick={() => setAddOpen(true)}>Add inventory</button>}
+          />
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+            {inventory.map((it) => (
+              <button
+                key={it._id}
+                onClick={() => openEdit(it)}
+                className="card overflow-hidden text-left group focus:outline-none focus:ring-2 focus:ring-brand-500"
+              >
+                <div className="relative">
+                  <Thumb src={it.imageUrl} alt={it.itemName} size="square" rounded={false} />
+                  {it.quantity <= LOW_STOCK && (
+                    <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500 text-white shadow">
+                      {it.quantity === 0 ? 'OUT' : 'LOW'}
+                    </span>
+                  )}
+                </div>
+                <div className="p-3">
+                  <div className="font-medium text-ink dark:text-gray-100 truncate">{it.itemName}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 capitalize">{it.category || 'others'}</div>
+                  <div className="mt-1.5 flex items-center justify-between">
+                    <span className="text-brand-700 dark:text-brand-400 font-semibold">{perUnit(it.price, it.unit)}</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">{amount(it.quantity, it.unit)} left</span>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </section>
 
       {/* Add modal */}
       <Modal
