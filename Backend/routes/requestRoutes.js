@@ -3,7 +3,6 @@ const router = express.Router();
 const { z } = require('zod');
 const fileUpload = require('express-fileupload');
 const cloudinary = require('cloudinary').v2;
-const Request = require('../models/Request');
 const Order = require('../models/Order');
 const validate = require('../middleware/validate');
 const { requireAuth, requireRole } = require('../middleware/auth');
@@ -42,36 +41,6 @@ router.post('/upload', requireAuth, async (req, res, next) => {
     res.json({ msg: 'Upload successful', imageUrl: result.secure_url });
   } catch (err) { next(err); }
 });
-
-// =====================================================================
-// Vendor: open requests (kept for compatibility with old frontend)
-// =====================================================================
-router.get('/vendor/request',
-  requireAuth,
-  async (req, res, next) => {
-    try {
-      const orders = await Request.find({ vendorId: String(req.user._id) }).sort({ createdAt: -1 });
-      res.json(orders);
-    } catch (err) { next(err); }
-  },
-);
-
-const requestSchema = z.object({
-  items: z.array(z.object({ name: z.string(), quantity: z.number() })).min(1),
-  notes: z.string().optional(),
-});
-
-router.post('/vendor/request',
-  requireAuth,
-  validate({ body: requestSchema }),
-  async (req, res, next) => {
-    try {
-      const newRequest = new Request({ ...req.body, vendorId: String(req.user._id) });
-      await newRequest.save();
-      res.status(201).json({ msg: 'Request created', request: newRequest });
-    } catch (err) { next(err); }
-  },
-);
 
 // =====================================================================
 // Orders

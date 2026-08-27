@@ -6,7 +6,6 @@ import Modal from '../components/Modal.jsx';
 import { UNITS, DEFAULT_UNIT, money, perUnit, amount } from '../format.js';
 
 const CATEGORY_OPTIONS = ['vegetables', 'fruits', 'spices', 'grains', 'dairy', 'others'];
-const FLOW = ['Pending', 'Accepted', 'Packed', 'OutForDelivery', 'Delivered'];
 const NEXT_STATUS = { Pending: 'Accepted', Accepted: 'Packed', Packed: 'OutForDelivery', OutForDelivery: 'Delivered' };
 const STATUS_LABELS = { Pending: 'Pending', Accepted: 'Accept', Packed: 'Mark packed', OutForDelivery: 'Out for delivery', Delivered: 'Mark delivered' };
 const LOW_STOCK = 5;
