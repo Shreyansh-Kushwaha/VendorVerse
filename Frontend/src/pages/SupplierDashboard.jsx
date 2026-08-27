@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import api, { uploadImage } from '../api.js';
 import { useAuth } from '../auth.jsx';
 import { useToast } from '../components/Toast.jsx';
@@ -35,7 +35,7 @@ export default function SupplierDashboard() {
   const [editBusy, setEditBusy] = useState(false);
   const confirmingDelete = editing?.mode === 'delete';
 
-  const loadAll = async () => {
+  const loadAll = useCallback(async () => {
     setLoading(true);
     try {
       const [inv, ord, an] = await Promise.all([
@@ -51,14 +51,14 @@ export default function SupplierDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user._id, toast]);
 
-  useEffect(() => { loadAll(); /* eslint-disable-next-line */ }, []);
+  useEffect(() => { loadAll(); }, [loadAll]);
 
   // Pull fresh data the moment something happens, instead of waiting for the
   // user to hit refresh.
   const loadRef = useRef(loadAll);
-  loadRef.current = loadAll;
+  useEffect(() => { loadRef.current = loadAll; });
   useEffect(() => onNotification(() => loadRef.current()), [onNotification]);
 
   const updateAdd = (k) => (e) => setAddForm({ ...addForm, [k]: e.target.value });

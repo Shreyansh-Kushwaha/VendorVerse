@@ -70,7 +70,13 @@ Production — build the SPA first, then the backend serves it from one process.
 
 ---
 
-## ✅ Tests
+## ✅ Tests and linting
+
+    cd Backend  && npm test     # integration tests against an in-memory MongoDB
+    cd Frontend && npm run lint # eslint, including the react-hooks rules
+    cd Frontend && npm run build
+
+All three run on every push and pull request via GitHub Actions.
 
     cd Backend && npm test
 

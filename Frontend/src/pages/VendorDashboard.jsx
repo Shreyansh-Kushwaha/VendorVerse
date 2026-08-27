@@ -40,9 +40,11 @@ export default function VendorDashboard() {
 
   // Don't fire a request on every keystroke.
   useEffect(() => {
-    const t = setTimeout(() => applyFilter({ q: search.trim() }), 300);
+    const t = setTimeout(() => {
+      setPage(1);
+      setFilters((prev) => (prev.q === search.trim() ? prev : { ...prev, q: search.trim() }));
+    }, 300);
     return () => clearTimeout(t);
-    // eslint-disable-next-line
   }, [search]);
 
   // Favourites live in localStorage, so the server needs the ids to filter by.
@@ -71,7 +73,7 @@ export default function VendorDashboard() {
 
   useEffect(() => { loadCatalog(); }, [loadCatalog]);
 
-  const loadAll = async () => {
+  const loadAll = useCallback(async () => {
     setLoading(true);
     try {
       const [ord, an] = await Promise.all([
@@ -85,14 +87,14 @@ export default function VendorDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
-  useEffect(() => { loadAll(); /* eslint-disable-next-line */ }, []);
+  useEffect(() => { loadAll(); }, [loadAll]);
 
   // Pull fresh data the moment something happens, instead of waiting for the
   // user to hit refresh.
   const loadRef = useRef(loadAll);
-  loadRef.current = loadAll;
+  useEffect(() => { loadRef.current = loadAll; });
   useEffect(() => onNotification(() => { loadRef.current(); loadCatalog(); }), [onNotification, loadCatalog]);
 
   const lastOrder = orders[0];
@@ -302,7 +304,9 @@ export default function VendorDashboard() {
       {/* My orders */}
       <section className="card p-5">
         <h2 className="font-display text-xl text-ink dark:text-gray-100 mb-3">My orders</h2>
-        {orders.length === 0 ? (
+        {loading ? (
+          <SkeletonRow />
+        ) : orders.length === 0 ? (
           <p className="text-sm text-gray-500 dark:text-gray-400">You haven't placed any orders yet.</p>
         ) : (
           <ul className="divide-y divide-gray-100 dark:divide-night-700">
