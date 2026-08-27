@@ -24,7 +24,11 @@ export default [
       'react/prop-types': 'off',
       // This is the rule that would have caught the toast refetch loop.
       'react-hooks/exhaustive-deps': 'error',
-      'no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+      'no-unused-vars': ['error', {
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+        caughtErrorsIgnorePattern: '^_',
+      }],
 
       // localStorage throws in private mode and a few other places. Swallowing
       // that is deliberate everywhere it appears here.
