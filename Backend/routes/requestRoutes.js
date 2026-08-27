@@ -7,7 +7,7 @@ const Request = require('../models/Request');
 const Order = require('../models/Order');
 const validate = require('../middleware/validate');
 const { requireAuth, requireRole } = require('../middleware/auth');
-const { placeOrders } = require('../services/orders');
+const { placeOrders, releaseOrderStock } = require('../services/orders');
 
 const objectId = z.string().regex(/^[a-f\d]{24}$/i, 'Invalid id');
 
@@ -145,6 +145,34 @@ router.get('/orders/:orderId',
       if (!isParty) return res.status(403).json({ msg: 'That is not your order' });
 
       res.json(order);
+    } catch (err) { next(err); }
+  },
+);
+
+// A vendor may back out only while the supplier has not acted yet. After that
+// the Help page tells them to get in touch, which matches this rule.
+router.post('/orders/:orderId/cancel',
+  requireAuth,
+  requireRole('vendor'),
+  validate({ params: z.object({ orderId: objectId }) }),
+  async (req, res, next) => {
+    try {
+      const order = await Order.findById(req.params.orderId);
+      if (!order) return res.status(404).json({ msg: 'Order not found' });
+      if (String(order.vendorId) !== String(req.user._id)) {
+        return res.status(403).json({ msg: 'That is not your order' });
+      }
+      if ((order.status || 'Pending') !== 'Pending') {
+        return res.status(409).json({
+          msg: `This order is already ${order.status}, so it can no longer be cancelled here`,
+        });
+      }
+
+      await releaseOrderStock(order);
+      order.status = 'Cancelled';
+      order.statusHistory.push({ status: 'Cancelled' });
+      await order.save();
+      res.json({ msg: 'Order cancelled', order });
     } catch (err) { next(err); }
   },
 );

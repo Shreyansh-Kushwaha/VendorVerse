@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import api from '../api.js';
+import { useAuth } from '../auth.jsx';
 import { useToast } from '../components/Toast.jsx';
+import Modal from '../components/Modal.jsx';
 import { money, perUnit, amount } from '../format.js';
 
 const FLOW = ['Pending', 'Accepted', 'Packed', 'OutForDelivery', 'Delivered'];
@@ -15,9 +17,12 @@ const FLOW_LABELS = {
 
 export default function OrderDetail() {
   const { id } = useParams();
+  const { user } = useAuth();
   const toast = useToast();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [confirmCancel, setConfirmCancel] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -33,6 +38,20 @@ export default function OrderDetail() {
     })();
     return () => { cancelled = true; };
   }, [id, toast]);
+
+  const cancelOrder = async () => {
+    setCancelling(true);
+    try {
+      const { data } = await api.post(`/orders/${id}/cancel`);
+      setOrder((o) => ({ ...o, ...data.order }));
+      setConfirmCancel(false);
+      toast.success('Order cancelled');
+    } catch (err) {
+      toast.error(err.response?.data?.msg || 'Could not cancel this order');
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   if (loading) {
     return <div className="max-w-3xl mx-auto px-4 sm:px-6 py-12 text-gray-500 dark:text-gray-400">Loading order…</div>;
@@ -50,6 +69,9 @@ export default function OrderDetail() {
   const isTerminalReject = status === 'Rejected' || status === 'Cancelled';
   const currentIdx = isTerminalReject ? -1 : FLOW.indexOf(status);
 
+  const isBuyer = String(order.vendorId?._id || order.vendorId) === String(user?._id);
+  const canCancel = isBuyer && status === 'Pending';
+
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-6">
       <div className="flex items-start justify-between gap-3">
@@ -62,6 +84,15 @@ export default function OrderDetail() {
         </div>
         <StatusPill status={status} />
       </div>
+
+      {canCancel && (
+        <div className="card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            The supplier has not accepted this order yet, so you can still call it off.
+          </p>
+          <button className="btn-danger shrink-0" onClick={() => setConfirmCancel(true)}>Cancel order</button>
+        </div>
+      )}
 
       {/* Timeline */}
       <section className="card p-5">
@@ -132,6 +163,25 @@ export default function OrderDetail() {
           <span className="font-display text-2xl text-brand-700 dark:text-brand-400">{money(order.quantity * order.price)}</span>
         </div>
       </section>
+      <Modal
+        open={confirmCancel}
+        onClose={() => !cancelling && setConfirmCancel(false)}
+        title="Cancel this order?"
+        size="sm"
+        footer={
+          <>
+            <button className="btn-ghost" onClick={() => setConfirmCancel(false)} disabled={cancelling}>Keep it</button>
+            <button className="btn-danger" onClick={cancelOrder} disabled={cancelling}>
+              {cancelling ? 'Cancelling…' : 'Yes, cancel'}
+            </button>
+          </>
+        }
+      >
+        <p className="text-sm text-gray-700 dark:text-gray-300">
+          {order.itemName} · {amount(order.quantity, order.unit)} from {order.supplierId?.name || 'this supplier'} will
+          be called off and the stock returned. You cannot undo this.
+        </p>
+      </Modal>
     </div>
   );
 }
