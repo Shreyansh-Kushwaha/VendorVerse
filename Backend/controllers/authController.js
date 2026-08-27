@@ -52,10 +52,15 @@ const loginUser = async (req, res) => {
       return res.status(401).json({ msg: "Invalid credentials" });
     }
 
-    // ✅ Login successful – send success message
-    return res.status(200).json({ msg: "Login successful",
- userType: user.userType,
-  user: user});
+    // Strip the password hash before it ever leaves the server — the client
+    // persists this object to localStorage.
+    const { password: _hash, ...safeUser } = user.toObject();
+
+    return res.status(200).json({
+      msg: "Login successful",
+      userType: user.userType,
+      user: safeUser,
+    });
 
   } catch (err) {
     res.status(500).json({ msg: err.message });

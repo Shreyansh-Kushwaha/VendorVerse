@@ -11,7 +11,7 @@ function validate(schemas) {
       if (err instanceof ZodError) {
         return res.status(400).json({
           msg: 'Invalid request',
-          errors: err.errors.map(e => ({ path: e.path.join('.'), message: e.message })),
+          errors: err.issues.map(e => ({ path: e.path.join('.'), message: e.message })),
         });
       }
       next(err);

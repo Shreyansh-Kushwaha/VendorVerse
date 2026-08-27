@@ -11,6 +11,10 @@ const { notFound, errorHandler } = require('./middleware/errorHandler');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Behind Render/Heroku there is one proxy hop. Without this every request looks
+// like it comes from the proxy IP and all users share a single rate-limit bucket.
+app.set('trust proxy', 1);
+
 connectDB();
 
 app.use(cors());

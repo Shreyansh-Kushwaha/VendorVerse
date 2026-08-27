@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useState } from 'react';
+import { createContext, useCallback, useContext, useMemo, useState } from 'react';
 
 const ToastContext = createContext(null);
 
@@ -13,11 +13,12 @@ export function ToastProvider({ children }) {
     }, 3500);
   }, []);
 
-  const toast = {
+  // Stable identity — OrderDetail and SupplierProfile list this in useEffect deps.
+  const toast = useMemo(() => ({
     success: (m) => push(m, 'success'),
     error:   (m) => push(m, 'error'),
     info:    (m) => push(m, 'info'),
-  };
+  }), [push]);
 
   return (
     <ToastContext.Provider value={toast}>

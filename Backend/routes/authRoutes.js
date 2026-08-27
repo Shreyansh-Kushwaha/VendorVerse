@@ -34,13 +34,6 @@ router.post('/login',
   loginUser,
 );
 
-router.get('/vendors', async (req, res, next) => {
-  try {
-    const vendors = await User.find().select('-password');
-    res.json(vendors);
-  } catch (err) { next(err); }
-});
-
 // =====================================================================
 // User: profile update + change password + delete account
 // =====================================================================
