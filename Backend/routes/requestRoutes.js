@@ -6,6 +6,7 @@ const cloudinary = require('cloudinary').v2;
 const Request = require('../models/Request');
 const Order = require('../models/Order');
 const validate = require('../middleware/validate');
+const { requireAuth, requireRole } = require('../middleware/auth');
 
 const objectId = z.string().regex(/^[a-f\d]{24}$/i, 'Invalid id');
 
@@ -25,7 +26,7 @@ router.use(fileUpload({
 // =====================================================================
 // Image upload (Cloudinary)
 // =====================================================================
-router.post('/upload', async (req, res, next) => {
+router.post('/upload', requireAuth, async (req, res, next) => {
   try {
     if (!req.files || Object.keys(req.files).length === 0) {
       return res.status(400).json({ msg: 'No file uploaded.' });
@@ -45,26 +46,26 @@ router.post('/upload', async (req, res, next) => {
 // Vendor: open requests (kept for compatibility with old frontend)
 // =====================================================================
 router.get('/vendor/request',
-  validate({ query: z.object({ vendorId: z.string().min(1) }) }),
+  requireAuth,
   async (req, res, next) => {
     try {
-      const orders = await Request.find({ vendorId: req.query.vendorId }).sort({ createdAt: -1 });
+      const orders = await Request.find({ vendorId: String(req.user._id) }).sort({ createdAt: -1 });
       res.json(orders);
     } catch (err) { next(err); }
   },
 );
 
 const requestSchema = z.object({
-  vendorId: z.string().min(1),
   items: z.array(z.object({ name: z.string(), quantity: z.number() })).min(1),
   notes: z.string().optional(),
 });
 
 router.post('/vendor/request',
+  requireAuth,
   validate({ body: requestSchema }),
   async (req, res, next) => {
     try {
-      const newRequest = new Request(req.body);
+      const newRequest = new Request({ ...req.body, vendorId: String(req.user._id) });
       await newRequest.save();
       res.status(201).json({ msg: 'Request created', request: newRequest });
     } catch (err) { next(err); }
@@ -75,7 +76,6 @@ router.post('/vendor/request',
 // Orders
 // =====================================================================
 const placeOrderSchema = z.object({
-  vendorId: objectId,
   supplierId: objectId,
   itemId: objectId,
   itemName: z.string().min(1),
@@ -85,11 +85,14 @@ const placeOrderSchema = z.object({
 
 // Single order
 router.post('/placeOrder',
+  requireAuth,
+  requireRole('vendor'),
   validate({ body: placeOrderSchema }),
   async (req, res, next) => {
     try {
       const order = new Order({
         ...req.body,
+        vendorId: req.user._id,
         statusHistory: [{ status: 'Pending' }],
       });
       await order.save();
@@ -100,10 +103,16 @@ router.post('/placeOrder',
 
 // Bulk: place many orders in one go (for cart checkout)
 router.post('/placeOrders',
+  requireAuth,
+  requireRole('vendor'),
   validate({ body: z.object({ items: z.array(placeOrderSchema).min(1) }) }),
   async (req, res, next) => {
     try {
-      const docs = req.body.items.map(i => ({ ...i, statusHistory: [{ status: 'Pending' }] }));
+      const docs = req.body.items.map(i => ({
+        ...i,
+        vendorId: req.user._id,
+        statusHistory: [{ status: 'Pending' }],
+      }));
       const created = await Order.insertMany(docs);
       res.status(201).json({ msg: 'Orders placed', count: created.length, orders: created });
     } catch (err) { next(err); }
@@ -111,10 +120,11 @@ router.post('/placeOrders',
 );
 
 router.get('/vendor/orders',
-  validate({ query: z.object({ vendorId: objectId }) }),
+  requireAuth,
+  requireRole('vendor'),
   async (req, res, next) => {
     try {
-      const orders = await Order.find({ vendorId: req.query.vendorId })
+      const orders = await Order.find({ vendorId: req.user._id })
         .populate('supplierId', 'name location')
         .sort({ date: -1 });
       res.json(orders);
@@ -123,6 +133,7 @@ router.get('/vendor/orders',
 );
 
 router.get('/orders/:orderId',
+  requireAuth,
   validate({ params: z.object({ orderId: objectId }) }),
   async (req, res, next) => {
     try {
@@ -130,16 +141,23 @@ router.get('/orders/:orderId',
         .populate('supplierId', 'name location email')
         .populate('vendorId', 'name location email');
       if (!order) return res.status(404).json({ msg: 'Order not found' });
+
+      const me = String(req.user._id);
+      const isParty = me === String(order.vendorId?._id || order.vendorId)
+                   || me === String(order.supplierId?._id || order.supplierId);
+      if (!isParty) return res.status(403).json({ msg: 'That is not your order' });
+
       res.json(order);
     } catch (err) { next(err); }
   },
 );
 
 router.get('/vendor/analytics',
-  validate({ query: z.object({ vendorId: objectId }) }),
+  requireAuth,
+  requireRole('vendor'),
   async (req, res, next) => {
     try {
-      const orders = await Order.find({ vendorId: req.query.vendorId });
+      const orders = await Order.find({ vendorId: req.user._id });
       const active = orders.filter(o => o.status !== 'Rejected' && o.status !== 'Cancelled');
       const totalSpend = active.reduce((s, o) => s + (o.quantity || 0) * (o.price || 0), 0);
       const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;

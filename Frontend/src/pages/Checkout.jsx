@@ -33,7 +33,6 @@ export default function Checkout() {
     try {
       const payload = {
         items: items.map(it => ({
-          vendorId: user._id,
           supplierId: it.supplierId,
           itemId: it.itemId,
           itemName: it.itemName,

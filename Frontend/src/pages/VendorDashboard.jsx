@@ -31,8 +31,8 @@ export default function VendorDashboard() {
     try {
       const [sup, ord, an] = await Promise.all([
         api.get('/suppliers'),
-        api.get('/vendor/orders', { params: { vendorId: user._id } }),
-        api.get('/vendor/analytics', { params: { vendorId: user._id } }),
+        api.get('/vendor/orders'),
+        api.get('/vendor/analytics'),
       ]);
 
       const flat = [];

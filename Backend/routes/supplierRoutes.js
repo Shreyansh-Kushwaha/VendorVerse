@@ -5,8 +5,17 @@ const Supplier = require('../models/Supplier');
 const Order = require('../models/Order');
 const User = require('../models/user');
 const validate = require('../middleware/validate');
+const { requireAuth, requireRole } = require('../middleware/auth');
 
 const objectId = z.string().regex(/^[a-f\d]{24}$/i, 'Invalid id');
+
+// The :supplierId in the path must be the signed-in supplier.
+function ownsSupplier(req, res, next) {
+  if (String(req.user._id) !== req.params.supplierId) {
+    return res.status(403).json({ msg: 'That is not your inventory' });
+  }
+  next();
+}
 
 // Helper: ensure a single Supplier doc exists for this supplierId, return it
 async function getOrCreateSupplier(supplierId, name, location) {
@@ -22,8 +31,6 @@ async function getOrCreateSupplier(supplierId, name, location) {
 // Inventory: add an item (upsert supplier doc + push to inventory array)
 // =====================================================================
 const addInventorySchema = z.object({
-  supplierId: objectId,
-  name: z.string().min(1),
   location: z.string().min(1),
   inventory: z.object({
     itemName: z.string().min(1),
@@ -34,11 +41,16 @@ const addInventorySchema = z.object({
   }),
 });
 
-router.post('/suppliers', validate({ body: addInventorySchema }), async (req, res, next) => {
+router.post('/suppliers',
+  requireAuth,
+  requireRole('supplier'),
+  validate({ body: addInventorySchema }),
+  async (req, res, next) => {
   try {
-    const { supplierId, name, location, inventory } = req.body;
-    const doc = await getOrCreateSupplier(supplierId, name, location);
-    doc.name = name;
+    const { location, inventory } = req.body;
+    const supplierId = req.user._id;
+    const doc = await getOrCreateSupplier(supplierId, req.user.name, location);
+    doc.name = req.user.name;
     doc.location = location;
     doc.inventory.push(inventory);
     await doc.save();
@@ -50,7 +62,7 @@ router.post('/suppliers', validate({ body: addInventorySchema }), async (req, re
 // =====================================================================
 // Suppliers: list (public) + per-supplier profile + per-supplier inventory
 // =====================================================================
-router.get('/suppliers', async (req, res, next) => {
+router.get('/suppliers', requireAuth, async (req, res, next) => {
   try {
     const suppliers = await Supplier.find();
     res.json(suppliers);
@@ -105,6 +117,9 @@ const editInventorySchema = z.object({
 });
 
 router.patch('/suppliers/:supplierId/inventory/:itemId',
+  requireAuth,
+  requireRole('supplier'),
+  ownsSupplier,
   validate({
     params: z.object({ supplierId: objectId, itemId: objectId }),
     body: editInventorySchema,
@@ -129,6 +144,9 @@ router.patch('/suppliers/:supplierId/inventory/:itemId',
 );
 
 router.delete('/suppliers/:supplierId/inventory/:itemId',
+  requireAuth,
+  requireRole('supplier'),
+  ownsSupplier,
   validate({ params: z.object({ supplierId: objectId, itemId: objectId }) }),
   async (req, res, next) => {
     try {
@@ -148,10 +166,11 @@ router.delete('/suppliers/:supplierId/inventory/:itemId',
 // Orders: list for a supplier + per-order status update + analytics
 // =====================================================================
 router.get('/orders',
-  validate({ query: z.object({ supplierId: objectId }) }),
+  requireAuth,
+  requireRole('supplier'),
   async (req, res, next) => {
     try {
-      const orders = await Order.find({ supplierId: req.query.supplierId })
+      const orders = await Order.find({ supplierId: req.user._id })
         .populate('vendorId', 'name location')
         .sort({ date: -1 });
       res.json(orders);
@@ -164,11 +183,16 @@ const statusSchema = z.object({
 });
 
 router.patch('/orders/:orderId/status',
+  requireAuth,
+  requireRole('supplier'),
   validate({ params: z.object({ orderId: objectId }), body: statusSchema }),
   async (req, res, next) => {
     try {
       const order = await Order.findById(req.params.orderId);
       if (!order) return res.status(404).json({ msg: 'Order not found' });
+      if (String(order.supplierId) !== String(req.user._id)) {
+        return res.status(403).json({ msg: 'That is not your order' });
+      }
       order.status = req.body.status;
       order.statusHistory.push({ status: req.body.status });
       await order.save();
@@ -178,10 +202,11 @@ router.patch('/orders/:orderId/status',
 );
 
 router.get('/supplier/analytics',
-  validate({ query: z.object({ supplierId: objectId }) }),
+  requireAuth,
+  requireRole('supplier'),
   async (req, res, next) => {
     try {
-      const supplierId = req.query.supplierId;
+      const supplierId = req.user._id;
       const orders = await Order.find({ supplierId });
       const totalRevenue = orders
         .filter(o => o.status !== 'Rejected' && o.status !== 'Cancelled')

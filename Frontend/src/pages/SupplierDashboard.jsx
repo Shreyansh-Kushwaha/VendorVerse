@@ -34,8 +34,8 @@ export default function SupplierDashboard() {
     try {
       const [inv, ord, an] = await Promise.all([
         api.get(`/suppliers/${user._id}/inventory`),
-        api.get('/orders', { params: { supplierId: user._id } }),
-        api.get('/supplier/analytics', { params: { supplierId: user._id } }),
+        api.get('/orders'),
+        api.get('/supplier/analytics'),
       ]);
       setInventory(inv.data || []);
       setOrders(ord.data || []);
@@ -59,8 +59,6 @@ export default function SupplierDashboard() {
     try {
       const imageUrl = await uploadImage(imageFile);
       await api.post('/suppliers', {
-        supplierId: user._id,
-        name: user.name,
         location: addForm.location,
         inventory: {
           itemName: addForm.itemName,
