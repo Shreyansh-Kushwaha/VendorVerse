@@ -18,14 +18,19 @@ function ownsSupplier(req, res, next) {
   next();
 }
 
-// Helper: ensure a single Supplier doc exists for this supplierId, return it
+// One Supplier doc per supplier, enforced by a unique index. The old find then
+// insert could interleave and produce two docs for the same supplier.
 async function getOrCreateSupplier(supplierId, name, location) {
-  let doc = await Supplier.findOne({ supplierId });
-  if (!doc) {
-    doc = new Supplier({ supplierId, name, location: location || '—', inventory: [] });
-    await doc.save();
+  try {
+    return await Supplier.findOneAndUpdate(
+      { supplierId },
+      { $set: { name, location: location || '—' }, $setOnInsert: { inventory: [] } },
+      { upsert: true, new: true, setDefaultsOnInsert: true },
+    );
+  } catch (err) {
+    if (err.code === 11000) return Supplier.findOne({ supplierId }); // lost the race
+    throw err;
   }
-  return doc;
 }
 
 // =====================================================================
@@ -51,8 +56,6 @@ router.post('/suppliers',
     const { location, inventory } = req.body;
     const supplierId = req.user._id;
     const doc = await getOrCreateSupplier(supplierId, req.user.name, location);
-    doc.name = req.user.name;
-    doc.location = location;
     doc.inventory.push(inventory);
     await doc.save();
     const added = doc.inventory[doc.inventory.length - 1];
@@ -75,13 +78,13 @@ router.get('/suppliers/:supplierId',
   async (req, res, next) => {
     try {
       const { supplierId } = req.params;
-      const [user, docs] = await Promise.all([
+      const [user, doc] = await Promise.all([
         User.findById(supplierId).select('-password'),
-        Supplier.find({ supplierId }),
+        Supplier.findOne({ supplierId }),
       ]);
       if (!user) return res.status(404).json({ msg: 'Supplier not found' });
-      const inventory = docs.flatMap(d => d.inventory);
-      const location = docs[0]?.location || user.location;
+      const inventory = doc?.inventory || [];
+      const location = doc?.location || user.location;
       res.json({
         _id: user._id,
         name: user.name,
@@ -100,8 +103,8 @@ router.get('/suppliers/:supplierId/inventory',
   async (req, res, next) => {
     try {
       const { supplierId } = req.params;
-      const docs = await Supplier.find({ supplierId });
-      res.json(docs.flatMap(d => d.inventory));
+      const doc = await Supplier.findOne({ supplierId });
+      res.json(doc?.inventory || []);
     } catch (err) { next(err); }
   },
 );

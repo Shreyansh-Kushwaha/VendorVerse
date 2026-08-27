@@ -7,13 +7,11 @@ const orderSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'SupplierData',
     required: true,
-    index: true,
   },
   supplierId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'SupplierData',
     required: true,
-    index: true,
   },
   itemId: { type: mongoose.Schema.Types.ObjectId, required: true },
   itemName: String,
@@ -33,6 +31,11 @@ const orderSchema = new mongoose.Schema({
     at: { type: Date, default: Date.now },
   }],
 });
+
+// Both dashboards filter by one party and sort by date. A compound index serves
+// the filter and the sort in one pass.
+orderSchema.index({ supplierId: 1, date: -1 });
+orderSchema.index({ vendorId: 1, date: -1 });
 
 orderSchema.statics.STATUSES = ORDER_STATUSES;
 

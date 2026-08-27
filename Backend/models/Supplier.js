@@ -6,6 +6,7 @@ const supplierSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "SupplierData",
     required: true,
+    unique: true,
   },
   name: {
     type: String,
