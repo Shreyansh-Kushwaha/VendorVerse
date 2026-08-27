@@ -109,7 +109,7 @@ test('a whole cart succeeds together', async () => {
   assert.strictEqual(await stockOf(b), 7);
 });
 
-test('rejecting an order gives the stock back once and only once', async () => {
+test('rejecting an order gives the stock back and cannot be repeated', async () => {
   const itemId = await listItem({ name: 'Lemon', qty: 10 });
   const placed = await vendor.post('/api/placeOrder').send({ supplierId: idS, itemId, quantity: 4 }).expect(201);
   assert.strictEqual(await stockOf(itemId), 6);
@@ -117,7 +117,8 @@ test('rejecting an order gives the stock back once and only once', async () => {
   await supplier.patch(`/api/orders/${placed.body.order._id}/status`).send({ status: 'Rejected' }).expect(200);
   assert.strictEqual(await stockOf(itemId), 10, 'stock returned');
 
-  await supplier.patch(`/api/orders/${placed.body.order._id}/status`).send({ status: 'Rejected' }).expect(200);
+  // Rejected is terminal, so the second attempt is refused outright.
+  await supplier.patch(`/api/orders/${placed.body.order._id}/status`).send({ status: 'Rejected' }).expect(409);
   assert.strictEqual(await stockOf(itemId), 10, 'a second reject must not inflate stock');
 });
 

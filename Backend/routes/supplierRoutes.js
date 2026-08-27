@@ -197,7 +197,14 @@ router.patch('/orders/:orderId/status',
       if (String(order.supplierId) !== String(req.user._id)) {
         return res.status(403).json({ msg: 'That is not your order' });
       }
-      if (req.body.status === 'Rejected' || req.body.status === 'Cancelled') {
+
+      const from = order.status || 'Pending';
+      const to = req.body.status;
+      if (!Order.canTransition(from, to)) {
+        return res.status(409).json({ msg: `An order cannot go from ${from} to ${to}` });
+      }
+
+      if (to === 'Rejected' || to === 'Cancelled') {
         await releaseOrderStock(order);
       }
       order.status = req.body.status;

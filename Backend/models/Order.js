@@ -37,6 +37,22 @@ const orderSchema = new mongoose.Schema({
 orderSchema.index({ supplierId: 1, date: -1 });
 orderSchema.index({ vendorId: 1, date: -1 });
 
+// An order moves forward through the flow, or off it into a terminal state.
+// Nothing may leave a terminal state or move backwards.
+const ALLOWED_TRANSITIONS = {
+  Pending:        ['Accepted', 'Rejected', 'Cancelled'],
+  Accepted:       ['Packed', 'Cancelled'],
+  Packed:         ['OutForDelivery'],
+  OutForDelivery: ['Delivered'],
+  Delivered:      [],
+  Rejected:       [],
+  Cancelled:      [],
+};
+
 orderSchema.statics.STATUSES = ORDER_STATUSES;
+orderSchema.statics.TRANSITIONS = ALLOWED_TRANSITIONS;
+orderSchema.statics.canTransition = function (from, to) {
+  return (ALLOWED_TRANSITIONS[from] || []).includes(to);
+};
 
 module.exports = mongoose.model('Order', orderSchema);
