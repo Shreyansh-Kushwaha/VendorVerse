@@ -103,6 +103,20 @@ export default function OrderDetail() {
       </section>
 
       <section className="card p-5">
+        <h2 className="font-display text-xl text-ink dark:text-gray-100 mb-3">Delivery</h2>
+        <div className="text-sm">
+          <div className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Address</div>
+          <p className="text-ink dark:text-gray-100 mt-0.5">{order.deliveryAddress || '—'}</p>
+          {order.notes && (
+            <>
+              <div className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mt-3">Notes for the supplier</div>
+              <p className="text-gray-700 dark:text-gray-300 mt-0.5 whitespace-pre-wrap">{order.notes}</p>
+            </>
+          )}
+        </div>
+      </section>
+
+      <section className="card p-5">
         <h2 className="font-display text-xl text-ink dark:text-gray-100 mb-3">Parties</h2>
         <div className="grid sm:grid-cols-2 gap-3 text-sm">
           <Party title="Supplier" name={order.supplierId?.name} location={order.supplierId?.location} email={order.supplierId?.email} />

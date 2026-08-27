@@ -39,6 +39,8 @@ export default function Checkout() {
           itemId: it.itemId,
           quantity: it.quantity,
         })),
+        deliveryAddress: address,
+        notes,
       };
       const { data } = await api.post('/placeOrders', payload);
       toast.success(`Placed ${data.count} order${data.count === 1 ? '' : 's'}`);
@@ -76,6 +78,11 @@ export default function Checkout() {
             <div>
               <label className="label" htmlFor="address">Delivery address</label>
               <input id="address" className="input" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Stall address or landmark" />
+              {!address.trim() && (
+                <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
+                  Leave this blank and we will use your profile location.
+                </p>
+              )}
             </div>
             <div>
               <label className="label" htmlFor="notes">Notes for the supplier (optional)</label>

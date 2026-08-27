@@ -153,3 +153,50 @@ test('ordering an item that is no longer listed is a 404', async () => {
   });
   assert.strictEqual(res.status, 404);
 });
+
+test('the delivery address and notes from checkout are stored on every order', async () => {
+  const a = await listItem({ name: 'Curry leaf', qty: 10 });
+  const b = await listItem({ name: 'Turmeric', qty: 10 });
+
+  const res = await vendor.post('/api/placeOrders').send({
+    items: [
+      { supplierId: idS, itemId: a, quantity: 1 },
+      { supplierId: idS, itemId: b, quantity: 1 },
+    ],
+    deliveryAddress: 'Stall 14, near Dadar station',
+    notes: 'deliver before 8 AM',
+  }).expect(201);
+
+  assert.strictEqual(res.body.orders.length, 2);
+  for (const o of res.body.orders) {
+    assert.strictEqual(o.deliveryAddress, 'Stall 14, near Dadar station');
+    assert.strictEqual(o.notes, 'deliver before 8 AM');
+  }
+});
+
+test('a blank address falls back to the vendor profile location', async () => {
+  const itemId = await listItem({ name: 'Cardamom', qty: 10 });
+  const res = await vendor.post('/api/placeOrder')
+    .send({ supplierId: idS, itemId, quantity: 1, deliveryAddress: '   ' }).expect(201);
+  assert.strictEqual(res.body.order.deliveryAddress, 'Mumbai');
+});
+
+test('the supplier sees the address on their incoming orders', async () => {
+  const itemId = await listItem({ name: 'Clove', qty: 10 });
+  await vendor.post('/api/placeOrder')
+    .send({ supplierId: idS, itemId, quantity: 1, deliveryAddress: 'Shop 9, Andheri' }).expect(201);
+
+  const list = await supplier.get('/api/orders').expect(200);
+  const mine = list.body.find(o => o.itemName === 'Clove');
+  assert.strictEqual(mine.deliveryAddress, 'Shop 9, Andheri');
+});
+
+test('an order can be read back with its address', async () => {
+  const itemId = await listItem({ name: 'Bay leaf', qty: 10 });
+  const placed = await vendor.post('/api/placeOrder')
+    .send({ supplierId: idS, itemId, quantity: 1, deliveryAddress: 'Lane 3, Pune', notes: 'ring the bell' }).expect(201);
+
+  const res = await vendor.get(`/api/orders/${placed.body.order._id}`).expect(200);
+  assert.strictEqual(res.body.deliveryAddress, 'Lane 3, Pune');
+  assert.strictEqual(res.body.notes, 'ring the bell');
+});

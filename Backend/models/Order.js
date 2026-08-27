@@ -18,6 +18,10 @@ const orderSchema = new mongoose.Schema({
   quantity: Number,
   price: Number,
   date: { type: Date, default: Date.now },
+  // Where this goes and anything the vendor wants the supplier to know. Captured
+  // at checkout, so it survives a later change to the vendor's profile location.
+  deliveryAddress: { type: String, required: true },
+  notes: { type: String },
   status: {
     type: String,
     enum: ORDER_STATUSES,

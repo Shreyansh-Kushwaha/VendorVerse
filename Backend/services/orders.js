@@ -36,7 +36,8 @@ async function describeFailure(supplierId, itemId, qty) {
 
 // The client sends what it wants to buy. Name and price are read off the listing
 // so a tampered or stale cart cannot dictate either.
-async function placeOrders(vendorId, lines) {
+async function placeOrders(vendor, lines, { deliveryAddress, notes } = {}) {
+  const address = (deliveryAddress || '').trim() || vendor.location;
   const reserved = [];
   const docs = [];
 
@@ -47,8 +48,10 @@ async function placeOrders(vendorId, lines) {
 
       reserved.push(line);
       docs.push({
-        vendorId,
+        vendorId: vendor._id,
         supplierId: line.supplierId,
+        deliveryAddress: address,
+        notes: notes?.trim() || undefined,
         itemId: line.itemId,
         itemName: item.itemName,
         quantity: line.quantity,

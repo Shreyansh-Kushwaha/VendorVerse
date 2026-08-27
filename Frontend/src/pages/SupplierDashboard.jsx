@@ -292,6 +292,19 @@ export default function SupplierDashboard() {
                   <span className="text-gray-400">·</span>{' '}
                   <span className="font-semibold text-emerald-700 dark:text-emerald-400">₹{(o.quantity || 0) * (o.price || 0)}</span>
                 </div>
+                {o.deliveryAddress && (
+                  <div className="mt-2 flex items-start gap-1.5 text-sm text-gray-600 dark:text-gray-400">
+                    <svg className="mt-0.5 shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" />
+                    </svg>
+                    <span>{o.deliveryAddress}</span>
+                  </div>
+                )}
+                {o.notes && (
+                  <p className="mt-1.5 text-xs text-gray-600 dark:text-gray-400 italic border-l-2 border-brand-200 dark:border-night-600 pl-2 whitespace-pre-wrap">
+                    {o.notes}
+                  </p>
+                )}
                 <div className="mt-3 flex flex-wrap gap-2">
                   {o.status !== 'Rejected' && o.status !== 'Cancelled' && o.status !== 'Delivered' && (
                     <button

@@ -82,14 +82,21 @@ const placeOrderSchema = z.object({
   quantity: z.number().int().positive(),
 });
 
+// Falls back to the vendor's own location when checkout leaves it blank.
+const deliverySchema = {
+  deliveryAddress: z.string().max(300).optional(),
+  notes: z.string().max(1000).optional(),
+};
+
 // Single order
 router.post('/placeOrder',
   requireAuth,
   requireRole('vendor'),
-  validate({ body: placeOrderSchema }),
+  validate({ body: placeOrderSchema.extend(deliverySchema) }),
   async (req, res, next) => {
     try {
-      const [order] = await placeOrders(req.user._id, [req.body]);
+      const { deliveryAddress, notes, ...line } = req.body;
+      const [order] = await placeOrders(req.user, [line], { deliveryAddress, notes });
       res.status(201).json({ msg: 'Order placed', order });
     } catch (err) { next(err); }
   },
@@ -99,10 +106,11 @@ router.post('/placeOrder',
 router.post('/placeOrders',
   requireAuth,
   requireRole('vendor'),
-  validate({ body: z.object({ items: z.array(placeOrderSchema).min(1) }) }),
+  validate({ body: z.object({ items: z.array(placeOrderSchema).min(1), ...deliverySchema }) }),
   async (req, res, next) => {
     try {
-      const created = await placeOrders(req.user._id, req.body.items);
+      const { items, deliveryAddress, notes } = req.body;
+      const created = await placeOrders(req.user, items, { deliveryAddress, notes });
       res.status(201).json({ msg: 'Orders placed', count: created.length, orders: created });
     } catch (err) { next(err); }
   },
