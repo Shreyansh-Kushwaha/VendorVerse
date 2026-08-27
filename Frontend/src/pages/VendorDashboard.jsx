@@ -301,7 +301,7 @@ export default function VendorDashboard() {
                 <Link to={`/orders/${o._id}`} className="min-w-0 flex-1 group">
                   <div className="font-medium text-ink dark:text-gray-100 truncate group-hover:text-brand-600 dark:group-hover:text-brand-400">{o.itemName}</div>
                   <div className="text-xs text-gray-500 dark:text-gray-400">
-                    {amount(o.quantity, o.unit)} • {perUnit(o.price, o.unit)} • Supplier: {o.supplierId?.name || '—'}
+                    {amount(o.quantity, o.unit)} • {perUnit(o.price, o.unit)} • Supplier: {o.supplierId?.name || 'Deleted account'}
                   </div>
                 </Link>
                 <StatusPill status={o.status} />

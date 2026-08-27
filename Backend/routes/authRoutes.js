@@ -5,7 +5,7 @@ const { z } = require('zod');
 const { registerUser, loginUser, me, logoutUser } = require('../controllers/authController');
 const User = require('../models/user');
 const Supplier = require('../models/Supplier');
-const Order = require('../models/Order');
+const Notification = require('../models/Notification');
 const validate = require('../middleware/validate');
 const { requireAuth, requireSelf } = require('../middleware/auth');
 const { clearAuthCookie } = require('../lib/tokens');
@@ -103,9 +103,11 @@ router.delete('/users/:id',
       if (!user) return res.status(404).json({ msg: 'User not found' });
       const ok = await bcrypt.compare(req.body.password, user.password);
       if (!ok) return res.status(401).json({ msg: 'Password is incorrect' });
+      // Orders are a shared record. Deleting this account removes the personal
+      // details, but the counterparty keeps their own order history.
       await Promise.all([
         Supplier.deleteMany({ supplierId: user._id }),
-        Order.deleteMany({ $or: [{ vendorId: user._id }, { supplierId: user._id }] }),
+        Notification.deleteMany({ userId: user._id }),
         User.findByIdAndDelete(user._id),
       ]);
       clearAuthCookie(res);

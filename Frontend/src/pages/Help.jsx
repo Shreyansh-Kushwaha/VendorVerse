@@ -29,7 +29,7 @@ const TOPICS = [
     cat: 'Account',
     items: [
       ['How do I change my password?', 'Profile → Change password. You\'ll need to enter your current password to confirm.'],
-      ['How do I delete my account?', 'Profile → Delete account. You\'ll need to type DELETE and re-enter your password. This permanently removes your data, inventory and orders.'],
+      ['How do I delete my account?', 'Profile → Delete account. You\'ll need to type DELETE and re-enter your password. This permanently removes your profile, your inventory and your notifications. Past orders stay on record for the other party, but your details are removed from them.'],
     ],
   },
 ];

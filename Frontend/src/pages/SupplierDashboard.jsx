@@ -238,7 +238,9 @@ export default function SupplierDashboard() {
               <div key={o._id} className="rounded-xl border border-gray-100 dark:border-night-600 p-4">
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <div className="font-medium text-ink dark:text-gray-100">{o.vendorId?.name || 'Vendor'}</div>
+                    <div className={'font-medium ' + (o.vendorId?.name ? 'text-ink dark:text-gray-100' : 'text-gray-400 dark:text-gray-500 italic')}>
+                      {o.vendorId?.name || 'Deleted account'}
+                    </div>
                     <div className="text-xs text-gray-500 dark:text-gray-400">{new Date(o.date).toLocaleString()}</div>
                   </div>
                   <StatusPill status={o.status || 'Pending'} />

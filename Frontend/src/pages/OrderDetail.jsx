@@ -197,7 +197,9 @@ function Party({ title, name, location, email }) {
   return (
     <div className="rounded-xl border border-gray-100 dark:border-night-700 p-4">
       <div className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">{title}</div>
-      <div className="font-medium text-ink dark:text-gray-100 mt-0.5">{name || '—'}</div>
+      <div className={'font-medium mt-0.5 ' + (name ? 'text-ink dark:text-gray-100' : 'text-gray-400 dark:text-gray-500 italic')}>
+        {name || 'Deleted account'}
+      </div>
       {location && <div className="text-sm text-gray-600 dark:text-gray-400">{location}</div>}
       {email && <div className="text-xs text-gray-500 dark:text-gray-500 mt-1 truncate">{email}</div>}
     </div>

@@ -216,7 +216,9 @@ function DeleteAccountModal({ open, onClose, userId, onDeleted }) {
     >
       <div className="space-y-3">
         <div className="rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/30 p-3 text-sm text-red-700 dark:text-red-300">
-          This will delete your account, inventory, and orders. This action cannot be undone.
+          This will delete your account, your inventory and your notifications. Past orders stay on record so
+          the people you traded with keep their history, but your name and contact details are removed from them.
+          This action cannot be undone.
         </div>
         <div>
           <label className="label">Type DELETE to confirm</label>
