@@ -152,3 +152,29 @@ test('one supplier document still holds everything they list', async () => {
   assert.strictEqual(await Supplier.countDocuments({ supplierId: idA }), 1);
   assert.strictEqual(await Supplier.countDocuments({ supplierId: idB }), 1);
 });
+
+// Appended last on purpose: it stocks a second Onion, and the counts asserted
+// by the tests above are written against the original fixture.
+test('the same item from two suppliers comes back adjacent, cheapest first', async () => {
+  const [supC] = await makeUser({
+    name: 'Nadia Wholesale', email: 'c@t.co', password: 'secret123',
+    userType: 'supplier', location: 'Nashik',
+  });
+  await supC.post('/api/suppliers').send({
+    location: 'Nashik',
+    inventory: { itemName: 'Onion', quantity: 80, price: 32, unit: 'kg', category: 'vegetables' },
+  }).expect(201);
+
+  const res = await items({ q: 'onion' }).expect(200);
+  const onions = res.body.items.filter(i => i.itemName === 'Onion');
+
+  assert.strictEqual(onions.length, 2, 'both suppliers list an Onion');
+  assert.deepStrictEqual(
+    onions.map(i => i.price), [32, 40],
+    'the cheaper listing leads the group so a vendor can compare at a glance',
+  );
+
+  // Adjacent, so the client can group by walking the list once.
+  const names = res.body.items.map(i => i.itemName);
+  assert.deepStrictEqual(names, ['Onion', 'Onion', 'Onion Red']);
+});

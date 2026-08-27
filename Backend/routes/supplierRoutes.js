@@ -130,7 +130,10 @@ router.get('/items',
         ...(preMatch.supplierId ? [{ $match: preMatch }] : []),
         { $unwind: '$inventory' },
         ...(Object.keys(postMatch).length ? [{ $match: postMatch }] : []),
-        { $sort: { 'inventory.itemName': 1, 'inventory._id': 1 } },
+        // Name first so the same item from different suppliers lands adjacent and
+        // the client can group it; price second so the cheapest offer leads the
+        // group, which is the whole point of quoting everything per unit.
+        { $sort: { 'inventory.itemName': 1, 'inventory.price': 1, 'inventory._id': 1 } },
         {
           $facet: {
             rows: [

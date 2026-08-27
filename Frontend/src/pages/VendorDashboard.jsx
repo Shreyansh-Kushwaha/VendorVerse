@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import api from '../api.js';
 import { useAuth } from '../auth.jsx';
 import { useCart } from '../cart.jsx';
@@ -7,32 +7,32 @@ import { useToast } from '../components/Toast.jsx';
 import { useNotifications } from '../notifications.jsx';
 import { CATEGORIES, money, perUnit, amount } from '../format.js';
 import { useFavorites } from '../favorites.js';
-import StatusPill from '../components/ui/StatusPill.jsx';
 import Thumb from '../components/ui/Thumb.jsx';
 import Stat from '../components/ui/Stat.jsx';
+import QuantityStepper from '../components/ui/QuantityStepper.jsx';
 
 const PAGE_SIZE = 24;
+const OPEN_STATUSES = ['Pending', 'Accepted', 'Packed', 'OutForDelivery'];
 
 export default function VendorDashboard() {
   const { user } = useAuth();
   const cart = useCart();
   const toast = useToast();
   const { onNotification } = useNotifications();
-  const navigate = useNavigate();
 
   const [orders, setOrders] = useState([]);
   const [analytics, setAnalytics] = useState(null);
-  const [loading, setLoading] = useState(true);
   const { favorites, toggle: toggleFav } = useFavorites();
 
-  // Catalog now comes from the server one page at a time, filtered there too.
+  // Catalog comes from the server one page at a time, filtered and sorted there.
   const [catalog, setCatalog] = useState({ items: [], total: 0, pages: 0 });
   const [catalogLoading, setCatalogLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState({ q: '', category: 'all', favOnly: false });
+  // Quantity is chosen before adding, keyed by listing.
+  const [qty, setQty] = useState({});
 
-  // Any filter change starts a new result set from page one.
   const applyFilter = (patch) => {
     setPage(1);
     setFilters((prev) => ({ ...prev, ...patch }));
@@ -74,7 +74,6 @@ export default function VendorDashboard() {
   useEffect(() => { loadCatalog(); }, [loadCatalog]);
 
   const loadAll = useCallback(async () => {
-    setLoading(true);
     try {
       const [ord, an] = await Promise.all([
         api.get('/vendor/orders'),
@@ -83,9 +82,7 @@ export default function VendorDashboard() {
       setOrders(ord.data);
       setAnalytics(an.data);
     } catch {
-      toast.error('Failed to load dashboard');
-    } finally {
-      setLoading(false);
+      toast.error('Failed to load your orders');
     }
   }, [toast]);
 
@@ -97,76 +94,67 @@ export default function VendorDashboard() {
   useEffect(() => { loadRef.current = loadAll; });
   useEffect(() => onNotification(() => { loadRef.current(); loadCatalog(); }), [onNotification, loadCatalog]);
 
-  const lastOrder = orders[0];
+  // The server sorts by item name then price, so identical items arrive adjacent
+  // and cheapest first. Walking the list once is enough to group them, and it
+  // keeps working across appended pages.
+  const groups = useMemo(() => {
+    const out = [];
+    for (const it of catalog.items) {
+      const last = out[out.length - 1];
+      if (last && last.name === it.itemName) last.offers.push(it);
+      else out.push({ name: it.itemName, offers: [it] });
+    }
+    return out;
+  }, [catalog.items]);
 
-  const addToCart = (item) => {
-    cart.add({
-      itemId: item.itemId,
-      itemName: item.itemName,
-      price: item.price,
-      unit: item.unit,
-      imageUrl: item.imageUrl,
-      supplierId: item.supplierId,
-      supplierName: item.supplierName,
-      location: item.location,
-    }, 1);
-    toast.success(`Added ${item.itemName}`);
-  };
+  const openOrders = useMemo(
+    () => orders.filter(o => OPEN_STATUSES.includes(o.status || 'Pending')).length,
+    [orders],
+  );
 
-  const repeatLast = () => {
-    if (!lastOrder) return;
+  const keyOf = (it) => `${it.supplierId}-${it.itemId}`;
+  const qtyOf = (it) => qty[keyOf(it)] ?? 1;
+
+  const addToCart = (it) => {
+    const n = qtyOf(it);
     cart.add({
-      itemId: lastOrder.itemId,
-      itemName: lastOrder.itemName,
-      price: lastOrder.price,
-      unit: lastOrder.unit,
-      supplierId: lastOrder.supplierId?._id || lastOrder.supplierId,
-      supplierName: lastOrder.supplierId?.name || 'Supplier',
-      location: lastOrder.supplierId?.location || '',
-    }, lastOrder.quantity || 1);
-    toast.success('Added to cart');
-    navigate('/cart');
+      itemId: it.itemId,
+      itemName: it.itemName,
+      price: it.price,
+      unit: it.unit,
+      imageUrl: it.imageUrl,
+      supplierId: it.supplierId,
+      supplierName: it.supplierName,
+      location: it.location,
+    }, n);
+    toast.success(`Added ${amount(n, it.unit)} of ${it.itemName}`);
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-6">
-      {/* Greeting */}
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+    <div className="mx-auto max-w-6xl px-4 pb-28 pt-6 sm:px-6 sm:pb-10 sm:pt-10">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Vendor dashboard</p>
-          <h1 className="font-display text-3xl sm:text-4xl text-ink dark:text-gray-100">
-            Hello, <span className="text-brand-600 dark:text-brand-400">{user?.name?.split(' ')[0] || 'Vendor'}</span>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Vendor</p>
+          <h1 className="text-2xl tracking-tight text-ink dark:text-gray-100 sm:text-3xl">
+            Restock, {user?.name?.split(' ')[0] || 'there'}
           </h1>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          {lastOrder && (
-            <button onClick={repeatLast} className="btn-ghost">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>
-              Repeat last order
-            </button>
-          )}
-          {cart.count > 0 && (
-            <Link to="/cart" className="btn-primary">
-              Cart ({cart.count}) · {money(cart.subtotal)}
-            </Link>
-          )}
-        </div>
+        <Link to="/orders" className="btn-ghost self-start sm:self-auto">
+          View orders{openOrders > 0 ? ` (${openOrders} open)` : ''}
+        </Link>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Stat label="Items available" value={catalog.total} />
-        <Stat label="My orders" value={analytics?.totalOrders ?? orders.length} />
+      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <Stat label="Open orders" value={openOrders} />
         <Stat label="Spend (7 days)" value={money(analytics?.weekSpend)} />
         <Stat label="Total spend" value={money(analytics?.totalSpend)} />
+        <Stat label="Saved suppliers" value={favorites.size} />
       </div>
 
-
-      {/* Search + categories */}
-      <section className="card p-5 space-y-4">
-        <div className="flex flex-col sm:flex-row gap-3">
+      <section className="card mt-6 space-y-4 p-4 sm:p-5">
+        <div className="flex flex-col gap-3 sm:flex-row">
           <div className="relative flex-1">
-            <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3" strokeLinecap="round"/></svg>
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" strokeLinecap="round" /></svg>
             <input
               className="input pl-10"
               placeholder="Search items or suppliers…"
@@ -176,14 +164,11 @@ export default function VendorDashboard() {
           </div>
           <button
             onClick={() => applyFilter({ favOnly: !filters.favOnly })}
-            className={'btn ' + (filters.favOnly
-              ? 'bg-brand-600 text-white hover:bg-brand-700'
-              : 'btn-ghost')}
+            aria-pressed={filters.favOnly}
+            className={filters.favOnly ? 'btn-primary' : 'btn-ghost'}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill={filters.favOnly ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-            Favorites
+            Saved only
           </button>
-          <button onClick={() => { loadAll(); loadCatalog(); }} className="btn-ghost sm:w-auto">Refresh</button>
         </div>
 
         <div className="flex flex-wrap gap-2">
@@ -193,9 +178,10 @@ export default function VendorDashboard() {
               <button
                 key={c}
                 onClick={() => applyFilter({ category: c })}
+                aria-pressed={active}
                 className={'chip capitalize ' + (active
-                  ? 'bg-brand-600 text-white'
-                  : 'bg-brand-50 text-brand-700 hover:bg-brand-100 dark:bg-night-700 dark:text-brand-300 dark:hover:bg-night-600')}
+                  ? 'bg-ink text-white dark:bg-gray-100 dark:text-ink'
+                  : 'border border-gray-200 text-gray-600 hover:bg-gray-50 dark:border-night-600 dark:text-gray-300 dark:hover:bg-night-700')}
               >
                 {c === 'all' ? 'All' : c}
               </button>
@@ -204,95 +190,36 @@ export default function VendorDashboard() {
         </div>
       </section>
 
-      {/* Items */}
-      <section>
-        {catalog.items.length > 0 && (
-          <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-            Showing {catalog.items.length} of {catalog.total} item{catalog.total === 1 ? '' : 's'}
-          </p>
-        )}
-
+      <section className="mt-6">
         {catalogLoading && catalog.items.length === 0 ? (
           <div className="card p-5"><SkeletonRow /></div>
-        ) : catalog.items.length === 0 ? (
+        ) : groups.length === 0 ? (
           <div className="card p-10 text-center text-gray-500 dark:text-gray-400">
-            {filters.favOnly ? 'No items from your favorite suppliers match.' : 'No items match your filters.'}
+            {filters.favOnly ? 'None of your saved suppliers stock a match.' : 'No items match your filters.'}
           </div>
         ) : (
           <>
-            {/* Mobile cards */}
-            <div className="grid sm:hidden grid-cols-1 gap-3">
-              {catalog.items.map((it) => (
-                <div key={`${it.supplierId}-${it.itemId}`} className="card p-4 flex gap-3">
-                  <Thumb src={it.imageUrl} alt={it.itemName} />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <div className="font-medium text-ink dark:text-gray-100 truncate">{it.itemName}</div>
-                        <Link to={`/suppliers/${it.supplierId}`} className="text-xs text-gray-500 dark:text-gray-400 truncate hover:text-brand-600 hover:underline">{it.supplierName} • {it.location}</Link>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
-                        <div className="tnum text-ink dark:text-gray-100 font-semibold whitespace-nowrap">{perUnit(it.price, it.unit)}</div>
-                        <FavBtn on={favorites.has(it.supplierId)} onClick={() => toggleFav(it.supplierId)} />
-                      </div>
-                    </div>
-                    <button onClick={() => addToCart(it)} className="btn-ghost w-full mt-3 text-sm">Add to cart</button>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <p className="mb-3 text-sm text-gray-500 dark:text-gray-400">
+              {groups.length} item{groups.length === 1 ? '' : 's'} · {catalog.items.length} of {catalog.total} listing{catalog.total === 1 ? '' : 's'}
+            </p>
 
-            {/* Desktop table */}
-            <div className="hidden sm:block card overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-brand-50/60 dark:bg-night-700/60 text-left text-gray-700 dark:text-gray-300">
-                    <tr>
-                      <th className="px-4 py-3">Item</th>
-                      <th className="px-4 py-3">Category</th>
-                      <th className="px-4 py-3">Price</th>
-                      <th className="px-4 py-3">In stock</th>
-                      <th className="px-4 py-3">Supplier</th>
-                      <th className="px-4 py-3">Location</th>
-                      <th className="px-4 py-3 text-right">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-ink dark:text-gray-200">
-                    {catalog.items.map((it) => (
-                      <tr key={`${it.supplierId}-${it.itemId}`} className="border-t border-gray-100 dark:border-night-700 hover:bg-brand-50/30 dark:hover:bg-night-700/40">
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-3">
-                            <Thumb src={it.imageUrl} alt={it.itemName} size="sm" />
-                            <span className="font-medium">{it.itemName}</span>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-gray-600 dark:text-gray-400 capitalize">{it.category}</td>
-                        <td className="px-4 py-3 font-semibold tnum text-ink dark:text-gray-100 whitespace-nowrap">{perUnit(it.price, it.unit)}</td>
-                        <td className="px-4 py-3 text-gray-600 dark:text-gray-400 whitespace-nowrap">{amount(it.quantity, it.unit)}</td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <Link to={`/suppliers/${it.supplierId}`} className="hover:text-brand-600 hover:underline">{it.supplierName}</Link>
-                            <FavBtn on={favorites.has(it.supplierId)} onClick={() => toggleFav(it.supplierId)} />
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{it.location}</td>
-                        <td className="px-4 py-3 text-right">
-                          <button onClick={() => addToCart(it)} className="btn-ghost text-sm">Add to cart</button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+            <div className="space-y-4">
+              {groups.map((g) => (
+                <ItemGroup
+                  key={g.name}
+                  group={g}
+                  favorites={favorites}
+                  onToggleFav={toggleFav}
+                  qtyOf={qtyOf}
+                  setQty={(it, n) => setQty((q) => ({ ...q, [keyOf(it)]: n }))}
+                  onAdd={addToCart}
+                />
+              ))}
             </div>
 
             {page < catalog.pages && (
               <div className="mt-4 text-center">
-                <button
-                  onClick={() => setPage(p => p + 1)}
-                  disabled={catalogLoading}
-                  className="btn-ghost"
-                >
+                <button onClick={() => setPage(p => p + 1)} disabled={catalogLoading} className="btn-ghost">
                   {catalogLoading ? 'Loading…' : `Load more (${catalog.total - catalog.items.length} left)`}
                 </button>
               </div>
@@ -301,29 +228,79 @@ export default function VendorDashboard() {
         )}
       </section>
 
-      {/* My orders */}
-      <section className="card p-5">
-        <h2 className="font-display text-xl text-ink dark:text-gray-100 mb-3">My orders</h2>
-        {loading ? (
-          <SkeletonRow />
-        ) : orders.length === 0 ? (
-          <p className="text-sm text-gray-500 dark:text-gray-400">You haven't placed any orders yet.</p>
-        ) : (
-          <ul className="divide-y divide-gray-100 dark:divide-night-700">
-            {orders.map((o) => (
-              <li key={o._id} className="py-3 flex flex-wrap items-center justify-between gap-2">
-                <Link to={`/orders/${o._id}`} className="min-w-0 flex-1 group">
-                  <div className="font-medium text-ink dark:text-gray-100 truncate group-hover:text-brand-600 dark:group-hover:text-brand-400">{o.itemName}</div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">
-                    {amount(o.quantity, o.unit)} • {perUnit(o.price, o.unit)} • Supplier: {o.supplierId?.name || 'Deleted account'}
-                  </div>
-                </Link>
-                <StatusPill status={o.status} />
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      {/* The cart is the reason this page exists, so on a phone it stays in reach. */}
+      {cart.count > 0 && (
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-gray-200 bg-white p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:hidden dark:border-night-600 dark:bg-night-800">
+          <Link to="/cart" className="btn-primary w-full">
+            <span className="tnum">Review cart · {cart.count} item{cart.count === 1 ? '' : 's'} · {money(cart.subtotal)}</span>
+          </Link>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ItemGroup({ group, favorites, onToggleFav, qtyOf, setQty, onAdd }) {
+  const { name, offers } = group;
+  const low = offers[0].price;
+  const high = offers[offers.length - 1].price;
+  const unit = offers[0].unit;
+
+  return (
+    <div className="card overflow-hidden">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b border-gray-200 bg-gray-50 px-4 py-2.5 dark:border-night-600 dark:bg-night-700/40">
+        <h2 className="text-base text-ink dark:text-gray-100">{name}</h2>
+        <p className="tnum text-xs text-gray-500 dark:text-gray-400">
+          {offers.length} supplier{offers.length === 1 ? '' : 's'}
+          {offers.length > 1 && ` · ${perUnit(low, unit)}–${perUnit(high, unit)}`}
+        </p>
+      </div>
+
+      <ul>
+        {offers.map((it, i) => (
+          <li
+            key={`${it.supplierId}-${it.itemId}`}
+            className="flex flex-col gap-3 p-3 first:border-t-0 border-t border-gray-200 sm:flex-row sm:items-center sm:gap-4 dark:border-night-600"
+          >
+            <div className="flex min-w-0 flex-1 items-center gap-3">
+              <Thumb src={it.imageUrl} alt={it.itemName} size="sm" />
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <Link to={`/suppliers/${it.supplierId}`} className="truncate text-sm font-medium text-ink hover:underline dark:text-gray-100">
+                    {it.supplierName}
+                  </Link>
+                  {i === 0 && offers.length > 1 && (
+                    <span className="shrink-0 rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400">
+                      Cheapest
+                    </span>
+                  )}
+                  <FavBtn on={favorites.has(it.supplierId)} onClick={() => onToggleFav(it.supplierId)} />
+                </div>
+                <div className="truncate text-xs text-gray-500 dark:text-gray-400">{it.location}</div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between gap-4 sm:justify-end">
+              <div className="text-left sm:text-right">
+                <div className="tnum text-sm font-semibold text-ink dark:text-gray-100">{perUnit(it.price, it.unit)}</div>
+                <div className="tnum text-xs text-gray-500 dark:text-gray-400">{amount(it.quantity, it.unit)} left</div>
+              </div>
+              <div className="flex items-center gap-2">
+                <QuantityStepper
+                  value={qtyOf(it)}
+                  onChange={(n) => setQty(it, n)}
+                  unit={it.unit}
+                  max={it.quantity}
+                  label={`${it.itemName} from ${it.supplierName}`}
+                />
+                <button onClick={() => onAdd(it)} disabled={it.quantity < 1} className="btn-ghost text-sm">
+                  {it.quantity < 1 ? 'Out' : 'Add'}
+                </button>
+              </div>
+            </div>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
@@ -333,13 +310,13 @@ function FavBtn({ on, onClick }) {
     <button
       type="button"
       onClick={(e) => { e.stopPropagation(); e.preventDefault(); onClick(); }}
-      aria-label={on ? 'Remove from favorites' : 'Add to favorites'}
-      className={'p-1 rounded-md transition ' + (on
-        ? 'text-brand-600 dark:text-brand-400'
-        : 'text-gray-300 hover:text-brand-500 dark:text-gray-600 dark:hover:text-brand-400')}
+      aria-pressed={on}
+      aria-label={on ? 'Remove supplier from saved' : 'Save supplier'}
+      className={'shrink-0 rounded p-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink dark:focus-visible:ring-gray-100 ' +
+        (on ? 'text-ink dark:text-gray-100' : 'text-gray-300 hover:text-gray-600 dark:text-gray-600 dark:hover:text-gray-300')}
     >
       <svg width="14" height="14" viewBox="0 0 24 24" fill={on ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
       </svg>
     </button>
   );
@@ -348,9 +325,9 @@ function FavBtn({ on, onClick }) {
 function SkeletonRow() {
   return (
     <div className="animate-pulse space-y-2">
-      <div className="h-4 bg-gray-200 dark:bg-night-700 rounded w-1/2" />
-      <div className="h-4 bg-gray-200 dark:bg-night-700 rounded w-3/4" />
-      <div className="h-4 bg-gray-200 dark:bg-night-700 rounded w-2/3" />
+      <div className="h-4 w-1/2 rounded bg-gray-200 dark:bg-night-700" />
+      <div className="h-4 w-3/4 rounded bg-gray-200 dark:bg-night-700" />
+      <div className="h-4 w-2/3 rounded bg-gray-200 dark:bg-night-700" />
     </div>
   );
 }

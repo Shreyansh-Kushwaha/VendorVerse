@@ -23,8 +23,8 @@ export default function Header() {
   };
 
   const linkBase = 'px-3 py-2 rounded-lg text-sm font-medium transition';
-  const linkInactive = 'text-gray-700 hover:bg-brand-50 hover:text-brand-700 dark:text-gray-300 dark:hover:bg-night-700 dark:hover:text-brand-300';
-  const linkActive = 'bg-brand-50 text-brand-700 dark:bg-night-700 dark:text-brand-300';
+  const linkInactive = 'text-gray-600 hover:bg-gray-50 hover:text-ink dark:text-gray-300 dark:hover:bg-night-700 dark:hover:text-gray-100';
+  const linkActive = 'bg-gray-100 text-ink dark:bg-night-700 dark:text-gray-100';
 
   return (
     <header className="sticky top-0 z-30 bg-white/90 dark:bg-night-900/90 backdrop-blur border-b border-brand-100 dark:border-night-700 transition-colors">
@@ -42,6 +42,11 @@ export default function Header() {
               <NavLink to={dashHref} className={({isActive}) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
                 Dashboard
               </NavLink>
+              {showCart && (
+                <NavLink to="/orders" className={({isActive}) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
+                  Orders
+                </NavLink>
+              )}
               <NavLink to="/profile" className={({isActive}) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
                 Profile
               </NavLink>
@@ -89,6 +94,11 @@ export default function Header() {
                 <NavLink onClick={() => setOpen(false)} to={dashHref} className={({isActive}) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
                   Dashboard
                 </NavLink>
+                {showCart && (
+                  <NavLink onClick={() => setOpen(false)} to="/orders" className={({isActive}) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
+                    Orders
+                  </NavLink>
+                )}
                 <NavLink onClick={() => setOpen(false)} to="/profile" className={({isActive}) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
                   Profile
                 </NavLink>
@@ -114,7 +124,7 @@ function CartButton({ count }) {
     <Link
       to="/cart"
       aria-label={`Cart (${count} items)`}
-      className="relative inline-flex items-center justify-center h-10 w-10 rounded-xl bg-brand-50 text-brand-700 hover:bg-brand-100 dark:bg-night-700 dark:text-brand-300 dark:hover:bg-night-600 transition"
+      className="relative inline-flex h-11 w-11 items-center justify-center rounded-md text-gray-600 transition-colors hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-night-700"
     >
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="9" cy="20" r="1.5" />
@@ -122,7 +132,7 @@ function CartButton({ count }) {
         <path d="M3 3h2l3.4 12.4a2 2 0 0 0 2 1.6h7.6a2 2 0 0 0 2-1.6L21 8H6" />
       </svg>
       {count > 0 && (
-        <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full bg-brand-600 text-white text-[10px] font-bold grid place-items-center px-1 ring-2 ring-white dark:ring-night-900">
+        <span className="tnum absolute -right-0.5 -top-0.5 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-ink px-1 text-[10px] font-semibold text-white ring-2 ring-white dark:bg-gray-100 dark:text-ink dark:ring-night-900">
           {count > 99 ? '99+' : count}
         </span>
       )}

@@ -12,6 +12,7 @@ import SupplierDashboard from './pages/SupplierDashboard.jsx';
 import Profile from './pages/Profile.jsx';
 import Cart from './pages/Cart.jsx';
 import Checkout from './pages/Checkout.jsx';
+import Orders from './pages/Orders.jsx';
 import OrderDetail from './pages/OrderDetail.jsx';
 import SupplierProfile from './pages/SupplierProfile.jsx';
 import About from './pages/About.jsx';
@@ -45,6 +46,9 @@ export default function App() {
         } />
         <Route path="checkout" element={
           <ProtectedRoute role="vendor"><Checkout /></ProtectedRoute>
+        } />
+        <Route path="orders" element={
+          <ProtectedRoute role="vendor"><Orders /></ProtectedRoute>
         } />
         <Route path="orders/:id" element={
           <ProtectedRoute><OrderDetail /></ProtectedRoute>
