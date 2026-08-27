@@ -14,7 +14,7 @@ export default function Profile() {
   const [pwOpen, setPwOpen] = useState(false);
   const [delOpen, setDelOpen] = useState(false);
 
-  const handleLogout = () => { logout(); navigate('/'); };
+  const handleLogout = async () => { await logout(); navigate('/'); };
 
   if (!user) return null;
 
@@ -63,7 +63,7 @@ export default function Profile() {
 
       <EditProfileModal open={editOpen} onClose={() => setEditOpen(false)} user={user} onSaved={(u) => { login(u); toast.success('Profile updated'); }} />
       <ChangePasswordModal open={pwOpen} onClose={() => setPwOpen(false)} userId={user._id} />
-      <DeleteAccountModal open={delOpen} onClose={() => setDelOpen(false)} userId={user._id} onDeleted={() => { logout(); navigate('/'); }} />
+      <DeleteAccountModal open={delOpen} onClose={() => setDelOpen(false)} userId={user._id} onDeleted={async () => { await logout(); navigate('/'); }} />
     </div>
   );
 }

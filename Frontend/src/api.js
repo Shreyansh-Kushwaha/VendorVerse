@@ -3,6 +3,7 @@ import axios from 'axios';
 const api = axios.create({
   baseURL: '/api',
   headers: { 'Content-Type': 'application/json' },
+  withCredentials: true, // send the httpOnly session cookie
 });
 
 export default api;
@@ -12,6 +13,7 @@ export async function uploadImage(file) {
   form.append('myImage', file);
   const { data } = await axios.post('/api/upload', form, {
     headers: { 'Content-Type': 'multipart/form-data' },
+    withCredentials: true,
   });
   return data.imageUrl;
 }

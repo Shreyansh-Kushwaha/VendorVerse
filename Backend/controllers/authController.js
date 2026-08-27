@@ -1,8 +1,11 @@
 const User = require('../models/user');
 const bcrypt = require('bcryptjs');
+const { setAuthCookie, clearAuthCookie } = require('../lib/tokens');
 
-
-// Register Part here... (needs some changes tooo lazy to do now)
+function publicUser(user) {
+  const { password: _hash, ...rest } = user.toObject();
+  return rest;
+}
 
 const registerUser = async (req, res) => {
   const { name, email, password, userType, location, businessName } = req.body;
@@ -34,8 +37,6 @@ const registerUser = async (req, res) => {
   }
 };
 
-module.exports = { registerUser };
-
 // Login Part here...
 
 const loginUser = async (req, res) => {
@@ -44,7 +45,7 @@ const loginUser = async (req, res) => {
   try {
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(400).json({ msg: "Invalid credentials" });
+      return res.status(401).json({ msg: "Invalid credentials" });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
@@ -52,14 +53,12 @@ const loginUser = async (req, res) => {
       return res.status(401).json({ msg: "Invalid credentials" });
     }
 
-    // Strip the password hash before it ever leaves the server — the client
-    // persists this object to localStorage.
-    const { password: _hash, ...safeUser } = user.toObject();
+    setAuthCookie(res, user);
 
     return res.status(200).json({
       msg: "Login successful",
       userType: user.userType,
-      user: safeUser,
+      user: publicUser(user),
     });
 
   } catch (err) {
@@ -67,4 +66,14 @@ const loginUser = async (req, res) => {
   }
 };
 
-module.exports = { registerUser, loginUser };
+// Who am I — the SPA calls this on boot because it cannot read an httpOnly cookie.
+const me = (req, res) => {
+  res.json({ user: publicUser(req.user) });
+};
+
+const logoutUser = (req, res) => {
+  clearAuthCookie(res);
+  res.json({ msg: "Logged out" });
+};
+
+module.exports = { registerUser, loginUser, me, logoutUser, publicUser };

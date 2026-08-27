@@ -1,31 +1,36 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import api from './api.js';
 
 const AuthContext = createContext(null);
-const STORAGE_KEY = 'vv_user';
 
+// The session now lives in an httpOnly cookie, which JS cannot read — so the app
+// asks the server who it is on boot instead of hydrating from localStorage.
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      return raw ? JSON.parse(raw) : null;
-    } catch {
-      return null;
-    }
-  });
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (user) localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-    else localStorage.removeItem(STORAGE_KEY);
-  }, [user]);
+    // Drop the pre-cookie session blob. It held a bcrypt hash on older builds.
+    try { localStorage.removeItem('vv_user'); } catch {}
 
-  const login = (u) => setUser(u);
-  const logout = () => setUser(null);
+    let cancelled = false;
+    api.get('/me')
+      .then(({ data }) => { if (!cancelled) setUser(data.user); })
+      .catch(() => { if (!cancelled) setUser(null); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
 
-  return (
-    <AuthContext.Provider value={{ user, login, logout }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  const login = useCallback((u) => setUser(u), []);
+
+  const logout = useCallback(async () => {
+    try { await api.post('/logout'); } catch { /* clear locally regardless */ }
+    setUser(null);
+  }, []);
+
+  const value = useMemo(() => ({ user, loading, login, logout }), [user, loading, login, logout]);
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

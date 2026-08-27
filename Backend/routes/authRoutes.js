@@ -2,11 +2,13 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const { z } = require('zod');
-const { registerUser, loginUser } = require('../controllers/authController');
+const { registerUser, loginUser, me, logoutUser } = require('../controllers/authController');
 const User = require('../models/user');
 const Supplier = require('../models/Supplier');
 const Order = require('../models/Order');
 const validate = require('../middleware/validate');
+const { requireAuth, requireSelf } = require('../middleware/auth');
+const { clearAuthCookie } = require('../lib/tokens');
 
 const objectId = z.string().regex(/^[a-f\d]{24}$/i, 'Invalid id');
 
@@ -34,10 +36,16 @@ router.post('/login',
   loginUser,
 );
 
+router.get('/me', requireAuth, me);
+
+router.post('/logout', logoutUser);
+
 // =====================================================================
 // User: profile update + change password + delete account
 // =====================================================================
 router.patch('/users/:id',
+  requireAuth,
+  requireSelf('id'),
   validate({
     params: z.object({ id: objectId }),
     body: z.object({
@@ -60,6 +68,8 @@ router.patch('/users/:id',
 );
 
 router.patch('/users/:id/password',
+  requireAuth,
+  requireSelf('id'),
   validate({
     params: z.object({ id: objectId }),
     body: z.object({
@@ -81,6 +91,8 @@ router.patch('/users/:id/password',
 );
 
 router.delete('/users/:id',
+  requireAuth,
+  requireSelf('id'),
   validate({
     params: z.object({ id: objectId }),
     body: z.object({ password: z.string().min(1) }),
@@ -96,6 +108,7 @@ router.delete('/users/:id',
         Order.deleteMany({ $or: [{ vendorId: user._id }, { supplierId: user._id }] }),
         User.findByIdAndDelete(user._id),
       ]);
+      clearAuthCookie(res);
       res.json({ msg: 'Account deleted' });
     } catch (err) { next(err); }
   },

@@ -15,8 +15,8 @@ export default function Header() {
     user?.userType === 'supplier' ? '/supplier' :
     user?.userType === 'vendor'   ? '/vendor'   : '/';
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     setOpen(false);
     navigate('/');
   };

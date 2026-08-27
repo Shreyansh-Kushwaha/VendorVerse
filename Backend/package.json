@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js",
+    "dev": "node --watch index.js",
+    "test": "node --test tests/*.test.js"
   },
   "keywords": [],
   "author": "",
@@ -14,6 +16,7 @@
     "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.2",
     "cloudinary": "^2.7.0",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^17.2.1",
     "ejs": "^3.1.10",
@@ -23,5 +26,9 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.16.5",
     "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "mongodb-memory-server": "^11.2.0",
+    "supertest": "^7.2.2"
   }
 }
