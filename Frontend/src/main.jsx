@@ -7,6 +7,7 @@ import { ThemeProvider } from './theme.jsx';
 import { CartProvider } from './cart.jsx';
 import { ToastProvider } from './components/Toast.jsx';
 import { NotificationProvider } from './notifications.jsx';
+import ErrorBoundary from './components/ErrorBoundary.jsx';
 import './index.css';
 
 // Register service worker (production builds only — Vite dev doesn't expose /sw.js)
@@ -18,18 +19,20 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <BrowserRouter>
-      <ThemeProvider>
-        <AuthProvider>
-          <CartProvider>
-            <ToastProvider>
-              <NotificationProvider>
-                <App />
-              </NotificationProvider>
-            </ToastProvider>
-          </CartProvider>
-        </AuthProvider>
-      </ThemeProvider>
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <ThemeProvider>
+          <AuthProvider>
+            <CartProvider>
+              <ToastProvider>
+                <NotificationProvider>
+                  <App />
+                </NotificationProvider>
+              </ToastProvider>
+            </CartProvider>
+          </AuthProvider>
+        </ThemeProvider>
+      </BrowserRouter>
+    </ErrorBoundary>
   </React.StrictMode>
 );

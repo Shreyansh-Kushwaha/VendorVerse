@@ -2,6 +2,8 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const cors = require('cors');
+const helmet = require('helmet');
+const compression = require('compression');
 const cookieParser = require('cookie-parser');
 const rateLimit = require('express-rate-limit');
 
@@ -13,6 +15,39 @@ const app = express();
 // Behind Render/Heroku there is one proxy hop. Without this every request looks
 // like it comes from the proxy IP and all users share a single rate-limit bucket.
 app.set('trust proxy', 1);
+
+// The policy below is tailored to what the app actually loads: Google Fonts,
+// Cloudinary images, and its own bundle. The theme bootstrap lives in
+// /theme-init.js rather than inline so script-src does not need unsafe-inline.
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+      fontSrc: ["'self'", 'https://fonts.gstatic.com'],
+      imgSrc: ["'self'", 'data:', 'https:'],
+      connectSrc: ["'self'"],
+      frameAncestors: ["'none'"],
+      objectSrc: ["'none'"],
+      baseUri: ["'self'"],
+      formAction: ["'self'"],
+      upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : null,
+    },
+  },
+  // Google Fonts are cross origin, so the isolation headers would block them.
+  crossOriginEmbedderPolicy: false,
+}));
+
+// Users are on mobile data. Never compress the notification stream — buffering
+// it would stop events arriving until the connection closed.
+app.use(compression({
+  filter: (req, res) => {
+    if (req.path === '/api/notifications/stream') return false;
+    if (String(res.getHeader('Content-Type') || '').includes('text/event-stream')) return false;
+    return compression.filter(req, res);
+  },
+}));
 
 const allowedOrigins = (process.env.CORS_ORIGINS || '')
   .split(',').map(o => o.trim()).filter(Boolean);

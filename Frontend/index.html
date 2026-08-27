@@ -8,24 +8,19 @@
     <link rel="icon" type="image/svg+xml" href="/icon-192.svg" />
     <link rel="apple-touch-icon" href="/icon-192.svg" />
     <title>VendorVerse</title>
+    <meta name="description" content="Order raw ingredients from trusted local suppliers. VendorVerse connects Indian street food vendors with suppliers, with live stock and per-unit pricing." />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="VendorVerse" />
+    <meta property="og:description" content="Order raw ingredients from trusted local suppliers." />
+    <meta property="og:image" content="/icon-512.svg" />
+    <meta name="twitter:card" content="summary" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Poppins:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <script>
-      // Anti-flash: apply saved/preferred theme before React mounts
-      (function () {
-        try {
-          var saved = localStorage.getItem('vv_theme');
-          var dark = saved
-            ? saved === 'dark'
-            : window.matchMedia('(prefers-color-scheme: dark)').matches;
-          if (dark) document.documentElement.classList.add('dark');
-        } catch (e) {}
-      })();
-    </script>
+    <script src="/theme-init.js"></script>
   </head>
   <body>
     <div id="root"></div>
