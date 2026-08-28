@@ -23,13 +23,66 @@
   }
 
   ::selection {
-    background: theme('colors.ink');
-    color: #fff;
+    background: theme('colors.brand.100');
+    color: theme('colors.brand.900');
     text-shadow: none;
   }
   html.dark ::selection {
-    background: theme('colors.gray.100');
-    color: theme('colors.ink');
+    background: theme('colors.brand.500');
+    color: #fff;
+  }
+
+  /* Scrollbars are chrome, not content, so the thumb rests in the warm neutral
+     ramp and only takes the accent once you actually grab it. Declared on bare
+     selectors rather than a utility class so every scroll container inherits
+     it — the page, the notification list, a modal body — with no call site
+     having to opt in. */
+  html {
+    /* Reserves the gutter even on pages that do not scroll, so navigating from
+       a short page to a long one stops nudging the centred layout sideways. */
+    scrollbar-gutter: stable;
+    /* Firefox has no hover state for scrollbars, so it gets the resting pair. */
+    scrollbar-width: thin;
+    scrollbar-color: theme('colors.gray.400') transparent;
+  }
+  html.dark {
+    scrollbar-color: theme('colors.night.400') transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+  }
+  /* A transparent track lets the bar sit on whatever surface it is over — the
+     warm page ground or a white card — without cutting a grey channel in it. */
+  ::-webkit-scrollbar-track,
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+  /* The transparent border plus content-box clip is what insets the thumb, so
+     it reads as a floating 6px pill rather than filling the full 12px lane. */
+  ::-webkit-scrollbar-thumb {
+    background-color: theme('colors.gray.400');
+    background-clip: content-box;
+    border: 3px solid transparent;
+    border-radius: 999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: theme('colors.brand.600');
+    border-width: 2px; /* thickens to 8px under the cursor */
+  }
+  ::-webkit-scrollbar-thumb:active {
+    background-color: theme('colors.brand.700');
+    border-width: 2px;
+  }
+  html.dark ::-webkit-scrollbar-thumb {
+    background-color: theme('colors.night.400');
+  }
+  html.dark ::-webkit-scrollbar-thumb:hover {
+    background-color: theme('colors.brand.500');
+  }
+  html.dark ::-webkit-scrollbar-thumb:active {
+    background-color: theme('colors.brand.400');
   }
 }
 
@@ -44,17 +97,28 @@
      floor without each call site having to ask for it. */
   .btn {
     @apply inline-flex items-center justify-center gap-2 px-4 h-11 rounded-md
-           text-sm font-medium transition-colors duration-150 active:scale-[0.98]
-           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2
+           text-sm font-medium
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2
            disabled:opacity-40 disabled:cursor-not-allowed
-           dark:focus-visible:ring-gray-100 dark:focus-visible:ring-offset-night-900;
+           dark:focus-visible:ring-brand-400 dark:focus-visible:ring-offset-night-900;
+    /* Press is fast and linear; release runs the spring, so the button snaps
+       back with a tiny overshoot instead of easing limply out. */
+    transition: background-color 150ms, border-color 150ms, color 150ms, opacity 150ms,
+                transform 250ms theme('transitionTimingFunction.spring');
   }
+  .btn:active:not(:disabled) {
+    transform: scale(0.96);
+    transition-duration: 150ms, 150ms, 150ms, 150ms, 80ms;
+    transition-timing-function: ease, ease, ease, ease, ease-out;
+  }
+  /* The accent lives here, on the one action a screen exists for. Ink is still
+     the colour of information; brand is the colour of doing something. */
   .btn-primary {
-    @apply btn bg-ink text-white hover:bg-gray-800
-           dark:bg-gray-100 dark:text-ink dark:hover:bg-white;
+    @apply btn bg-brand-600 text-white hover:bg-brand-700
+           dark:bg-brand-500 dark:text-white dark:hover:bg-brand-600;
   }
   .btn-ghost {
-    @apply btn bg-white text-ink border border-gray-200 hover:bg-gray-50
+    @apply btn bg-white text-ink border border-gray-200 hover:bg-brand-50 hover:border-brand-200
            dark:bg-night-800 dark:text-gray-100 dark:border-night-600 dark:hover:bg-night-700;
   }
   /* Outlined by default. Use .btn-danger-solid only inside a confirm dialog,
@@ -69,9 +133,9 @@
   /* text-base, not text-sm — iOS zooms the page on focus below 16px. */
   .input {
     @apply w-full px-3 h-11 rounded-md border border-gray-200 bg-white text-base
-           focus:outline-none focus:ring-2 focus:ring-ink focus:border-transparent transition-shadow
+           focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-transparent transition-shadow
            dark:bg-night-800 dark:border-night-600 dark:text-gray-100 dark:placeholder-gray-500
-           dark:focus:ring-gray-100;
+           dark:focus:ring-brand-400;
   }
   .label {
     @apply block text-sm font-medium text-gray-700 mb-1.5 dark:text-gray-300;
@@ -82,8 +146,71 @@
   }
   .chip {
     @apply inline-flex items-center px-3 h-8 rounded-md text-sm font-medium
-           transition-colors cursor-pointer select-none;
+           transition-colors cursor-pointer select-none active:scale-[0.96];
   }
+
+  /* Loading placeholders: one slow highlight sweeps the shapes. This is the
+     single sanctioned idle animation — "loading" is a state in progress. */
+  .skel {
+    @apply rounded-md animate-shimmer;
+    background-image: linear-gradient(90deg,
+      theme('colors.gray.200') 25%, theme('colors.gray.100') 45%, theme('colors.gray.200') 65%);
+    background-size: 200% 100%;
+  }
+  html.dark .skel {
+    background-image: linear-gradient(90deg,
+      theme('colors.night.700') 25%, theme('colors.night.600') 45%, theme('colors.night.700') 65%);
+  }
+
+  /* Cards that link somewhere rise 2px under a pointer. Gated to devices that
+     actually hover; touch keeps the press scale only. */
+  @media (hover: hover) {
+    .card-lift {
+      transition: transform 180ms theme('transitionTimingFunction.out-quart'),
+                  box-shadow 180ms, border-color 180ms;
+    }
+    .card-lift:hover {
+      transform: translateY(-2px);
+      box-shadow: theme('boxShadow.pop');
+      border-color: theme('colors.gray.300');
+    }
+    html.dark .card-lift:hover { border-color: theme('colors.night.500'); }
+  }
+}
+
+/* Rolling total: each digit is a strip of 0–9 that rolls to its value, with a
+   small left-to-right cascade. Everything inside shares height 1em / line-height
+   1 so the ₹ and commas sit on the digits' baseline. */
+.odo { display: inline-flex; overflow: hidden; }
+.odo-ch { display: block; height: 1em; line-height: 1; }
+.odo-col { display: block; height: 1em; overflow: hidden; }
+.odo-strip {
+  display: flex;
+  flex-direction: column;
+  transition: transform 560ms theme('transitionTimingFunction.move');
+}
+.odo-strip > span { display: block; height: 1em; line-height: 1; }
+
+/* Order placed: the ring draws, then the check strokes on after it. Runs once
+   on mount, so the element is simply rendered when the moment arrives. */
+.check-draw .cir {
+  stroke-dasharray: 202;
+  stroke-dashoffset: 202;
+  animation: draw-cir 480ms theme('transitionTimingFunction.out-quart') forwards;
+}
+.check-draw .tick {
+  stroke-dasharray: 40;
+  stroke-dashoffset: 40;
+  animation: draw-tick 260ms theme('transitionTimingFunction.out-quart') 380ms forwards;
+}
+@keyframes draw-cir { to { stroke-dashoffset: 0; } }
+@keyframes draw-tick { to { stroke-dashoffset: 0; } }
+
+/* The order timeline's check, drawn only on a live status advance. */
+.tick-draw {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  animation: draw-tick 240ms theme('transitionTimingFunction.out-quart') 180ms forwards;
 }
 
 @media (prefers-reduced-motion: reduce) {
