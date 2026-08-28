@@ -161,6 +161,77 @@ router.get('/landing', async (req, res, next) => {
 });
 
 // =====================================================================
+// Directory: every supplier with something listed, searchable and sorted.
+// Public — each card holds exactly what that supplier's public profile
+// already shows, just gathered onto one browsable page.
+// =====================================================================
+router.get('/suppliers',
+  validate({
+    query: z.object({
+      q: z.string().trim().max(100).optional(),
+      sort: z.enum(['rating', 'items', 'name']).default('rating'),
+      page: z.coerce.number().int().min(1).default(1),
+      limit: z.coerce.number().int().min(1).max(48).default(12),
+    }),
+  }),
+  async (req, res, next) => {
+    try {
+      const { q, sort, page, limit } = req.query;
+
+      // A supplier with nothing listed is not worth a card.
+      const match = { 'inventory.0': { $exists: true } };
+      if (q) {
+        const rx = new RegExp(escapeRegex(q), 'i');
+        match.$or = [{ name: rx }, { location: rx }];
+      }
+
+      // Descending BSON order puts unrated suppliers after every rated one,
+      // which is exactly where a directory should file them.
+      const sortStage =
+        sort === 'items' ? { items: -1, nameLower: 1 } :
+        sort === 'name'  ? { nameLower: 1 } :
+        { rating: -1, ratingCount: -1, nameLower: 1 };
+
+      const [result] = await Supplier.aggregate([
+        { $match: match },
+        { $lookup: { from: 'reviews', localField: 'supplierId', foreignField: 'supplierId', as: 'reviews' } },
+        {
+          $project: {
+            _id: 0,
+            supplierId: 1,
+            name: 1,
+            location: 1,
+            geo: 1,
+            nameLower: { $toLower: '$name' },
+            items: { $size: '$inventory' },
+            categories: { $setUnion: ['$inventory.category', []] },
+            // A three-item teaser tells a vendor whether the card is worth
+            // opening without shipping the whole inventory.
+            itemNames: { $slice: ['$inventory.itemName', 3] },
+            rating: { $round: [{ $avg: '$reviews.rating' }, 1] },
+            ratingCount: { $size: '$reviews' },
+          },
+        },
+        { $sort: sortStage },
+        {
+          $facet: {
+            rows: [
+              { $skip: (page - 1) * limit },
+              { $limit: limit },
+              { $project: { nameLower: 0 } },
+            ],
+            total: [{ $count: 'n' }],
+          },
+        },
+      ]);
+
+      const total = result.total[0]?.n || 0;
+      res.json({ suppliers: result.rows, total, page, limit, pages: Math.ceil(total / limit) });
+    } catch (err) { next(err); }
+  },
+);
+
+// =====================================================================
 // Catalog: one flat, filtered, paginated page of items.
 // Replaces the old GET /suppliers, which sent every supplier's entire
 // inventory and left the browser to flatten and filter it.

@@ -43,6 +43,11 @@ export default function Header() {
                 Dashboard
               </NavLink>
               {showCart && (
+                <NavLink to="/suppliers" end className={({isActive}) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
+                  Suppliers
+                </NavLink>
+              )}
+              {showCart && (
                 <NavLink to="/orders" className={({isActive}) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
                   Orders
                 </NavLink>
@@ -94,6 +99,11 @@ export default function Header() {
                 <NavLink onClick={() => setOpen(false)} to={dashHref} className={({isActive}) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
                   Dashboard
                 </NavLink>
+                {showCart && (
+                  <NavLink onClick={() => setOpen(false)} to="/suppliers" end className={({isActive}) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
+                    Suppliers
+                  </NavLink>
+                )}
                 {showCart && (
                   <NavLink onClick={() => setOpen(false)} to="/orders" className={({isActive}) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
                     Orders

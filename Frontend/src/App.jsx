@@ -21,6 +21,7 @@ const Orders = lazy(() => import('./pages/Orders.jsx'));
 const OrderDetail = lazy(() => import('./pages/OrderDetail.jsx'));
 const Invoice = lazy(() => import('./pages/Invoice.jsx'));
 const SupplierProfile = lazy(() => import('./pages/SupplierProfile.jsx'));
+const Suppliers = lazy(() => import('./pages/Suppliers.jsx'));
 const About = lazy(() => import('./pages/About.jsx'));
 const Contact = lazy(() => import('./pages/Contact.jsx'));
 const Privacy = lazy(() => import('./pages/Privacy.jsx'));
@@ -76,6 +77,7 @@ export default function App() {
             <ProtectedRoute><Invoice /></ProtectedRoute>
           } />
 
+          <Route path="suppliers" element={<Suppliers />} />
           <Route path="suppliers/:id" element={<SupplierProfile />} />
 
           <Route path="about" element={<About />} />
