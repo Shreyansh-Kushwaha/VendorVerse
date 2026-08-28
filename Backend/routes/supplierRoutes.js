@@ -86,6 +86,54 @@ router.post('/suppliers',
 // Suppliers: list (public) + per-supplier profile + per-supplier inventory
 // =====================================================================
 // =====================================================================
+// Landing page: counts plus a cheapest-offer price strip. Public — the same
+// numbers a visitor could read off any public supplier profile.
+// =====================================================================
+router.get('/landing', async (req, res, next) => {
+  try {
+    const [agg] = await Supplier.aggregate([
+      { $unwind: '$inventory' },
+      { $match: { 'inventory.price': { $gt: 0 } } },
+      {
+        $facet: {
+          counts: [
+            {
+              $group: {
+                _id: null,
+                items: { $sum: 1 },
+                suppliers: { $addToSet: '$supplierId' },
+                cities: { $addToSet: { $toLower: { $trim: { input: '$location' } } } },
+              },
+            },
+          ],
+          ticker: [
+            { $sort: { 'inventory.price': 1 } },
+            {
+              $group: {
+                _id: { $toLower: '$inventory.itemName' },
+                name: { $first: '$inventory.itemName' },
+                price: { $first: '$inventory.price' },
+                unit: { $first: '$inventory.unit' },
+              },
+            },
+            { $sort: { _id: 1 } },
+            { $limit: 14 },
+            { $project: { _id: 0 } },
+          ],
+        },
+      },
+    ]);
+    const c = agg.counts[0] || {};
+    res.json({
+      items: c.items || 0,
+      suppliers: (c.suppliers || []).length,
+      cities: (c.cities || []).length,
+      ticker: agg.ticker,
+    });
+  } catch (err) { next(err); }
+});
+
+// =====================================================================
 // Catalog: one flat, filtered, paginated page of items.
 // Replaces the old GET /suppliers, which sent every supplier's entire
 // inventory and left the browser to flatten and filter it.
