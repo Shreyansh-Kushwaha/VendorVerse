@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { haptic } from '../lib/haptics.js';
+import { reorderLine } from '../lib/reorder.js';
 import api from '../api.js';
 import { useAuth } from '../auth.jsx';
+import { useCart } from '../cart.jsx';
 import { useToast } from '../components/Toast.jsx';
 import { useNotifications } from '../notifications.jsx';
 import Modal from '../components/Modal.jsx';
@@ -27,6 +29,8 @@ export default function OrderDetail() {
   const [loading, setLoading] = useState(true);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const cart = useCart();
+  const [reordering, setReordering] = useState(false);
 
   // Motion happens only at the moment of change: when an SSE update advances
   // the status, the newly reached dot pops and its check draws in. Steps that
@@ -95,6 +99,22 @@ export default function OrderDetail() {
 
   const isBuyer = String(order.vendorId?._id || order.vendorId) === String(user?._id);
   const canCancel = isBuyer && status === 'Pending';
+
+  const reorder = async () => {
+    setReordering(true);
+    try {
+      const { qty, item, priceChanged } = await reorderLine(order, cart);
+      haptic('tick');
+      toast.success(
+        `${amount(qty, item.unit)} ${item.itemName} added at ${perUnit(item.price, item.unit)}` +
+        (priceChanged ? ` (was ${perUnit(order.price, order.unit)})` : ''),
+      );
+    } catch (err) {
+      toast.error(err.message || 'Could not reorder this item');
+    } finally {
+      setReordering(false);
+    }
+  };
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-6">
@@ -194,6 +214,11 @@ export default function OrderDetail() {
           <span className="text-gray-600 dark:text-gray-400">{order.itemName} · {amount(order.quantity, order.unit)}</span>
           <span className="tnum text-2xl font-medium tracking-tight text-ink dark:text-gray-100">{money(order.quantity * order.price)}</span>
         </div>
+        {isBuyer && (
+          <button className="btn-ghost w-full mt-4" onClick={reorder} disabled={reordering}>
+            {reordering ? 'Adding…' : 'Order this again'}
+          </button>
+        )}
       </section>
       <Modal
         open={confirmCancel}

@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import api from '../api.js';
+import { useCart } from '../cart.jsx';
 import { useToast } from '../components/Toast.jsx';
 import { useNotifications } from '../notifications.jsx';
 import { money, perUnit, amount } from '../format.js';
+import { reorderLine } from '../lib/reorder.js';
+import { haptic } from '../lib/haptics.js';
 import StatusPill from '../components/ui/StatusPill.jsx';
 import Tabs from '../components/ui/Tabs.jsx';
 
@@ -24,6 +27,7 @@ const NEXT_UP = {
 
 export default function Orders() {
   const toast = useToast();
+  const cart = useCart();
   const { onNotification } = useNotifications();
   const [params, setParams] = useSearchParams();
   const view = VIEWS[params.get('view')] ? params.get('view') : 'active';
@@ -47,6 +51,19 @@ export default function Orders() {
   const loadRef = useRef(load);
   useEffect(() => { loadRef.current = load; });
   useEffect(() => onNotification(() => loadRef.current()), [onNotification]);
+
+  // The row itself is a link, so the button must swallow the click.
+  const reorder = async (e, o) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      const { qty, item } = await reorderLine(o, cart);
+      haptic('tick');
+      toast.success(`${amount(qty, item.unit)} ${item.itemName} added at ${perUnit(item.price, item.unit)}`);
+    } catch (err) {
+      toast.error(err.message || 'Could not reorder this item');
+    }
+  };
 
   const counts = useMemo(() => {
     const c = {};
@@ -126,7 +143,14 @@ export default function Orders() {
                         <span className="tnum font-semibold text-ink dark:text-gray-100">
                           {money((o.quantity || 0) * (o.price || 0))}
                         </span>
-                        <StatusPill status={o.status} />
+                        <div className="flex items-center gap-2">
+                          {view !== 'active' && (
+                            <button onClick={(e) => reorder(e, o)} className="btn-ghost px-2 py-1 text-xs">
+                              Reorder
+                            </button>
+                          )}
+                          <StatusPill status={o.status} />
+                        </div>
                       </div>
                     </Link>
                   </li>
