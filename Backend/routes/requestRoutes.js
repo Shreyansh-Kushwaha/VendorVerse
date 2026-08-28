@@ -10,7 +10,7 @@ const { placeOrders, releaseOrderStock } = require('../services/orders');
 const { notifySafely } = require('../services/notifications');
 const { SLOTS } = require('../lib/slots');
 
-const objectId = z.string().regex(/^[a-f\d]{24}$/i, 'Invalid id');
+const { objectId } = require('../lib/ids');
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,

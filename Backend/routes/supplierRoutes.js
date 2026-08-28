@@ -13,6 +13,7 @@ const { releaseOrderStock } = require('../services/orders');
 const { fireRestockAlerts } = require('../services/stockAlerts');
 const { UNITS, DEFAULT_UNIT } = require('../lib/units');
 const { CATEGORIES } = require('../lib/categories');
+const { objectId } = require('../lib/ids');
 
 const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const { notifySafely } = require('../services/notifications');
@@ -28,8 +29,6 @@ const STATUS_WORDING = {
   Rejected:       'was rejected by the supplier',
   Cancelled:      'was cancelled',
 };
-
-const objectId = z.string().regex(/^[a-f\d]{24}$/i, 'Invalid id');
 
 // The price timeline is decoration on a listing — recording it must never fail
 // the write that changed the price.
@@ -316,13 +315,10 @@ router.get('/suppliers/:supplierId',
   async (req, res, next) => {
     try {
       const { supplierId } = req.params;
-      const [user, doc, [ratingAgg]] = await Promise.all([
+      const [user, doc, ratingSummary] = await Promise.all([
         User.findById(supplierId).select('-password'),
         Supplier.findOne({ supplierId }),
-        Review.aggregate([
-          { $match: { supplierId: new mongoose.Types.ObjectId(supplierId) } },
-          { $group: { _id: null, average: { $avg: '$rating' }, count: { $sum: 1 } } },
-        ]),
+        Review.summaryFor(supplierId),
       ]);
       if (!user) return res.status(404).json({ msg: 'Supplier not found' });
       const inventory = doc?.inventory || [];
@@ -334,8 +330,8 @@ router.get('/suppliers/:supplierId',
         location,
         email: user.email,
         memberSince: user.createdAt,
-        rating: ratingAgg ? Math.round(ratingAgg.average * 10) / 10 : null,
-        ratingCount: ratingAgg?.count || 0,
+        rating: ratingSummary.average,
+        ratingCount: ratingSummary.count,
         inventory,
       });
     } catch (err) { next(err); }
@@ -380,24 +376,24 @@ router.patch('/suppliers/:supplierId/inventory/:itemId',
       for (const [k, v] of Object.entries(req.body)) {
         setObj[`inventory.$.${k}`] = v;
       }
-      // The pre-update doc tells us whether this write is a restock or a reprice.
-      const before = await Supplier.findOne({ supplierId, 'inventory._id': itemId });
-      const prevItem = before?.inventory?.id(itemId);
-      const prevQty = prevItem?.quantity ?? 0;
-      const updated = await Supplier.findOneAndUpdate(
+      // One atomic update. Asking for the pre-image instead of the result
+      // means the restock and reprice checks compare against exactly the state
+      // this write replaced — no separate read racing a concurrent order.
+      const before = await Supplier.findOneAndUpdate(
         { supplierId, 'inventory._id': itemId },
         { $set: setObj },
-        { new: true },
+        { new: false },
       );
-      if (!updated) return res.status(404).json({ msg: 'Item not found' });
-      const item = updated.inventory.id(itemId);
+      if (!before) return res.status(404).json({ msg: 'Item not found' });
+      const prevItem = before.inventory.id(itemId);
+      const item = { ...prevItem.toObject(), ...req.body };
 
       // Empty before, stocked now — tell everyone who asked to be told.
-      if (prevQty <= 0 && item.quantity > 0) {
+      if (prevItem.quantity <= 0 && item.quantity > 0) {
         await fireRestockAlerts(req.user.name, item);
       }
 
-      if (prevItem && item.price !== prevItem.price) {
+      if (item.price !== prevItem.price) {
         await recordPrice(supplierId, item);
       }
 

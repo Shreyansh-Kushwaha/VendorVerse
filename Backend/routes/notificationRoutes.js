@@ -6,7 +6,7 @@ const validate = require('../middleware/validate');
 const { requireAuth } = require('../middleware/auth');
 const { subscribe } = require('../services/notifications');
 
-const objectId = z.string().regex(/^[a-f\d]{24}$/i, 'Invalid id');
+const { objectId } = require('../lib/ids');
 
 // Live feed. EventSource cannot set headers, but it does send same origin
 // cookies, which is exactly how this app authenticates.

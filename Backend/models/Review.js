@@ -27,4 +27,18 @@ const reviewSchema = new mongoose.Schema({
 // A supplier's profile lists their reviews newest first.
 reviewSchema.index({ supplierId: 1, createdAt: -1 });
 
+// One number a buyer can trust: the average and how many orders stand behind
+// it. Shared by the profile route and the reviews route so the rounding and
+// the empty case cannot drift apart.
+reviewSchema.statics.summaryFor = async function (supplierId) {
+  const [agg] = await this.aggregate([
+    { $match: { supplierId: new mongoose.Types.ObjectId(String(supplierId)) } },
+    { $group: { _id: null, average: { $avg: '$rating' }, count: { $sum: 1 } } },
+  ]);
+  return {
+    average: agg ? Math.round(agg.average * 10) / 10 : null,
+    count: agg?.count || 0,
+  };
+};
+
 module.exports = mongoose.model('Review', reviewSchema);

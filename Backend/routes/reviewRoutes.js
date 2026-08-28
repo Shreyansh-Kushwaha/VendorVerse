@@ -1,5 +1,4 @@
 const express = require('express');
-const mongoose = require('mongoose');
 const router = express.Router();
 const { z } = require('zod');
 const Order = require('../models/Order');
@@ -8,7 +7,7 @@ const validate = require('../middleware/validate');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { notifySafely } = require('../services/notifications');
 
-const objectId = z.string().regex(/^[a-f\d]{24}$/i, 'Invalid id');
+const { objectId } = require('../lib/ids');
 
 const reviewSchema = z.object({
   rating: z.number().int().min(1).max(5),
@@ -90,19 +89,17 @@ router.get('/suppliers/:supplierId/reviews',
   async (req, res, next) => {
     try {
       const { supplierId } = req.params;
-      const [reviews, [agg]] = await Promise.all([
+      const [reviews, summary] = await Promise.all([
         Review.find({ supplierId })
           .sort({ createdAt: -1 })
           .limit(20)
-          .populate('vendorId', 'name'),
-        Review.aggregate([
-          { $match: { supplierId: new mongoose.Types.ObjectId(supplierId) } },
-          { $group: { _id: null, average: { $avg: '$rating' }, count: { $sum: 1 } } },
-        ]),
+          .populate('vendorId', 'name')
+          .lean(),
+        Review.summaryFor(supplierId),
       ]);
       res.json({
-        average: agg ? Math.round(agg.average * 10) / 10 : null,
-        count: agg?.count || 0,
+        average: summary.average,
+        count: summary.count,
         reviews: reviews.map(r => ({
           _id: r._id,
           rating: r.rating,

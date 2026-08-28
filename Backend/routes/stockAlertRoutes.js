@@ -6,7 +6,7 @@ const StockAlert = require('../models/StockAlert');
 const validate = require('../middleware/validate');
 const { requireAuth, requireRole } = require('../middleware/auth');
 
-const objectId = z.string().regex(/^[a-f\d]{24}$/i, 'Invalid id');
+const { objectId } = require('../lib/ids');
 
 // The dashboard needs the ids to render bells as on or off.
 router.get('/stock-alerts',
