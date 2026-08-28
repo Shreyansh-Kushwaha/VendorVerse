@@ -14,11 +14,16 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  // 'admin' exists in the enum but not in the registration schema — the only
+  // way to mint one is scripts/makeAdmin.js against the database.
   userType: {
     type: String,
-    enum: ['vendor', 'supplier'],
+    enum: ['vendor', 'supplier', 'admin'],
     required: true,
   },
+  // Set by an admin. A suspended account cannot sign in, keeps no live
+  // session, and cannot be sold to.
+  suspended: { type: Boolean, default: false },
   location: {
     type: String,
     required: true,

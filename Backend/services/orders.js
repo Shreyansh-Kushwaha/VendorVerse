@@ -1,5 +1,6 @@
 const Supplier = require('../models/Supplier');
 const Order = require('../models/Order');
+const User = require('../models/user');
 const { notifySafely } = require('./notifications');
 const { LOW_STOCK } = require('../lib/stock');
 
@@ -46,6 +47,15 @@ async function placeOrders(vendor, lines, { deliveryAddress, deliverySlot, notes
   const reserved = [];
   const docs = [];
   const lowLines = [];
+
+  // A suspended supplier's listings may still be on screen somewhere; the
+  // money moment is where the door actually closes. Checked before anything
+  // is reserved, so a refused cart leaves no stock to hand back.
+  const supplierIds = [...new Set(lines.map(l => String(l.supplierId)))];
+  const suspended = await User.findOne({ _id: { $in: supplierIds }, suspended: true }).select('name');
+  if (suspended) {
+    throw new OrderError(403, `${suspended.name} is temporarily unavailable on VendorVerse`);
+  }
 
   try {
     for (const line of lines) {

@@ -17,6 +17,12 @@ async function requireAuth(req, res, next) {
     const user = await User.findById(payload.sub).select('-password');
     if (!user) return res.status(401).json({ msg: 'Account no longer exists' });
 
+    // Suspension lands on the next request, not the next login — a session
+    // already in a browser dies the moment the flag is set.
+    if (user.suspended) {
+      return res.status(403).json({ msg: 'This account is suspended. Contact support.' });
+    }
+
     // A password change or reset retires every session issued before it. The
     // token's iat is whole seconds, so compare in seconds — otherwise a cookie
     // minted in the same second as the change looks stale and logs the user out
