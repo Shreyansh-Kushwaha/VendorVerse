@@ -25,9 +25,11 @@ export default function Cart() {
     collapseTimers.current.forEach(clearTimeout);
   }, []);
 
+  // The key only needs to be unique per toast; a counter keeps this pure.
+  const undoKey = useRef(0);
   const showUndo = (label, snapshot) => {
     clearTimeout(undoTimer.current);
-    setUndo({ label, items: snapshot, key: Date.now() });
+    setUndo({ label, items: snapshot, key: ++undoKey.current });
     undoTimer.current = setTimeout(() => setUndo(null), UNDO_MS);
   };
 

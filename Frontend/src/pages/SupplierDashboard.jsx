@@ -5,7 +5,7 @@ import { useAuth } from '../auth.jsx';
 import { useToast } from '../components/Toast.jsx';
 import { useNotifications } from '../notifications.jsx';
 import Modal from '../components/Modal.jsx';
-import { UNITS, DEFAULT_UNIT, money, perUnit, amount } from '../format.js';
+import { UNITS, DEFAULT_UNIT, CATEGORIES, money, perUnit, amount } from '../format.js';
 import StatusPill from '../components/ui/StatusPill.jsx';
 import Thumb from '../components/ui/Thumb.jsx';
 import Stat from '../components/ui/Stat.jsx';
@@ -14,7 +14,6 @@ import Tabs from '../components/ui/Tabs.jsx';
 import { haptic } from '../lib/haptics.js';
 import { getPosition } from '../lib/geo.js';
 
-const CATEGORY_OPTIONS = ['vegetables', 'fruits', 'spices', 'grains', 'dairy', 'others'];
 const NEXT_STATUS = { Pending: 'Accepted', Accepted: 'Packed', Packed: 'OutForDelivery', OutForDelivery: 'Delivered' };
 const STATUS_LABELS = { Accepted: 'Accept', Packed: 'Mark packed', OutForDelivery: 'Out for delivery', Delivered: 'Mark delivered' };
 const CLOSED = ['Delivered', 'Rejected', 'Cancelled'];
@@ -456,7 +455,7 @@ export default function SupplierDashboard() {
             <label className="label" htmlFor="category">Category</label>
             <select id="category" required className="input" value={addForm.category} onChange={updateAdd('category')}>
               <option value="">— Select category —</option>
-              {CATEGORY_OPTIONS.map((c) => <option key={c} value={c} className="capitalize">{c}</option>)}
+              {CATEGORIES.map((c) => <option key={c} value={c} className="capitalize">{c}</option>)}
             </select>
           </div>
           <div>
@@ -530,7 +529,7 @@ export default function SupplierDashboard() {
             <div>
               <label className="label">Category</label>
               <select className="input" value={editForm.category} onChange={updateEdit('category')}>
-                {CATEGORY_OPTIONS.map((c) => <option key={c} value={c} className="capitalize">{c}</option>)}
+                {CATEGORIES.map((c) => <option key={c} value={c} className="capitalize">{c}</option>)}
               </select>
             </div>
 

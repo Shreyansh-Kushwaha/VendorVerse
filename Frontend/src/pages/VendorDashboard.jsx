@@ -72,8 +72,6 @@ export default function VendorDashboard() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState({ q: '', category: 'all', favOnly: false });
-  // Quantity is chosen before adding, keyed by listing.
-  const [qty, setQty] = useState({});
   // Listing whose price timeline is open in a modal.
   const [trendItem, setTrendItem] = useState(null);
 
@@ -178,13 +176,9 @@ export default function VendorDashboard() {
     [orders],
   );
 
-  const keyOf = (it) => `${it.supplierId}-${it.itemId}`;
-  const qtyOf = (it) => qty[keyOf(it)] ?? 1;
-
   // The confirmation is physical, not textual: a dot flies to the cart, the
   // badge pops, the button flashes a check, the phone ticks. No toast needed.
-  const addToCart = (it, fromEl) => {
-    const n = qtyOf(it);
+  const addToCart = (it, fromEl, n) => {
     cart.add({
       itemId: it.itemId,
       itemName: it.itemName,
@@ -323,8 +317,6 @@ export default function VendorDashboard() {
                     group={g}
                     favorites={favorites}
                     onToggleFav={toggleFav}
-                    qtyOf={qtyOf}
-                    setQty={(it, n) => setQty((q) => ({ ...q, [keyOf(it)]: n }))}
                     onAdd={addToCart}
                     alerts={alerts}
                     onToggleAlert={toggleAlert}
@@ -361,7 +353,7 @@ export default function VendorDashboard() {
   );
 }
 
-function ItemGroup({ group, favorites, onToggleFav, qtyOf, setQty, onAdd, alerts, onToggleAlert, onShowTrend, pos }) {
+function ItemGroup({ group, favorites, onToggleFav, onAdd, alerts, onToggleAlert, onShowTrend, pos }) {
   const { name, offers } = group;
   const low = offers[0].price;
   const high = offers[offers.length - 1].price;
@@ -379,63 +371,81 @@ function ItemGroup({ group, favorites, onToggleFav, qtyOf, setQty, onAdd, alerts
 
       <ul>
         {offers.map((it, i) => (
-          <li
+          <OfferRow
             key={`${it.supplierId}-${it.itemId}`}
-            className="flex flex-col gap-3 p-3 first:border-t-0 border-t border-gray-200 sm:flex-row sm:items-center sm:gap-4 dark:border-night-600"
-          >
-            <div className="flex min-w-0 flex-1 items-center gap-3">
-              <Thumb src={it.imageUrl} alt={it.itemName} size="sm" category={it.category} />
-              <div className="min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <Link to={`/suppliers/${it.supplierId}`} className="truncate text-sm font-medium text-ink hover:underline dark:text-gray-100">
-                    {it.supplierName}
-                  </Link>
-                  {i === 0 && offers.length > 1 && (
-                    <span className="shrink-0 rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400">
-                      Cheapest
-                    </span>
-                  )}
-                  <FavBtn on={favorites.has(it.supplierId)} onClick={() => onToggleFav(it.supplierId)} />
-                </div>
-                <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                  <span className="truncate">
-                    {it.location}
-                    {pos && it.geo?.coordinates && ` · ${formatKm(distanceKm(pos, it.geo.coordinates))}`}
-                  </span>
-                  {it.rating != null && <Stars value={it.rating} count={it.ratingCount} size={11} className="shrink-0" />}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between gap-4 sm:justify-end">
-              <button
-                type="button"
-                onClick={() => onShowTrend(it)}
-                title="Price history"
-                className="text-left sm:text-right rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:focus-visible:ring-brand-400"
-              >
-                <div className="tnum text-sm font-semibold text-ink underline decoration-dotted decoration-gray-300 underline-offset-2 hover:decoration-brand-600 dark:text-gray-100 dark:decoration-night-500 dark:hover:decoration-brand-400">
-                  {perUnit(it.price, it.unit)}
-                </div>
-                <div className="tnum text-xs text-gray-500 dark:text-gray-400">{amount(it.quantity, it.unit)} left</div>
-              </button>
-              <div className="flex items-center gap-2">
-                <QuantityStepper
-                  value={qtyOf(it)}
-                  onChange={(n) => setQty(it, n)}
-                  unit={it.unit}
-                  max={it.quantity}
-                  label={`${it.itemName} from ${it.supplierName}`}
-                />
-                {it.quantity < 1
-                  ? <NotifyButton on={alerts.has(it.itemId)} onClick={() => onToggleAlert(it)} />
-                  : <AddButton onAdd={(el) => onAdd(it, el)} />}
-              </div>
-            </div>
-          </li>
+            it={it}
+            cheapest={i === 0 && offers.length > 1}
+            favorite={favorites.has(it.supplierId)}
+            onToggleFav={onToggleFav}
+            onAdd={onAdd}
+            watching={alerts.has(it.itemId)}
+            onToggleAlert={onToggleAlert}
+            onShowTrend={onShowTrend}
+            pos={pos}
+          />
         ))}
       </ul>
     </div>
+  );
+}
+
+// The quantity being picked lives here, in the row it belongs to — typing in
+// one stepper re-renders one row, not the whole catalog.
+function OfferRow({ it, cheapest, favorite, onToggleFav, onAdd, watching, onToggleAlert, onShowTrend, pos }) {
+  const [qty, setQty] = useState(1);
+
+  return (
+    <li className="flex flex-col gap-3 p-3 first:border-t-0 border-t border-gray-200 sm:flex-row sm:items-center sm:gap-4 dark:border-night-600">
+      <div className="flex min-w-0 flex-1 items-center gap-3">
+        <Thumb src={it.imageUrl} alt={it.itemName} size="sm" category={it.category} />
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5">
+            <Link to={`/suppliers/${it.supplierId}`} className="truncate text-sm font-medium text-ink hover:underline dark:text-gray-100">
+              {it.supplierName}
+            </Link>
+            {cheapest && (
+              <span className="shrink-0 rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400">
+                Cheapest
+              </span>
+            )}
+            <FavBtn on={favorite} onClick={() => onToggleFav(it.supplierId)} />
+          </div>
+          <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+            <span className="truncate">
+              {it.location}
+              {pos && it.geo?.coordinates && ` · ${formatKm(distanceKm(pos, it.geo.coordinates))}`}
+            </span>
+            {it.rating != null && <Stars value={it.rating} count={it.ratingCount} size={11} className="shrink-0" />}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between gap-4 sm:justify-end">
+        <button
+          type="button"
+          onClick={() => onShowTrend(it)}
+          title="Price history"
+          className="text-left sm:text-right rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:focus-visible:ring-brand-400"
+        >
+          <div className="tnum text-sm font-semibold text-ink underline decoration-dotted decoration-gray-300 underline-offset-2 hover:decoration-brand-600 dark:text-gray-100 dark:decoration-night-500 dark:hover:decoration-brand-400">
+            {perUnit(it.price, it.unit)}
+          </div>
+          <div className="tnum text-xs text-gray-500 dark:text-gray-400">{amount(it.quantity, it.unit)} left</div>
+        </button>
+        <div className="flex items-center gap-2">
+          <QuantityStepper
+            value={qty}
+            onChange={setQty}
+            unit={it.unit}
+            max={it.quantity}
+            label={`${it.itemName} from ${it.supplierName}`}
+          />
+          {it.quantity < 1
+            ? <NotifyButton on={watching} onClick={() => onToggleAlert(it)} />
+            : <AddButton onAdd={(el) => onAdd(it, el, qty)} />}
+        </div>
+      </div>
+    </li>
   );
 }
 
