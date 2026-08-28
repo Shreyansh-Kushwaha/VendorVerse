@@ -25,14 +25,14 @@
   <img alt="backend: Express 5" src="https://img.shields.io/badge/backend-Express_5-000000?style=flat-square&logo=express&logoColor=white"/>
   <img alt="frontend: React 18" src="https://img.shields.io/badge/frontend-React_18-61DAFB?style=flat-square&logo=react&logoColor=black"/>
   <img alt="database: MongoDB" src="https://img.shields.io/badge/database-MongoDB-47A248?style=flat-square&logo=mongodb&logoColor=white"/>
-  <img alt="119 tests passing" src="https://img.shields.io/badge/tests-119_passing-brightgreen?style=flat-square"/>
+  <img alt="137 tests passing" src="https://img.shields.io/badge/tests-137_passing-brightgreen?style=flat-square"/>
   <img alt="stock reservation: atomic" src="https://img.shields.io/badge/stock_reservation-atomic-blue?style=flat-square"/>
   <img alt="order states: 7" src="https://img.shields.io/badge/order_states-7-orange?style=flat-square"/>
   <img alt="PWA installable" src="https://img.shields.io/badge/PWA-installable-purple?style=flat-square"/>
 </p>
 
 <p align="center">
-  <sub><code>2 roles</code> · <code>8 units of sale</code> · <code>6 categories</code> · <code>7 order states</code> · <code>15 test suites</code> · <code>live SSE notifications</code> · <code>dark mode</code></sub>
+  <sub><code>2 roles</code> · <code>8 units of sale</code> · <code>6 categories</code> · <code>7 order states</code> · <code>20 test suites</code> · <code>live SSE notifications</code> · <code>dark mode</code></sub>
 </p>
 
 ---
@@ -44,6 +44,7 @@
 - **A zero-trust cart** — the client says *what* it wants to buy; the item's **name and price are always read from the live listing** on the server. A tampered or stale cart cannot dictate either.
 - **An order that can't lie about where it is** — a 7-state machine (`Pending → Accepted → Packed → Out for delivery → Delivered`, with `Rejected` and `Cancelled` as exits) where every transition is validated. Nothing moves backwards, and nothing leaves a terminal state.
 - **Both sides hear about it live** — server-sent events push new orders to the supplier's dashboard and status changes to the vendor's, the moment they happen. Optional email alerts cover the closed-tab case — sent in the background, so a slow mail server can never fail a checkout.
+- **A marketplace with a memory** — purchase-verified star ratings on every supplier, a price-history chart behind every listed price, one-tap reorders re-checked against the live listing, restock alerts for vendors and low-stock warnings for suppliers, a delivery window chosen at checkout, distance to suppliers near you, and a printable invoice for every order.
 - **Sessions that survive a hostile browser** — httpOnly JWT cookies (no token in localStorage to steal), Helmet with a real CSP, rate limiting on the API, and single-use one-hour password-reset links.
 - **Small on purpose** — the backend is **~1,700 lines of Node**, guarded by **1,700+ lines of tests** that run against a real MongoDB spun up in memory. No mocks pretending to be a database.
 - **Installable** — a PWA with dark mode and a responsive layout, because a street vendor's computer is their phone.
@@ -266,7 +267,7 @@ cd Backend  && npm start       # http://localhost:3000
 | Command | Where | What it does |
 |---|---|---|
 | `npm run dev` | `Backend/` | API with auto-restart on change |
-| `npm test` | `Backend/` | **119 integration tests** against an in-memory MongoDB, no Atlas needed |
+| `npm test` | `Backend/` | **137 integration tests** against an in-memory MongoDB, no Atlas needed |
 | `npm start` | `Backend/` | Production server, serves the built SPA too |
 | `npm run dev` | `Frontend/` | Vite dev server with `/api` proxy |
 | `npm run build` | `Frontend/` | Production bundle into `dist/` |
@@ -307,10 +308,10 @@ All routes live under `/api`. Everything except registration, login and public s
 
 ## ✅ Why You Can Trust It
 
-**119 assertions across 15 suites**, run against a **real MongoDB spun up in memory** — not mocks pretending to be a database. The suite exits non-zero on failure and runs on every push.
+**137 assertions across 20 suites**, run against a **real MongoDB spun up in memory** — not mocks pretending to be a database. The suite exits non-zero on failure and runs on every push.
 
 ```
-cd Backend && npm test        119 tests, 15 suites, no Atlas connection needed
+cd Backend && npm test        137 tests, 20 suites, no Atlas connection needed
 ```
 
 <details open>
