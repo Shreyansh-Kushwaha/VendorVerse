@@ -8,6 +8,7 @@ import { useNotifications } from '../notifications.jsx';
 import { CATEGORIES, money, perUnit, amount } from '../format.js';
 import { useFavorites } from '../favorites.js';
 import Thumb from '../components/ui/Thumb.jsx';
+import Stars from '../components/ui/Stars.jsx';
 import Stat from '../components/ui/Stat.jsx';
 import QuantityStepper from '../components/ui/QuantityStepper.jsx';
 import RollingNumber from '../components/ui/RollingNumber.jsx';
@@ -286,7 +287,10 @@ function ItemGroup({ group, favorites, onToggleFav, qtyOf, setQty, onAdd }) {
                   )}
                   <FavBtn on={favorites.has(it.supplierId)} onClick={() => onToggleFav(it.supplierId)} />
                 </div>
-                <div className="truncate text-xs text-gray-500 dark:text-gray-400">{it.location}</div>
+                <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                  <span className="truncate">{it.location}</span>
+                  {it.rating != null && <Stars value={it.rating} count={it.ratingCount} size={11} className="shrink-0" />}
+                </div>
               </div>
             </div>
 

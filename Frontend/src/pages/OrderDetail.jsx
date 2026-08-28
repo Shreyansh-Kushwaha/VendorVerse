@@ -10,6 +10,7 @@ import { useNotifications } from '../notifications.jsx';
 import Modal from '../components/Modal.jsx';
 import { money, perUnit, amount } from '../format.js';
 import StatusPill from '../components/ui/StatusPill.jsx';
+import Stars, { RatingInput } from '../components/ui/Stars.jsx';
 
 const FLOW = ['Pending', 'Accepted', 'Packed', 'OutForDelivery', 'Delivered'];
 const FLOW_LABELS = {
@@ -31,6 +32,27 @@ export default function OrderDetail() {
   const [cancelling, setCancelling] = useState(false);
   const cart = useCart();
   const [reordering, setReordering] = useState(false);
+
+  // Review of this order, loaded once it turns out to be delivered.
+  const [review, setReview] = useState(null);
+  const [revRating, setRevRating] = useState(0);
+  const [revComment, setRevComment] = useState('');
+  const [revBusy, setRevBusy] = useState(false);
+  const [revSaved, setRevSaved] = useState(false);
+  const delivered = order?.status === 'Delivered';
+  useEffect(() => {
+    if (!delivered) return;
+    let on = true;
+    api.get(`/orders/${id}/review`)
+      .then(({ data }) => {
+        if (!on || !data.review) return;
+        setReview(data.review);
+        setRevRating(data.review.rating);
+        setRevComment(data.review.comment || '');
+      })
+      .catch(() => {});
+    return () => { on = false; };
+  }, [delivered, id]);
 
   // Motion happens only at the moment of change: when an SSE update advances
   // the status, the newly reached dot pops and its check draws in. Steps that
@@ -113,6 +135,25 @@ export default function OrderDetail() {
       toast.error(err.message || 'Could not reorder this item');
     } finally {
       setReordering(false);
+    }
+  };
+
+  const saveReview = async () => {
+    if (!revRating) return toast.error('Pick a star rating first');
+    setRevBusy(true);
+    try {
+      const { data } = await api.put(`/orders/${id}/review`, {
+        rating: revRating,
+        comment: revComment.trim() || undefined,
+      });
+      setReview(data.review);
+      setRevSaved(true);
+      haptic('tick');
+      toast.success(review ? 'Review updated' : 'Thanks for rating this order');
+    } catch (err) {
+      toast.error(err.response?.data?.msg || 'Could not save your review');
+    } finally {
+      setRevBusy(false);
     }
   };
 
@@ -220,6 +261,40 @@ export default function OrderDetail() {
           </button>
         )}
       </section>
+
+      {delivered && isBuyer && (
+        <section className="card p-5">
+          <h2 className="font-display text-xl text-ink dark:text-gray-100 mb-1">
+            {review ? 'Your review' : 'How was it?'}
+          </h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            {review
+              ? 'Shown on the supplier’s profile. You can change it any time.'
+              : 'Rate this delivery — it helps other vendors pick a supplier.'}
+          </p>
+          <RatingInput value={revRating} onChange={(n) => { setRevRating(n); setRevSaved(false); }} />
+          <textarea
+            className="input min-h-[70px] mt-3"
+            maxLength={500}
+            placeholder="Anything other vendors should know? (optional)"
+            value={revComment}
+            onChange={(e) => { setRevComment(e.target.value); setRevSaved(false); }}
+          />
+          <button className="btn-primary mt-3" onClick={saveReview} disabled={revBusy || revSaved}>
+            {revBusy ? 'Saving…' : revSaved ? 'Saved' : review ? 'Update review' : 'Submit review'}
+          </button>
+        </section>
+      )}
+
+      {delivered && !isBuyer && review && (
+        <section className="card p-5">
+          <h2 className="font-display text-xl text-ink dark:text-gray-100 mb-2">Vendor review</h2>
+          <Stars value={review.rating} size={16} />
+          {review.comment && (
+            <p className="text-sm text-gray-700 dark:text-gray-300 mt-2 whitespace-pre-wrap">{review.comment}</p>
+          )}
+        </section>
+      )}
       <Modal
         open={confirmCancel}
         onClose={() => !cancelling && setConfirmCancel(false)}

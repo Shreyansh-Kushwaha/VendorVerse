@@ -4,6 +4,7 @@ const router = express.Router();
 const { z } = require('zod');
 const Supplier = require('../models/Supplier');
 const Order = require('../models/Order');
+const Review = require('../models/Review');
 const User = require('../models/user');
 const validate = require('../middleware/validate');
 const { requireAuth, requireRole } = require('../middleware/auth');
@@ -192,6 +193,8 @@ router.get('/items',
             rows: [
               { $skip: (page - 1) * limit },
               { $limit: limit },
+              // Only the page being sent pays for the ratings lookup.
+              { $lookup: { from: 'reviews', localField: 'supplierId', foreignField: 'supplierId', as: 'reviews' } },
               {
                 $project: {
                   _id: 0,
@@ -205,6 +208,8 @@ router.get('/items',
                   supplierId: '$supplierId',
                   supplierName: '$name',
                   location: '$location',
+                  rating: { $round: [{ $avg: '$reviews.rating' }, 1] },
+                  ratingCount: { $size: '$reviews' },
                 },
               },
             ],
@@ -224,9 +229,13 @@ router.get('/suppliers/:supplierId',
   async (req, res, next) => {
     try {
       const { supplierId } = req.params;
-      const [user, doc] = await Promise.all([
+      const [user, doc, [ratingAgg]] = await Promise.all([
         User.findById(supplierId).select('-password'),
         Supplier.findOne({ supplierId }),
+        Review.aggregate([
+          { $match: { supplierId: new mongoose.Types.ObjectId(supplierId) } },
+          { $group: { _id: null, average: { $avg: '$rating' }, count: { $sum: 1 } } },
+        ]),
       ]);
       if (!user) return res.status(404).json({ msg: 'Supplier not found' });
       const inventory = doc?.inventory || [];
@@ -238,6 +247,8 @@ router.get('/suppliers/:supplierId',
         location,
         email: user.email,
         memberSince: user.createdAt,
+        rating: ratingAgg ? Math.round(ratingAgg.average * 10) / 10 : null,
+        ratingCount: ratingAgg?.count || 0,
         inventory,
       });
     } catch (err) { next(err); }

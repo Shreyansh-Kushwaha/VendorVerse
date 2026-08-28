@@ -6,6 +6,7 @@ import { useCart } from '../cart.jsx';
 import { useToast } from '../components/Toast.jsx';
 import { perUnit, amount } from '../format.js';
 import { useFavorites } from '../favorites.js';
+import Stars from '../components/ui/Stars.jsx';
 
 export default function SupplierProfile() {
   const { id } = useParams();
@@ -13,6 +14,7 @@ export default function SupplierProfile() {
   const cart = useCart();
   const toast = useToast();
   const [supplier, setSupplier] = useState(null);
+  const [reviews, setReviews] = useState(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const { isFavorite, toggle } = useFavorites();
@@ -24,6 +26,10 @@ export default function SupplierProfile() {
       try {
         const { data } = await api.get(`/suppliers/${id}`);
         if (!cancelled) setSupplier(data);
+        // Reviews are decoration on this page — a failure just hides them.
+        api.get(`/suppliers/${id}/reviews`)
+          .then((r) => { if (!cancelled) setReviews(r.data); })
+          .catch(() => {});
       } catch {
         if (!cancelled) toast.error('Supplier not found');
       } finally {
@@ -83,6 +89,11 @@ export default function SupplierProfile() {
             <h1 className="font-display text-3xl text-ink dark:text-gray-100">{supplier.name}</h1>
             {supplier.businessName && <p className="text-sm text-gray-600 dark:text-gray-400">{supplier.businessName}</p>}
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{supplier.location}</p>
+            {supplier.rating != null && (
+              <div className="mt-1.5 text-sm">
+                <Stars value={supplier.rating} count={supplier.ratingCount} size={15} />
+              </div>
+            )}
             {supplier.memberSince && (
               <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
                 Member since {new Date(supplier.memberSince).toLocaleDateString()}
@@ -147,6 +158,34 @@ export default function SupplierProfile() {
           </div>
         )}
       </section>
+
+      {reviews?.count > 0 && (
+        <section className="card p-5">
+          <div className="flex flex-wrap items-baseline justify-between gap-2 mb-4">
+            <h2 className="font-display text-xl text-ink dark:text-gray-100">
+              Reviews <span className="text-gray-400 text-base">({reviews.count})</span>
+            </h2>
+            <Stars value={reviews.average} size={15} />
+          </div>
+          <ul className="space-y-4">
+            {reviews.reviews.map((r) => (
+              <li key={r._id} className="border-b border-gray-100 pb-4 last:border-0 last:pb-0 dark:border-night-700">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="font-medium text-ink dark:text-gray-100">{r.vendorName}</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    {new Date(r.createdAt).toLocaleDateString()}
+                  </span>
+                </div>
+                <div className="mt-1"><Stars value={r.rating} size={13} /></div>
+                {r.comment && <p className="text-sm text-gray-700 dark:text-gray-300 mt-1.5 whitespace-pre-wrap">{r.comment}</p>}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-4 text-xs text-gray-500 dark:text-gray-400">
+            Every review comes from a delivered order — there is no other way to leave one.
+          </p>
+        </section>
+      )}
     </div>
   );
 }
