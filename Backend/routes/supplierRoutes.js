@@ -5,6 +5,7 @@ const { z } = require('zod');
 const Supplier = require('../models/Supplier');
 const Order = require('../models/Order');
 const Review = require('../models/Review');
+const PriceHistory = require('../models/PriceHistory');
 const User = require('../models/user');
 const validate = require('../middleware/validate');
 const { requireAuth, requireRole } = require('../middleware/auth');
@@ -29,6 +30,16 @@ const STATUS_WORDING = {
 };
 
 const objectId = z.string().regex(/^[a-f\d]{24}$/i, 'Invalid id');
+
+// The price timeline is decoration on a listing — recording it must never fail
+// the write that changed the price.
+async function recordPrice(supplierId, item) {
+  try {
+    await PriceHistory.create({ supplierId, itemId: item._id, price: item.price, unit: item.unit });
+  } catch (err) {
+    console.error('[price-history] record failed:', err.message);
+  }
+}
 
 // The :supplierId in the path must be the signed-in supplier.
 function ownsSupplier(req, res, next) {
@@ -80,6 +91,7 @@ router.post('/suppliers',
     doc.inventory.push(inventory);
     await doc.save();
     const added = doc.inventory[doc.inventory.length - 1];
+    await recordPrice(supplierId, added);
     res.status(201).json({ msg: 'Item added', item: added, supplier: doc });
   } catch (err) { next(err); }
 });
@@ -225,6 +237,23 @@ router.get('/items',
   },
 );
 
+// =====================================================================
+// A listing's price timeline. Public — the same number anyone can read off
+// the catalog today, just with yesterday attached.
+// =====================================================================
+router.get('/items/:itemId/prices',
+  validate({ params: z.object({ itemId: objectId }) }),
+  async (req, res, next) => {
+    try {
+      const points = await PriceHistory.find({ itemId: req.params.itemId })
+        .sort({ at: 1 })
+        .limit(120)
+        .select('price unit at -_id');
+      res.json({ points });
+    } catch (err) { next(err); }
+  },
+);
+
 router.get('/suppliers/:supplierId',
   validate({ params: z.object({ supplierId: objectId }) }),
   async (req, res, next) => {
@@ -294,9 +323,10 @@ router.patch('/suppliers/:supplierId/inventory/:itemId',
       for (const [k, v] of Object.entries(req.body)) {
         setObj[`inventory.$.${k}`] = v;
       }
-      // The pre-update doc tells us whether this write is a restock.
+      // The pre-update doc tells us whether this write is a restock or a reprice.
       const before = await Supplier.findOne({ supplierId, 'inventory._id': itemId });
-      const prevQty = before?.inventory?.id(itemId)?.quantity ?? 0;
+      const prevItem = before?.inventory?.id(itemId);
+      const prevQty = prevItem?.quantity ?? 0;
       const updated = await Supplier.findOneAndUpdate(
         { supplierId, 'inventory._id': itemId },
         { $set: setObj },
@@ -308,6 +338,10 @@ router.patch('/suppliers/:supplierId/inventory/:itemId',
       // Empty before, stocked now — tell everyone who asked to be told.
       if (prevQty <= 0 && item.quantity > 0) {
         await fireRestockAlerts(req.user.name, item);
+      }
+
+      if (prevItem && item.price !== prevItem.price) {
+        await recordPrice(supplierId, item);
       }
 
       res.json({ msg: 'Updated', item });

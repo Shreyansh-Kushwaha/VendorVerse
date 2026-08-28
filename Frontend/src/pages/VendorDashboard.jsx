@@ -9,6 +9,7 @@ import { CATEGORIES, money, perUnit, amount } from '../format.js';
 import { useFavorites } from '../favorites.js';
 import Thumb from '../components/ui/Thumb.jsx';
 import Stars from '../components/ui/Stars.jsx';
+import PriceTrendModal from '../components/PriceTrend.jsx';
 import Stat from '../components/ui/Stat.jsx';
 import QuantityStepper from '../components/ui/QuantityStepper.jsx';
 import RollingNumber from '../components/ui/RollingNumber.jsx';
@@ -72,6 +73,8 @@ export default function VendorDashboard() {
   const [filters, setFilters] = useState({ q: '', category: 'all', favOnly: false });
   // Quantity is chosen before adding, keyed by listing.
   const [qty, setQty] = useState({});
+  // Listing whose price timeline is open in a modal.
+  const [trendItem, setTrendItem] = useState(null);
 
   const applyFilter = (patch) => {
     setPage(1);
@@ -260,6 +263,7 @@ export default function VendorDashboard() {
                     onAdd={addToCart}
                     alerts={alerts}
                     onToggleAlert={toggleAlert}
+                    onShowTrend={setTrendItem}
                   />
                 </div>
               ))}
@@ -276,6 +280,8 @@ export default function VendorDashboard() {
         )}
       </section>
 
+      <PriceTrendModal item={trendItem} onClose={() => setTrendItem(null)} />
+
       {/* The cart is the reason this page exists, so on a phone it stays in reach. */}
       {cart.count > 0 && (
         <div className="fixed inset-x-0 bottom-0 z-30 border-t border-gray-200 bg-white p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:hidden dark:border-night-600 dark:bg-night-800">
@@ -289,7 +295,7 @@ export default function VendorDashboard() {
   );
 }
 
-function ItemGroup({ group, favorites, onToggleFav, qtyOf, setQty, onAdd, alerts, onToggleAlert }) {
+function ItemGroup({ group, favorites, onToggleFav, qtyOf, setQty, onAdd, alerts, onToggleAlert, onShowTrend }) {
   const { name, offers } = group;
   const low = offers[0].price;
   const high = offers[offers.length - 1].price;
@@ -333,10 +339,17 @@ function ItemGroup({ group, favorites, onToggleFav, qtyOf, setQty, onAdd, alerts
             </div>
 
             <div className="flex items-center justify-between gap-4 sm:justify-end">
-              <div className="text-left sm:text-right">
-                <div className="tnum text-sm font-semibold text-ink dark:text-gray-100">{perUnit(it.price, it.unit)}</div>
+              <button
+                type="button"
+                onClick={() => onShowTrend(it)}
+                title="Price history"
+                className="text-left sm:text-right rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:focus-visible:ring-brand-400"
+              >
+                <div className="tnum text-sm font-semibold text-ink underline decoration-dotted decoration-gray-300 underline-offset-2 hover:decoration-brand-600 dark:text-gray-100 dark:decoration-night-500 dark:hover:decoration-brand-400">
+                  {perUnit(it.price, it.unit)}
+                </div>
                 <div className="tnum text-xs text-gray-500 dark:text-gray-400">{amount(it.quantity, it.unit)} left</div>
-              </div>
+              </button>
               <div className="flex items-center gap-2">
                 <QuantityStepper
                   value={qtyOf(it)}
