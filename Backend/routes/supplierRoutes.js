@@ -120,6 +120,10 @@ router.get('/landing', async (req, res, next) => {
             { $limit: 14 },
             { $project: { _id: 0 } },
           ],
+          categories: [
+            { $group: { _id: '$inventory.category', items: { $sum: 1 } } },
+            { $project: { _id: 0, category: '$_id', items: 1 } },
+          ],
         },
       },
     ]);
@@ -129,6 +133,7 @@ router.get('/landing', async (req, res, next) => {
       suppliers: (c.suppliers || []).length,
       cities: (c.cities || []).length,
       ticker: agg.ticker,
+      categories: agg.categories,
     });
   } catch (err) { next(err); }
 });
