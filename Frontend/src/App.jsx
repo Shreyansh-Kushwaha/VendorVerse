@@ -24,6 +24,7 @@ const SupplierProfile = lazy(() => import('./pages/SupplierProfile.jsx'));
 const Suppliers = lazy(() => import('./pages/Suppliers.jsx'));
 const Notifications = lazy(() => import('./pages/Notifications.jsx'));
 const VendorInsights = lazy(() => import('./pages/VendorInsights.jsx'));
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard.jsx'));
 const About = lazy(() => import('./pages/About.jsx'));
 const Contact = lazy(() => import('./pages/Contact.jsx'));
 const Privacy = lazy(() => import('./pages/Privacy.jsx'));
@@ -56,6 +57,9 @@ export default function App() {
 
           <Route path="vendor" element={
             <ProtectedRoute role="vendor"><VendorDashboard /></ProtectedRoute>
+          } />
+          <Route path="admin" element={
+            <ProtectedRoute role="admin"><AdminDashboard /></ProtectedRoute>
           } />
           <Route path="vendor/insights" element={
             <ProtectedRoute role="vendor"><VendorInsights /></ProtectedRoute>

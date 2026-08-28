@@ -13,6 +13,7 @@ export default function Header() {
   const showCart = user?.userType === 'vendor';
 
   const dashHref =
+    user?.userType === 'admin'    ? '/admin'    :
     user?.userType === 'supplier' ? '/supplier' :
     user?.userType === 'vendor'   ? '/vendor'   : '/';
 

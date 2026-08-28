@@ -21,7 +21,9 @@ export default function Login() {
       const { data } = await api.post('/login', form);
       login(data.user);
       toast.success('Welcome back!');
-      const dest = data.userType === 'supplier' ? '/supplier' : '/vendor';
+      const dest =
+        data.userType === 'admin'    ? '/admin' :
+        data.userType === 'supplier' ? '/supplier' : '/vendor';
       navigate(location.state?.from?.pathname || dest, { replace: true });
     } catch (err) {
       toast.error(err.response?.data?.msg || 'Login failed');
