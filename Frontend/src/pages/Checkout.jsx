@@ -1,10 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../api.js';
 import { useAuth } from '../auth.jsx';
 import { useCart } from '../cart.jsx';
 import { useToast } from '../components/Toast.jsx';
 import { money, amount } from '../format.js';
+import { haptic } from '../lib/haptics.js';
 
 export default function Checkout() {
   const { user } = useAuth();
@@ -14,6 +15,9 @@ export default function Checkout() {
   const [address, setAddress] = useState(user?.location || '');
   const [notes, setNotes] = useState('');
   const [placing, setPlacing] = useState(false);
+  const [placed, setPlaced] = useState(null); // { suppliers } — shows the confirmation moment
+  const navTimer = useRef(null);
+  useEffect(() => () => clearTimeout(navTimer.current), []);
 
   // Group cart items by supplier so the user understands they're placing N orders to N suppliers
   const bySupplier = useMemo(() => {
@@ -43,16 +47,40 @@ export default function Checkout() {
         deliveryAddress: address,
         notes,
       };
-      const { data } = await api.post('/placeOrders', payload);
-      toast.success(`Placed ${data.count} order${data.count === 1 ? '' : 's'}`);
+      await api.post('/placeOrders', payload);
+      // This is the one earned celebration in the app — the moment money is
+      // committed. A drawn check and a success buzz, then on to the orders.
+      haptic('success');
+      setPlaced({ suppliers: bySupplier.length });
       clear();
-      navigate('/vendor');
+      navTimer.current = setTimeout(() => navigate('/orders'), 1800);
     } catch (err) {
       toast.error(err.response?.data?.msg || 'Failed to place orders');
     } finally {
       setPlacing(false);
     }
   };
+
+  if (placed) {
+    return (
+      <div className="fixed inset-0 z-40 grid place-items-center bg-cream dark:bg-night-900">
+        <div className="text-center">
+          <svg className="check-draw mx-auto" width="72" height="72" viewBox="0 0 72 72" aria-hidden>
+            <circle className="cir" cx="36" cy="36" r="32" fill="none" strokeWidth="3" strokeLinecap="round"
+              stroke="currentColor" style={{ color: '#047857' }} transform="rotate(-90 36 36)" />
+            <path className="tick" d="M23 37.5l8.5 8.5L49 28.5" fill="none" strokeWidth="3.5"
+              strokeLinecap="round" strokeLinejoin="round" stroke="currentColor" style={{ color: '#047857' }} />
+          </svg>
+          <p className="animate-rise mt-5 text-lg font-medium text-ink dark:text-gray-100" style={{ animationDelay: '500ms' }}>
+            Order placed with {placed.suppliers} supplier{placed.suppliers === 1 ? '' : 's'}
+          </p>
+          <p className="animate-rise mt-1 text-sm text-gray-500 dark:text-gray-400" style={{ animationDelay: '620ms' }}>
+            Taking you to your orders…
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (items.length === 0) {
     return (
