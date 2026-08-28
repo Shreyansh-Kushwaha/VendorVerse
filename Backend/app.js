@@ -114,7 +114,19 @@ if (process.env.NODE_ENV !== 'test') {
   }
 }
 
-app.use(express.static(reactDist));
+// Vite writes content-hashed filenames under /assets, so those can be cached
+// forever — a new deploy is a new URL. Everything else (index.html, icons,
+// the manifest) revalidates, so a deploy shows up on the next load.
+app.use(express.static(reactDist, {
+  setHeaders(res, filePath) {
+    res.setHeader(
+      'Cache-Control',
+      filePath.includes(`${path.sep}assets${path.sep}`)
+        ? 'public, max-age=31536000, immutable'
+        : 'no-cache',
+    );
+  },
+}));
 
 // SPA fallback for client-side routing
 app.use((req, res, next) => {
