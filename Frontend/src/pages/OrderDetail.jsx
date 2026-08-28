@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { haptic } from '../lib/haptics.js';
 import api from '../api.js';
 import { useAuth } from '../auth.jsx';
 import { useToast } from '../components/Toast.jsx';
@@ -26,6 +27,22 @@ export default function OrderDetail() {
   const [loading, setLoading] = useState(true);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+
+  // Motion happens only at the moment of change: when an SSE update advances
+  // the status, the newly reached dot pops and its check draws in. Steps that
+  // were already reached when the page loaded render settled and still.
+  const prevIdx = useRef(null);
+  const [advanced, setAdvanced] = useState(false);
+  const status0 = order?.status || 'Pending';
+  useEffect(() => {
+    if (!order) return;
+    const idx = FLOW.indexOf(status0);
+    if (prevIdx.current !== null && idx > prevIdx.current) {
+      setAdvanced(true);
+      haptic('medium');
+    }
+    prevIdx.current = idx;
+  }, [order, status0]);
 
   const load = useCallback(async ({ quiet = false } = {}) => {
     try {
@@ -117,20 +134,23 @@ export default function OrderDetail() {
               return (
                 <li key={step} className="flex gap-3 pb-5 last:pb-0 relative">
                   {idx < FLOW.length - 1 && (
-                    <span className={'absolute left-3 top-6 bottom-0 w-px ' + (idx < currentIdx ? 'bg-ink dark:bg-gray-100' : 'bg-gray-200 dark:bg-night-600')} />
+                    <span className={'absolute left-3 top-6 bottom-0 w-px ' + (idx < currentIdx ? 'bg-brand-600 dark:bg-brand-500' : 'bg-gray-200 dark:bg-night-600')} />
                   )}
                   <span
                     aria-current={isCurrent ? 'step' : undefined}
                     className={
-                      'relative grid h-6 w-6 shrink-0 place-items-center rounded-full transition-colors ' +
+                      'relative grid h-6 w-6 shrink-0 place-items-center rounded-full transition-colors duration-200 ' +
                       (reached
-                        ? 'bg-ink text-white dark:bg-gray-100 dark:text-ink'
+                        ? 'bg-brand-600 text-white dark:bg-brand-500'
                         : 'bg-gray-100 text-gray-400 dark:bg-night-700 dark:text-gray-500') +
-                      (isCurrent ? ' ring-2 ring-ink ring-offset-2 dark:ring-gray-100 dark:ring-offset-night-800' : '')
+                      (isCurrent ? ' ring-2 ring-brand-600 ring-offset-2 dark:ring-gray-100 dark:ring-offset-night-800' : '') +
+                      (isCurrent && advanced ? ' animate-pop' : '')
                     }
                   >
                     {reached ? (
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12l5 5L20 7"/></svg>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <path className={isCurrent && advanced ? 'tick-draw' : ''} d="M5 12l5 5L20 7"/>
+                      </svg>
                     ) : <span className="h-1.5 w-1.5 rounded-full bg-current" />}
                   </span>
                   <div className="flex-1 -mt-0.5">
