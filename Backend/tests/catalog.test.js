@@ -128,8 +128,14 @@ test('the payload is capped no matter what the client asks for', async () => {
   assert.strictEqual(res.status, 400, 'an absurd limit is refused');
 });
 
-test('the old full catalog dump is gone', async () => {
-  await vendor.get('/api/suppliers').expect(404);
+test('the old full catalog dump stays gone — /suppliers is now a paginated summary', async () => {
+  // The route exists again as the directory, but the regression this guards
+  // against is shipping every supplier's entire inventory in one response.
+  const res = await vendor.get('/api/suppliers').expect(200);
+  assert.ok(res.body.pages !== undefined, 'paginated, never everything at once');
+  for (const s of res.body.suppliers) {
+    assert.strictEqual(s.inventory, undefined, 'summary cards only, no inventory dump');
+  }
 });
 
 test('the catalog needs a session', async () => {
