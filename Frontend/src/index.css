@@ -216,6 +216,37 @@
   animation: draw-tick 240ms theme('transitionTimingFunction.out-quart') 180ms forwards;
 }
 
+/* ── Landing page ──────────────────────────────────────────────────── */
+
+/* Kinetic headline: each line clips its content, which rises in with a small
+   stagger set per line via --d. */
+.hero-line { display: block; overflow: hidden; }
+.hero-word {
+  display: inline-block;
+  transform: translateY(112%);
+  animation: hero-rise 700ms theme('transitionTimingFunction.out-quart') var(--d, 0ms) forwards;
+}
+@keyframes hero-rise { to { transform: translateY(0); } }
+
+/* Live price strip: the track holds the list twice and slides one list-width,
+   so the loop point is invisible. Pauses under a pointer. */
+.ticker-track {
+  display: inline-flex;
+  width: max-content;
+  animation: ticker-slide 36s linear infinite;
+}
+.ticker-band:hover .ticker-track { animation-play-state: paused; }
+@keyframes ticker-slide { to { transform: translateX(-50%); } }
+
+/* The hero order card tilts toward the pointer; children sit at different
+   depths so the tilt reads as an object, not a rotated rectangle. */
+.tilt-zone { perspective: 900px; }
+.tilt-card {
+  transform-style: preserve-3d;
+  transition: transform 160ms ease-out;
+  will-change: transform;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
