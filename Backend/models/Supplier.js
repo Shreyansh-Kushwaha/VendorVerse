@@ -26,9 +26,17 @@ const supplierSchema = new mongoose.Schema({
   location: {
     type: String,
     required: true
-  }
-  
-  
+  },
+  // Where the supplier actually is, captured (with permission) when they list
+  // stock. Optional — a supplier without coordinates simply never appears in
+  // "near me" results.
+  geo: {
+    type: { type: String, enum: ['Point'] },
+    coordinates: { type: [Number], default: undefined }, // [lng, lat]
+  },
 });
+
+// Powers $geoNear. Docs without a geo point are simply not in the index.
+supplierSchema.index({ geo: '2dsphere' });
 
 module.exports = mongoose.model('Supplier', supplierSchema);

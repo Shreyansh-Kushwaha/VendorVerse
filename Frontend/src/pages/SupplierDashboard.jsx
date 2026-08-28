@@ -12,6 +12,7 @@ import Stat from '../components/ui/Stat.jsx';
 import QuantityStepper from '../components/ui/QuantityStepper.jsx';
 import Tabs from '../components/ui/Tabs.jsx';
 import { haptic } from '../lib/haptics.js';
+import { getPosition } from '../lib/geo.js';
 
 const CATEGORY_OPTIONS = ['vegetables', 'fruits', 'spices', 'grains', 'dairy', 'others'];
 const NEXT_STATUS = { Pending: 'Accepted', Accepted: 'Packed', Packed: 'OutForDelivery', OutForDelivery: 'Delivered' };
@@ -78,9 +79,12 @@ export default function SupplierDashboard() {
     if (!imageFile) return toast.error('Please choose an image');
     setSubmitting(true);
     try {
+      // Best effort — a declined permission or slow GPS never blocks listing.
+      const coords = await getPosition(3000);
       const imageUrl = await uploadImage(imageFile);
       await api.post('/suppliers', {
         location: addForm.location,
+        ...(coords ? { lat: coords.lat, lng: coords.lng } : {}),
         inventory: {
           itemName: addForm.itemName,
           quantity: Number(addForm.quantity),
@@ -458,6 +462,9 @@ export default function SupplierDashboard() {
           <div>
             <label className="label" htmlFor="location">Location</label>
             <input id="location" required className="input" value={addForm.location} onChange={updateAdd('location')} />
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              If you allow the location prompt, vendors also see how far away you are.
+            </p>
           </div>
           <div>
             <label className="label" htmlFor="image">Image (max 5 MB)</label>

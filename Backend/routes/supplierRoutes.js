@@ -51,11 +51,13 @@ function ownsSupplier(req, res, next) {
 
 // One Supplier doc per supplier, enforced by a unique index. The old find then
 // insert could interleave and produce two docs for the same supplier.
-async function getOrCreateSupplier(supplierId, name, location) {
+async function getOrCreateSupplier(supplierId, name, location, geo) {
+  const set = { name, location: location || '—' };
+  if (geo) set.geo = geo;
   try {
     return await Supplier.findOneAndUpdate(
       { supplierId },
-      { $set: { name, location: location || '—' }, $setOnInsert: { inventory: [] } },
+      { $set: set, $setOnInsert: { inventory: [] } },
       { upsert: true, new: true, setDefaultsOnInsert: true },
     );
   } catch (err) {
@@ -69,6 +71,10 @@ async function getOrCreateSupplier(supplierId, name, location) {
 // =====================================================================
 const addInventorySchema = z.object({
   location: z.string().min(1),
+  // Device coordinates, sent only when the supplier allowed the browser to
+  // share them. They power "near me" for vendors.
+  lat: z.number().min(-90).max(90).optional(),
+  lng: z.number().min(-180).max(180).optional(),
   inventory: z.object({
     itemName: z.string().min(1),
     quantity: z.number().int().nonnegative(),
@@ -85,9 +91,12 @@ router.post('/suppliers',
   validate({ body: addInventorySchema }),
   async (req, res, next) => {
   try {
-    const { location, inventory } = req.body;
+    const { location, inventory, lat, lng } = req.body;
     const supplierId = req.user._id;
-    const doc = await getOrCreateSupplier(supplierId, req.user.name, location);
+    const geo = lat !== undefined && lng !== undefined
+      ? { type: 'Point', coordinates: [lng, lat] }
+      : undefined;
+    const doc = await getOrCreateSupplier(supplierId, req.user.name, location, geo);
     doc.inventory.push(inventory);
     await doc.save();
     const added = doc.inventory[doc.inventory.length - 1];
@@ -221,6 +230,7 @@ router.get('/items',
                   supplierId: '$supplierId',
                   supplierName: '$name',
                   location: '$location',
+                  geo: '$geo',
                   rating: { $round: [{ $avg: '$reviews.rating' }, 1] },
                   ratingCount: { $size: '$reviews' },
                 },
@@ -250,6 +260,53 @@ router.get('/items/:itemId/prices',
         .limit(120)
         .select('price unit at -_id');
       res.json({ points });
+    } catch (err) { next(err); }
+  },
+);
+
+// =====================================================================
+// Suppliers near a point, closest first. Only suppliers who shared their
+// device location while listing stock can appear here.
+// =====================================================================
+router.get('/suppliers/near',
+  requireAuth,
+  validate({
+    query: z.object({
+      lat: z.coerce.number().min(-90).max(90),
+      lng: z.coerce.number().min(-180).max(180),
+      limit: z.coerce.number().int().min(1).max(24).default(8),
+    }),
+  }),
+  async (req, res, next) => {
+    try {
+      const { lat, lng, limit } = req.query;
+      const suppliers = await Supplier.aggregate([
+        {
+          $geoNear: {
+            near: { type: 'Point', coordinates: [lng, lat] },
+            distanceField: 'distanceM',
+            maxDistance: 100 * 1000, // beyond 100 km "near" would be a lie
+            spherical: true,
+          },
+        },
+        // A supplier with nothing listed is not worth a card.
+        { $match: { 'inventory.0': { $exists: true } } },
+        { $limit: limit },
+        { $lookup: { from: 'reviews', localField: 'supplierId', foreignField: 'supplierId', as: 'reviews' } },
+        {
+          $project: {
+            _id: 0,
+            supplierId: 1,
+            name: 1,
+            location: 1,
+            items: { $size: '$inventory' },
+            distanceKm: { $round: [{ $divide: ['$distanceM', 1000] }, 1] },
+            rating: { $round: [{ $avg: '$reviews.rating' }, 1] },
+            ratingCount: { $size: '$reviews' },
+          },
+        },
+      ]);
+      res.json({ suppliers });
     } catch (err) { next(err); }
   },
 );

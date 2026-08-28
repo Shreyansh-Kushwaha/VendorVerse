@@ -15,6 +15,7 @@ import QuantityStepper from '../components/ui/QuantityStepper.jsx';
 import RollingNumber from '../components/ui/RollingNumber.jsx';
 import { haptic } from '../lib/haptics.js';
 import { flyToCart } from '../lib/flyToCart.js';
+import { getPosition, distanceKm, formatKm } from '../lib/geo.js';
 
 const PAGE_SIZE = 24;
 const OPEN_STATUSES = ['Pending', 'Accepted', 'Packed', 'OutForDelivery'];
@@ -75,6 +76,28 @@ export default function VendorDashboard() {
   const [qty, setQty] = useState({});
   // Listing whose price timeline is open in a modal.
   const [trendItem, setTrendItem] = useState(null);
+
+  // "Near me": the vendor's position unlocks distances on every listing and a
+  // rail of the closest suppliers. Asked for on tap, never on load.
+  const [pos, setPos] = useState(null);
+  const [nearby, setNearby] = useState(null);
+  const [locating, setLocating] = useState(false);
+
+  const findNearby = async () => {
+    if (pos) { setPos(null); setNearby(null); return; }
+    setLocating(true);
+    try {
+      const p = await getPosition();
+      if (!p) return toast.error('Could not get your location — check the browser permission');
+      setPos(p);
+      const { data } = await api.get('/suppliers/near', { params: { lat: p.lat, lng: p.lng } });
+      setNearby(data.suppliers);
+    } catch {
+      setNearby([]);
+    } finally {
+      setLocating(false);
+    }
+  };
 
   const applyFilter = (patch) => {
     setPage(1);
@@ -215,6 +238,17 @@ export default function VendorDashboard() {
           >
             Saved only
           </button>
+          <button
+            onClick={findNearby}
+            aria-pressed={!!pos}
+            disabled={locating}
+            className={pos ? 'btn-primary' : 'btn-ghost'}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" />
+            </svg>
+            {locating ? 'Locating…' : 'Near me'}
+          </button>
         </div>
 
         <div className="flex flex-wrap gap-2">
@@ -235,6 +269,37 @@ export default function VendorDashboard() {
           })}
         </div>
       </section>
+
+      {pos && nearby !== null && (
+        <section className="mt-6">
+          <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+            Suppliers near you
+          </h2>
+          {nearby.length === 0 ? (
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              No suppliers within 100 km have shared their location yet.
+            </p>
+          ) : (
+            <div className="flex gap-3 overflow-x-auto pb-1">
+              {nearby.map((s) => (
+                <Link
+                  key={s.supplierId}
+                  to={`/suppliers/${s.supplierId}`}
+                  className="card card-lift block w-44 shrink-0 p-3"
+                >
+                  <div className="truncate text-sm font-medium text-ink dark:text-gray-100">{s.name}</div>
+                  <div className="truncate text-xs text-gray-500 dark:text-gray-400">{s.location}</div>
+                  <div className="tnum mt-1.5 text-xs text-gray-600 dark:text-gray-300">
+                    <span className="font-semibold text-brand-700 dark:text-brand-400">{formatKm(s.distanceKm)}</span>
+                    {' · '}{s.items} item{s.items === 1 ? '' : 's'}
+                  </div>
+                  {s.rating != null && <div className="mt-1 text-xs"><Stars value={s.rating} count={s.ratingCount} size={10} /></div>}
+                </Link>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
       <section className="mt-6">
         {catalogLoading && catalog.items.length === 0 ? (
@@ -264,6 +329,7 @@ export default function VendorDashboard() {
                     alerts={alerts}
                     onToggleAlert={toggleAlert}
                     onShowTrend={setTrendItem}
+                    pos={pos}
                   />
                 </div>
               ))}
@@ -295,7 +361,7 @@ export default function VendorDashboard() {
   );
 }
 
-function ItemGroup({ group, favorites, onToggleFav, qtyOf, setQty, onAdd, alerts, onToggleAlert, onShowTrend }) {
+function ItemGroup({ group, favorites, onToggleFav, qtyOf, setQty, onAdd, alerts, onToggleAlert, onShowTrend, pos }) {
   const { name, offers } = group;
   const low = offers[0].price;
   const high = offers[offers.length - 1].price;
@@ -332,7 +398,10 @@ function ItemGroup({ group, favorites, onToggleFav, qtyOf, setQty, onAdd, alerts
                   <FavBtn on={favorites.has(it.supplierId)} onClick={() => onToggleFav(it.supplierId)} />
                 </div>
                 <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                  <span className="truncate">{it.location}</span>
+                  <span className="truncate">
+                    {it.location}
+                    {pos && it.geo?.coordinates && ` · ${formatKm(distanceKm(pos, it.geo.coordinates))}`}
+                  </span>
                   {it.rating != null && <Stars value={it.rating} count={it.ratingCount} size={11} className="shrink-0" />}
                 </div>
               </div>
