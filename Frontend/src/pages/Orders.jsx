@@ -5,6 +5,7 @@ import { useToast } from '../components/Toast.jsx';
 import { useNotifications } from '../notifications.jsx';
 import { money, perUnit, amount } from '../format.js';
 import StatusPill from '../components/ui/StatusPill.jsx';
+import Tabs from '../components/ui/Tabs.jsx';
 
 // "Where is my delivery?" is a daily question. It used to live at the bottom of
 // the dashboard, under a catalog that grows 24 rows at a time.
@@ -72,30 +73,18 @@ export default function Orders() {
     <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
       <h1 className="text-2xl tracking-tight text-ink dark:text-gray-100 sm:text-3xl">Your orders</h1>
 
-      <div role="tablist" aria-label="Order status" className="mt-5 flex gap-1 border-b border-gray-200 dark:border-night-600">
-        {Object.entries(VIEWS).map(([key, v]) => {
-          const on = key === view;
-          return (
-            <button
-              key={key}
-              role="tab"
-              aria-selected={on}
-              onClick={() => setParams(key === 'active' ? {} : { view: key }, { replace: true })}
-              className={'-mb-px border-b-2 px-3 py-2.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink dark:focus-visible:ring-gray-100 ' +
-                (on
-                  ? 'border-ink font-medium text-ink dark:border-gray-100 dark:text-gray-100'
-                  : 'border-transparent text-gray-500 hover:text-ink dark:text-gray-400 dark:hover:text-gray-100')}
-            >
-              {v.label}
-              {counts[key] > 0 && <span className="tnum ml-1.5 text-gray-400">{counts[key]}</span>}
-            </button>
-          );
-        })}
+      <div className="mt-5">
+        <Tabs
+          label="Order status"
+          value={view}
+          onChange={(key) => setParams(key === 'active' ? {} : { view: key }, { replace: true })}
+          tabs={Object.entries(VIEWS).map(([key, v]) => ({ key, label: v.label, badge: counts[key] }))}
+        />
       </div>
 
       {loading ? (
-        <div className="mt-6 animate-pulse space-y-3">
-          {[1, 2, 3].map(i => <div key={i} className="h-16 rounded-xl bg-gray-100 dark:bg-night-800" />)}
+        <div className="mt-6 space-y-3">
+          {[1, 2, 3].map(i => <div key={i} className="skel h-16 rounded-xl" />)}
         </div>
       ) : days.length === 0 ? (
         <div className="card mt-6 p-10 text-center">
@@ -110,9 +99,10 @@ export default function Orders() {
           {view === 'active' && <Link to="/vendor" className="btn-ghost mt-5">Browse items</Link>}
         </div>
       ) : (
-        <div className="mt-6 space-y-6">
-          {days.map(({ day, date, rows }) => (
-            <section key={day}>
+        // Keyed by view so switching tabs re-runs the cascade for the new list.
+        <div key={view} className="mt-6 space-y-6">
+          {days.map(({ day, date, rows }, di) => (
+            <section key={day} className="animate-rise" style={{ animationDelay: `${Math.min(di, 8) * 40}ms` }}>
               <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                 {new Date(date).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'short' })}
               </h2>
@@ -121,7 +111,7 @@ export default function Orders() {
                   <li key={o._id}>
                     <Link
                       to={`/orders/${o._id}`}
-                      className="flex flex-col gap-2 p-4 transition-colors hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ink sm:flex-row sm:items-center sm:gap-4 dark:hover:bg-night-700/40 dark:focus-visible:ring-gray-100"
+                      className="flex flex-col gap-2 p-4 transition-colors hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-600 sm:flex-row sm:items-center sm:gap-4 dark:hover:bg-night-700/40 dark:focus-visible:ring-brand-400"
                     >
                       <div className="min-w-0 flex-1">
                         <div className="truncate font-medium text-ink dark:text-gray-100">{o.itemName}</div>
