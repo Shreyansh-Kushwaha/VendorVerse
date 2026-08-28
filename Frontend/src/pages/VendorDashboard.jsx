@@ -10,6 +10,9 @@ import { useFavorites } from '../favorites.js';
 import Thumb from '../components/ui/Thumb.jsx';
 import Stat from '../components/ui/Stat.jsx';
 import QuantityStepper from '../components/ui/QuantityStepper.jsx';
+import RollingNumber from '../components/ui/RollingNumber.jsx';
+import { haptic } from '../lib/haptics.js';
+import { flyToCart } from '../lib/flyToCart.js';
 
 const PAGE_SIZE = 24;
 const OPEN_STATUSES = ['Pending', 'Accepted', 'Packed', 'OutForDelivery'];
@@ -115,7 +118,9 @@ export default function VendorDashboard() {
   const keyOf = (it) => `${it.supplierId}-${it.itemId}`;
   const qtyOf = (it) => qty[keyOf(it)] ?? 1;
 
-  const addToCart = (it) => {
+  // The confirmation is physical, not textual: a dot flies to the cart, the
+  // badge pops, the button flashes a check, the phone ticks. No toast needed.
+  const addToCart = (it, fromEl) => {
     const n = qtyOf(it);
     cart.add({
       itemId: it.itemId,
@@ -127,7 +132,8 @@ export default function VendorDashboard() {
       supplierName: it.supplierName,
       location: it.location,
     }, n);
-    toast.success(`Added ${amount(n, it.unit)} of ${it.itemName}`);
+    flyToCart(fromEl);
+    haptic('tick');
   };
 
   return (
@@ -180,7 +186,7 @@ export default function VendorDashboard() {
                 onClick={() => applyFilter({ category: c })}
                 aria-pressed={active}
                 className={'chip capitalize ' + (active
-                  ? 'bg-ink text-white dark:bg-gray-100 dark:text-ink'
+                  ? 'bg-brand-600 text-white'
                   : 'border border-gray-200 text-gray-600 hover:bg-gray-50 dark:border-night-600 dark:text-gray-300 dark:hover:bg-night-700')}
               >
                 {c === 'all' ? 'All' : c}
@@ -204,16 +210,19 @@ export default function VendorDashboard() {
             </p>
 
             <div className="space-y-4">
-              {groups.map((g) => (
-                <ItemGroup
-                  key={g.name}
-                  group={g}
-                  favorites={favorites}
-                  onToggleFav={toggleFav}
-                  qtyOf={qtyOf}
-                  setQty={(it, n) => setQty((q) => ({ ...q, [keyOf(it)]: n }))}
-                  onAdd={addToCart}
-                />
+              {groups.map((g, i) => (
+                // Groups cascade in 40ms apart; the delay caps at the eighth row
+                // so a long catalog never feels slow to arrive.
+                <div key={g.name} className="animate-rise" style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}>
+                  <ItemGroup
+                    group={g}
+                    favorites={favorites}
+                    onToggleFav={toggleFav}
+                    qtyOf={qtyOf}
+                    setQty={(it, n) => setQty((q) => ({ ...q, [keyOf(it)]: n }))}
+                    onAdd={addToCart}
+                  />
+                </div>
               ))}
             </div>
 
@@ -232,7 +241,8 @@ export default function VendorDashboard() {
       {cart.count > 0 && (
         <div className="fixed inset-x-0 bottom-0 z-30 border-t border-gray-200 bg-white p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:hidden dark:border-night-600 dark:bg-night-800">
           <Link to="/cart" className="btn-primary w-full">
-            <span className="tnum">Review cart · {cart.count} item{cart.count === 1 ? '' : 's'} · {money(cart.subtotal)}</span>
+            <span className="tnum">Review cart · {cart.count} item{cart.count === 1 ? '' : 's'} · </span>
+            <RollingNumber value={money(cart.subtotal)} className="tnum" />
           </Link>
         </div>
       )}
@@ -263,7 +273,7 @@ function ItemGroup({ group, favorites, onToggleFav, qtyOf, setQty, onAdd }) {
             className="flex flex-col gap-3 p-3 first:border-t-0 border-t border-gray-200 sm:flex-row sm:items-center sm:gap-4 dark:border-night-600"
           >
             <div className="flex min-w-0 flex-1 items-center gap-3">
-              <Thumb src={it.imageUrl} alt={it.itemName} size="sm" />
+              <Thumb src={it.imageUrl} alt={it.itemName} size="sm" category={it.category} />
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5">
                   <Link to={`/suppliers/${it.supplierId}`} className="truncate text-sm font-medium text-ink hover:underline dark:text-gray-100">
@@ -293,9 +303,7 @@ function ItemGroup({ group, favorites, onToggleFav, qtyOf, setQty, onAdd }) {
                   max={it.quantity}
                   label={`${it.itemName} from ${it.supplierName}`}
                 />
-                <button onClick={() => onAdd(it)} disabled={it.quantity < 1} className="btn-ghost text-sm">
-                  {it.quantity < 1 ? 'Out' : 'Add'}
-                </button>
+                <AddButton onAdd={(el) => onAdd(it, el)} disabled={it.quantity < 1} />
               </div>
             </div>
           </li>
@@ -305,17 +313,55 @@ function ItemGroup({ group, favorites, onToggleFav, qtyOf, setQty, onAdd }) {
   );
 }
 
+// The label crossfades to a check for a moment, so the row itself confirms the
+// add even when the flying dot is off-screen. Width stays locked by the
+// absolute overlay, so nothing around it shifts.
+function AddButton({ onAdd, disabled }) {
+  const ref = useRef(null);
+  const [added, setAdded] = useState(false);
+  const timer = useRef(null);
+  useEffect(() => () => clearTimeout(timer.current), []);
+
+  const handle = () => {
+    onAdd(ref.current);
+    setAdded(true);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => setAdded(false), 1000);
+  };
+
+  return (
+    <button ref={ref} onClick={handle} disabled={disabled} className="btn-primary relative text-sm">
+      <span className={'transition-opacity duration-150 ' + (added ? 'opacity-0' : '')}>
+        {disabled ? 'Out' : 'Add'}
+      </span>
+      <span
+        aria-hidden
+        className={'absolute inset-0 grid place-items-center transition-[opacity,transform] duration-200 ease-spring ' +
+          (added ? 'scale-100 opacity-100' : 'scale-50 opacity-0')}
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12l5 5L20 7" /></svg>
+      </span>
+    </button>
+  );
+}
+
 function FavBtn({ on, onClick }) {
+  // Saving pops and ticks; unsaving is silent — celebrations are for additions.
+  const [pulse, setPulse] = useState(0);
   return (
     <button
       type="button"
-      onClick={(e) => { e.stopPropagation(); e.preventDefault(); onClick(); }}
+      onClick={(e) => {
+        e.stopPropagation(); e.preventDefault();
+        if (!on) { setPulse((p) => p + 1); haptic('tick'); }
+        onClick();
+      }}
       aria-pressed={on}
       aria-label={on ? 'Remove supplier from saved' : 'Save supplier'}
-      className={'shrink-0 rounded p-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink dark:focus-visible:ring-gray-100 ' +
-        (on ? 'text-ink dark:text-gray-100' : 'text-gray-300 hover:text-gray-600 dark:text-gray-600 dark:hover:text-gray-300')}
+      className={'shrink-0 rounded p-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:focus-visible:ring-brand-400 ' +
+        (on ? 'text-brand-600 dark:text-brand-400' : 'text-gray-300 hover:text-brand-600 dark:text-gray-600 dark:hover:text-brand-400')}
     >
-      <svg width="14" height="14" viewBox="0 0 24 24" fill={on ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <svg key={pulse} className={pulse && on ? 'animate-pop' : ''} width="14" height="14" viewBox="0 0 24 24" fill={on ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
       </svg>
     </button>
@@ -324,10 +370,10 @@ function FavBtn({ on, onClick }) {
 
 function SkeletonRow() {
   return (
-    <div className="animate-pulse space-y-2">
-      <div className="h-4 w-1/2 rounded bg-gray-200 dark:bg-night-700" />
-      <div className="h-4 w-3/4 rounded bg-gray-200 dark:bg-night-700" />
-      <div className="h-4 w-2/3 rounded bg-gray-200 dark:bg-night-700" />
+    <div className="space-y-2">
+      <div className="skel h-4 w-1/2" />
+      <div className="skel h-4 w-3/4" />
+      <div className="skel h-4 w-2/3" />
     </div>
   );
 }
