@@ -16,6 +16,25 @@ export default function Signup() {
   });
   const [loading, setLoading] = useState(false);
 
+  // The PIN is a convenience, not an account field — six digits in, and the
+  // India Post directory fills the location box (still editable after).
+  const [pin, setPin] = useState('');
+  const [pinState, setPinState] = useState('idle'); // idle | looking | found | unknown
+
+  const onPin = async (e) => {
+    const v = e.target.value.replace(/\D/g, '').slice(0, 6);
+    setPin(v);
+    if (v.length < 6) return setPinState('idle');
+    setPinState('looking');
+    try {
+      const { data } = await api.get(`/pincode/${v}`);
+      setForm((f) => ({ ...f, location: `${data.area}, ${data.district}, ${data.state}` }));
+      setPinState('found');
+    } catch {
+      setPinState('unknown');
+    }
+  };
+
   const update = (k) => (e) => setForm({ ...form, [k]: e.target.value });
   const setRole = (role) => setForm((f) => ({ ...f, userType: role }));
 
@@ -83,22 +102,41 @@ export default function Signup() {
             <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">At least 6 characters.</p>
           </div>
 
-          <div className="grid sm:grid-cols-2 gap-4">
+          <div className="grid sm:grid-cols-3 gap-4">
             <div>
+              <label className="label" htmlFor="pin">
+                PIN code <span className="text-gray-400 dark:text-gray-500 font-normal">(optional)</span>
+              </label>
+              <input
+                id="pin"
+                inputMode="numeric"
+                placeholder="e.g. 110001"
+                className="input"
+                value={pin}
+                onChange={onPin}
+              />
+              <p className="text-xs mt-1 text-gray-500 dark:text-gray-500" aria-live="polite">
+                {pinState === 'looking' && 'Looking up…'}
+                {pinState === 'found' && 'Location filled from PIN'}
+                {pinState === 'unknown' && 'PIN not found — type your area below'}
+              </p>
+            </div>
+            <div className="sm:col-span-2">
               <label className="label" htmlFor="location">Location</label>
               <input id="location" required placeholder="City / area" className="input" value={form.location} onChange={update('location')} />
             </div>
-            <div>
-              <label className="label" htmlFor="businessName">
-                Business name {form.userType === 'vendor' && <span className="text-gray-400 dark:text-gray-500 font-normal">(optional)</span>}
-              </label>
-              <input
-                id="businessName"
-                placeholder={form.userType === 'supplier' ? 'Your supply business' : 'Your stall name'}
-                className="input"
-                value={form.businessName} onChange={update('businessName')}
-              />
-            </div>
+          </div>
+
+          <div>
+            <label className="label" htmlFor="businessName">
+              Business name {form.userType === 'vendor' && <span className="text-gray-400 dark:text-gray-500 font-normal">(optional)</span>}
+            </label>
+            <input
+              id="businessName"
+              placeholder={form.userType === 'supplier' ? 'Your supply business' : 'Your stall name'}
+              className="input"
+              value={form.businessName} onChange={update('businessName')}
+            />
           </div>
 
           <button type="submit" className="btn-primary w-full" disabled={loading}>

@@ -5,6 +5,7 @@ const validate = require('../middleware/validate');
 const { requireAuth } = require('../middleware/auth');
 const { fetchMandiPrices } = require('../services/mandi');
 const { fetchForecast } = require('../services/weather');
+const { lookupPincode } = require('../services/pincode');
 
 // =====================================================================
 // External data, proxied. The CSP keeps the browser on connect-src 'self',
@@ -49,6 +50,22 @@ router.get('/weather',
     } catch (err) {
       console.error('[weather] fetch failed:', err.message);
       res.status(503).json({ msg: 'The forecast is unavailable right now' });
+    }
+  },
+);
+
+// PIN → locality, for autofilling the address on signup. Public on purpose:
+// the form that needs it belongs to a visitor who has no session yet.
+router.get('/pincode/:pin',
+  validate({ params: z.object({ pin: z.string().regex(/^[1-9][0-9]{5}$/) }) }),
+  async (req, res) => {
+    try {
+      const place = await lookupPincode(req.params.pin);
+      if (!place) return res.status(404).json({ msg: 'PIN code not found' });
+      res.json(place);
+    } catch (err) {
+      console.error('[pincode] fetch failed:', err.message);
+      res.status(503).json({ msg: 'PIN lookup is unavailable right now' });
     }
   },
 );
