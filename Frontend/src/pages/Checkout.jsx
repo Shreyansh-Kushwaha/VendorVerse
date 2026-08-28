@@ -4,7 +4,7 @@ import api from '../api.js';
 import { useAuth } from '../auth.jsx';
 import { useCart } from '../cart.jsx';
 import { useToast } from '../components/Toast.jsx';
-import { money, amount } from '../format.js';
+import { money, amount, SLOTS } from '../format.js';
 import { haptic } from '../lib/haptics.js';
 
 export default function Checkout() {
@@ -13,6 +13,7 @@ export default function Checkout() {
   const navigate = useNavigate();
   const toast = useToast();
   const [address, setAddress] = useState(user?.location || '');
+  const [slot, setSlot] = useState(''); // '' = anytime
   const [notes, setNotes] = useState('');
   const [placing, setPlacing] = useState(false);
   const [placed, setPlaced] = useState(null); // { suppliers } — shows the confirmation moment
@@ -45,6 +46,7 @@ export default function Checkout() {
           quantity: it.quantity,
         })),
         deliveryAddress: address,
+        deliverySlot: slot || undefined,
         notes,
       };
       await api.post('/placeOrders', payload);
@@ -110,6 +112,30 @@ export default function Checkout() {
               <input id="address" className="input" required value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Stall address or landmark" />
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                 Prefilled from your profile. Change it for this order if you need to.
+              </p>
+            </div>
+            <div>
+              <span className="label">When should it arrive?</span>
+              <div className="flex flex-wrap gap-2">
+                {['', ...SLOTS].map((s) => {
+                  const active = slot === s;
+                  return (
+                    <button
+                      key={s || 'anytime'}
+                      type="button"
+                      onClick={() => setSlot(s)}
+                      aria-pressed={active}
+                      className={'chip ' + (active
+                        ? 'bg-brand-600 text-white'
+                        : 'border border-gray-200 text-gray-600 hover:bg-gray-50 dark:border-night-600 dark:text-gray-300 dark:hover:bg-night-700')}
+                    >
+                      {s || 'Anytime'}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                The supplier sees your preferred window with the order.
               </p>
             </div>
             <div>

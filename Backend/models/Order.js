@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
+const { SLOTS } = require('../lib/slots');
 
-const ORDER_STATUSES = ['Pending', 'Accepted', 'Packed', 'OutForDelivery', 'Delivered', 'Rejected', 'Cancelled'];
+const ORDER_STATUSES =['Pending', 'Accepted', 'Packed', 'OutForDelivery', 'Delivered', 'Rejected', 'Cancelled'];
 
 const orderSchema = new mongoose.Schema({
   vendorId: {
@@ -24,6 +25,9 @@ const orderSchema = new mongoose.Schema({
   // Where this goes and anything the vendor wants the supplier to know. Captured
   // at checkout, so it survives a later change to the vendor's profile location.
   deliveryAddress: { type: String, required: true },
+  // The window the vendor asked the delivery to land in. Optional — absent
+  // means "anytime".
+  deliverySlot: { type: String, enum: SLOTS },
   notes: { type: String },
   status: {
     type: String,

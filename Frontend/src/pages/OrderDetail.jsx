@@ -169,6 +169,8 @@ export default function OrderDetail() {
         <div className="text-sm">
           <div className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Address</div>
           <p className="text-ink dark:text-gray-100 mt-0.5">{order.deliveryAddress || '—'}</p>
+          <div className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mt-3">Preferred window</div>
+          <p className="text-ink dark:text-gray-100 mt-0.5">{order.deliverySlot || 'Anytime'}</p>
           {order.notes && (
             <>
               <div className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mt-3">Notes for the supplier</div>

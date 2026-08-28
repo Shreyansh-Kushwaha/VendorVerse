@@ -296,6 +296,14 @@ export default function SupplierDashboard() {
                         <span>{o.deliveryAddress}</span>
                       </div>
                     )}
+                    {o.deliverySlot && (
+                      <div className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400">
+                        <svg className="shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" />
+                        </svg>
+                        <span>{o.deliverySlot}</span>
+                      </div>
+                    )}
                     {o.notes && (
                       <p className="border-l-2 border-gray-200 pl-2 text-xs italic text-gray-600 dark:border-night-600 dark:text-gray-400 whitespace-pre-wrap">
                         {o.notes}

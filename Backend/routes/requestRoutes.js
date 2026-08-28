@@ -8,6 +8,7 @@ const validate = require('../middleware/validate');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { placeOrders, releaseOrderStock } = require('../services/orders');
 const { notifySafely } = require('../services/notifications');
+const { SLOTS } = require('../lib/slots');
 
 const objectId = z.string().regex(/^[a-f\d]{24}$/i, 'Invalid id');
 
@@ -55,6 +56,7 @@ const placeOrderSchema = z.object({
 // Falls back to the vendor's own location when checkout leaves it blank.
 const deliverySchema = {
   deliveryAddress: z.string().max(300).optional(),
+  deliverySlot: z.enum(SLOTS).optional(),
   notes: z.string().max(1000).optional(),
 };
 
@@ -65,8 +67,8 @@ router.post('/placeOrder',
   validate({ body: placeOrderSchema.extend(deliverySchema) }),
   async (req, res, next) => {
     try {
-      const { deliveryAddress, notes, ...line } = req.body;
-      const [order] = await placeOrders(req.user, [line], { deliveryAddress, notes });
+      const { deliveryAddress, deliverySlot, notes, ...line } = req.body;
+      const [order] = await placeOrders(req.user, [line], { deliveryAddress, deliverySlot, notes });
       res.status(201).json({ msg: 'Order placed', order });
     } catch (err) { next(err); }
   },
@@ -79,8 +81,8 @@ router.post('/placeOrders',
   validate({ body: z.object({ items: z.array(placeOrderSchema).min(1), ...deliverySchema }) }),
   async (req, res, next) => {
     try {
-      const { items, deliveryAddress, notes } = req.body;
-      const created = await placeOrders(req.user, items, { deliveryAddress, notes });
+      const { items, deliveryAddress, deliverySlot, notes } = req.body;
+      const created = await placeOrders(req.user, items, { deliveryAddress, deliverySlot, notes });
       res.status(201).json({ msg: 'Orders placed', count: created.length, orders: created });
     } catch (err) { next(err); }
   },
