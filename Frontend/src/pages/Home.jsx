@@ -10,7 +10,7 @@ export default function Home() {
   return (
     <div>
       {/* Hero */}
-      <section className="border-b border-gray-200 dark:border-night-700">
+      <section className="border-b border-brand-100 bg-brand-50 dark:border-night-700 dark:bg-night-800/50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-24 grid md:grid-cols-2 gap-10 items-center">
           <div>
             <span className="inline-block text-sm font-medium text-gray-500 dark:text-gray-400 mb-4">
