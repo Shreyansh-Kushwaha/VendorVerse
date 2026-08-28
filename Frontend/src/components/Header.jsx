@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth.jsx';
 import { useCart } from '../cart.jsx';
@@ -24,13 +24,13 @@ export default function Header() {
 
   const linkBase = 'px-3 py-2 rounded-lg text-sm font-medium transition';
   const linkInactive = 'text-gray-600 hover:bg-gray-50 hover:text-ink dark:text-gray-300 dark:hover:bg-night-700 dark:hover:text-gray-100';
-  const linkActive = 'bg-gray-100 text-ink dark:bg-night-700 dark:text-gray-100';
+  const linkActive = 'bg-brand-50 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300';
 
   return (
     <header className="sticky top-0 z-30 bg-white/90 dark:bg-night-900/90 backdrop-blur border-b border-brand-100 dark:border-night-700 transition-colors">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2" onClick={() => setOpen(false)}>
-          <div className="grid h-9 w-9 place-items-center rounded-lg bg-ink text-sm font-semibold text-white dark:bg-gray-100 dark:text-ink">
+          <div className="grid h-9 w-9 place-items-center rounded-lg bg-brand-600 text-sm font-semibold text-white">
             V
           </div>
           <span className="font-display text-2xl font-bold text-ink dark:text-gray-100">VendorVerse</span>
@@ -120,9 +120,19 @@ export default function Header() {
 }
 
 function CartButton({ count }) {
+  // The badge pops when something lands in the cart — the destination of the
+  // fly-to-cart dot confirms the arrival. Keyed remount re-runs the animation.
+  const prev = useRef(count);
+  const [pop, setPop] = useState(0);
+  useEffect(() => {
+    if (count > prev.current) setPop((p) => p + 1);
+    prev.current = count;
+  }, [count]);
+
   return (
     <Link
       to="/cart"
+      data-cart-target
       aria-label={`Cart (${count} items)`}
       className="relative inline-flex h-11 w-11 items-center justify-center rounded-md text-gray-600 transition-colors hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-night-700"
     >
@@ -132,7 +142,11 @@ function CartButton({ count }) {
         <path d="M3 3h2l3.4 12.4a2 2 0 0 0 2 1.6h7.6a2 2 0 0 0 2-1.6L21 8H6" />
       </svg>
       {count > 0 && (
-        <span className="tnum absolute -right-0.5 -top-0.5 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-ink px-1 text-[10px] font-semibold text-white ring-2 ring-white dark:bg-gray-100 dark:text-ink dark:ring-night-900">
+        <span
+          key={pop}
+          className={'tnum absolute -right-0.5 -top-0.5 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-brand-600 px-1 text-[10px] font-semibold text-white ring-2 ring-white dark:ring-night-900 ' +
+            (pop ? 'animate-pop' : '')}
+        >
           {count > 99 ? '99+' : count}
         </span>
       )}
