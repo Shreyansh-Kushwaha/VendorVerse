@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api.js';
 import { useAuth } from '../auth.jsx';
@@ -18,6 +18,9 @@ import { flyToCart } from '../lib/flyToCart.js';
 import { getPosition, distanceKm, formatKm } from '../lib/geo.js';
 import MandiRates from '../components/MandiRates.jsx';
 import WeatherStrip from '../components/WeatherStrip.jsx';
+
+// Leaflet only ships to vendors who tapped "Near me".
+const SupplierMap = lazy(() => import('../components/SupplierMap.jsx'));
 
 const PAGE_SIZE = 24;
 const OPEN_STATUSES = ['Pending', 'Accepted', 'Packed', 'OutForDelivery'];
@@ -92,10 +95,26 @@ export default function VendorDashboard() {
       setPos(p);
       const { data } = await api.get('/suppliers/near', { params: { lat: p.lat, lng: p.lng } });
       setNearby(data.suppliers);
+      loadDriveTimes(p, data.suppliers);
     } catch {
       setNearby([]);
     } finally {
       setLocating(false);
+    }
+  };
+
+  // Road distance and drive time are a second pass — the cards render at once
+  // on straight-line distance and upgrade when OSRM answers.
+  const loadDriveTimes = async (p, suppliers) => {
+    const withGeo = suppliers.filter((s) => s.geo?.coordinates);
+    if (withGeo.length === 0) return;
+    try {
+      const to = withGeo.map((s) => `${s.geo.coordinates[1]},${s.geo.coordinates[0]}`).join(';');
+      const { data } = await api.get('/route-matrix', { params: { from: `${p.lat},${p.lng}`, to } });
+      const routes = new Map(withGeo.map((s, i) => [s.supplierId, data.routes[i]]));
+      setNearby((prev) => prev?.map((s) => ({ ...s, route: routes.get(s.supplierId) || undefined })) ?? prev);
+    } catch {
+      // straight-line distances are already on screen
     }
   };
 
@@ -277,6 +296,10 @@ export default function VendorDashboard() {
               No suppliers within 100 km have shared their location yet.
             </p>
           ) : (
+            <>
+            <Suspense fallback={<div className="skel mb-3 h-64 rounded-xl" />}>
+              <SupplierMap pos={pos} suppliers={nearby} />
+            </Suspense>
             <div className="flex gap-3 overflow-x-auto pb-1">
               {nearby.map((s) => (
                 <Link
@@ -287,13 +310,17 @@ export default function VendorDashboard() {
                   <div className="truncate text-sm font-medium text-ink dark:text-gray-100">{s.name}</div>
                   <div className="truncate text-xs text-gray-500 dark:text-gray-400">{s.location}</div>
                   <div className="tnum mt-1.5 text-xs text-gray-600 dark:text-gray-300">
-                    <span className="font-semibold text-brand-700 dark:text-brand-400">{formatKm(s.distanceKm)}</span>
+                    <span className="font-semibold text-brand-700 dark:text-brand-400">
+                      {s.route ? `${s.route.minutes} min` : formatKm(s.distanceKm)}
+                    </span>
+                    {s.route && ` · ${s.route.km} km road`}
                     {' · '}{s.items} item{s.items === 1 ? '' : 's'}
                   </div>
                   {s.rating != null && <div className="mt-1 text-xs"><Stars value={s.rating} count={s.ratingCount} size={10} /></div>}
                 </Link>
               ))}
             </div>
+            </>
           )}
         </section>
       )}

@@ -262,3 +262,10 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* OpenStreetMap only ships light tiles; inverting them turns the supplier map
+   into a night map instead of a searchlight in a dark dashboard. */
+html.dark .leaflet-tile {
+  filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.9) saturate(0.6);
+}
+html.dark .leaflet-container { background: theme('colors.night.900'); }

@@ -298,6 +298,8 @@ router.get('/suppliers/near',
             supplierId: 1,
             name: 1,
             location: 1,
+            // The map pin and the road-distance lookup both need the point.
+            geo: 1,
             items: { $size: '$inventory' },
             distanceKm: { $round: [{ $divide: ['$distanceM', 1000] }, 1] },
             rating: { $round: [{ $avg: '$reviews.rating' }, 1] },
