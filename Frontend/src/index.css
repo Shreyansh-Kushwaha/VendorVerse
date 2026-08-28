@@ -206,6 +206,9 @@
 @keyframes draw-cir { to { stroke-dashoffset: 0; } }
 @keyframes draw-tick { to { stroke-dashoffset: 0; } }
 
+/* The undo bar's timer visibly drains, so "act now or it is gone" needs no copy. */
+@keyframes undo-drain { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+
 /* The order timeline's check, drawn only on a live status advance. */
 .tick-draw {
   stroke-dasharray: 24;
