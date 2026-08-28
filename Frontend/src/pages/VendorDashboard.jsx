@@ -28,6 +28,42 @@ export default function VendorDashboard() {
   const [analytics, setAnalytics] = useState(null);
   const { favorites, toggle: toggleFav } = useFavorites();
 
+  // Listings this vendor asked to be told about when they restock.
+  const [alerts, setAlerts] = useState(() => new Set());
+  useEffect(() => {
+    let on = true;
+    api.get('/stock-alerts')
+      .then(({ data }) => { if (on) setAlerts(new Set(data.alerts.map(a => a.itemId))); })
+      .catch(() => {});
+    return () => { on = false; };
+  }, []);
+
+  const toggleAlert = async (it) => {
+    const watching = alerts.has(it.itemId);
+    // Optimistic — the bell answers the tap; a failure rolls it back.
+    setAlerts((prev) => {
+      const next = new Set(prev);
+      if (watching) next.delete(it.itemId); else next.add(it.itemId);
+      return next;
+    });
+    try {
+      if (watching) {
+        await api.delete(`/stock-alerts/${it.itemId}`);
+      } else {
+        await api.post('/stock-alerts', { supplierId: it.supplierId, itemId: it.itemId });
+        haptic('tick');
+        toast.success(`You will hear when ${it.itemName} is back`);
+      }
+    } catch (err) {
+      setAlerts((prev) => {
+        const next = new Set(prev);
+        if (watching) next.add(it.itemId); else next.delete(it.itemId);
+        return next;
+      });
+      toast.error(err.response?.data?.msg || 'Could not update the alert');
+    }
+  };
+
   // Catalog comes from the server one page at a time, filtered and sorted there.
   const [catalog, setCatalog] = useState({ items: [], total: 0, pages: 0 });
   const [catalogLoading, setCatalogLoading] = useState(true);
@@ -222,6 +258,8 @@ export default function VendorDashboard() {
                     qtyOf={qtyOf}
                     setQty={(it, n) => setQty((q) => ({ ...q, [keyOf(it)]: n }))}
                     onAdd={addToCart}
+                    alerts={alerts}
+                    onToggleAlert={toggleAlert}
                   />
                 </div>
               ))}
@@ -251,7 +289,7 @@ export default function VendorDashboard() {
   );
 }
 
-function ItemGroup({ group, favorites, onToggleFav, qtyOf, setQty, onAdd }) {
+function ItemGroup({ group, favorites, onToggleFav, qtyOf, setQty, onAdd, alerts, onToggleAlert }) {
   const { name, offers } = group;
   const low = offers[0].price;
   const high = offers[offers.length - 1].price;
@@ -307,7 +345,9 @@ function ItemGroup({ group, favorites, onToggleFav, qtyOf, setQty, onAdd }) {
                   max={it.quantity}
                   label={`${it.itemName} from ${it.supplierName}`}
                 />
-                <AddButton onAdd={(el) => onAdd(it, el)} disabled={it.quantity < 1} />
+                {it.quantity < 1
+                  ? <NotifyButton on={alerts.has(it.itemId)} onClick={() => onToggleAlert(it)} />
+                  : <AddButton onAdd={(el) => onAdd(it, el)} />}
               </div>
             </div>
           </li>
@@ -345,6 +385,25 @@ function AddButton({ onAdd, disabled }) {
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12l5 5L20 7" /></svg>
       </span>
+    </button>
+  );
+}
+
+// Stands in for the add button when a listing is empty. Instead of a dead
+// "Out" label, the row offers the next useful thing: a restock alert.
+function NotifyButton({ on, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      aria-pressed={on}
+      className={'btn text-sm ' + (on
+        ? 'border border-brand-200 bg-brand-50 text-brand-700 dark:border-night-600 dark:bg-night-700 dark:text-brand-300'
+        : 'border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 dark:border-night-600 dark:bg-night-800 dark:text-gray-300 dark:hover:bg-night-700')}
+    >
+      <svg width="14" height="14" viewBox="0 0 24 24" fill={on ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" />
+      </svg>
+      {on ? 'Watching' : 'Notify me'}
     </button>
   );
 }

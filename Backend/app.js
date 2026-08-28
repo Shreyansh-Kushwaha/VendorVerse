@@ -100,6 +100,7 @@ app.use('/api', require('./routes/supplierRoutes'));
 app.use('/api', require('./routes/authRoutes'));
 app.use('/api', require('./routes/notificationRoutes'));
 app.use('/api', require('./routes/reviewRoutes'));
+app.use('/api', require('./routes/stockAlertRoutes'));
 
 // Serve the React build
 const reactDist = path.join(__dirname, '..', 'Frontend', 'dist');

@@ -9,6 +9,7 @@ const User = require('../models/user');
 const validate = require('../middleware/validate');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { releaseOrderStock } = require('../services/orders');
+const { fireRestockAlerts } = require('../services/stockAlerts');
 const { UNITS, DEFAULT_UNIT } = require('../lib/units');
 const { CATEGORIES } = require('../lib/categories');
 
@@ -293,6 +294,9 @@ router.patch('/suppliers/:supplierId/inventory/:itemId',
       for (const [k, v] of Object.entries(req.body)) {
         setObj[`inventory.$.${k}`] = v;
       }
+      // The pre-update doc tells us whether this write is a restock.
+      const before = await Supplier.findOne({ supplierId, 'inventory._id': itemId });
+      const prevQty = before?.inventory?.id(itemId)?.quantity ?? 0;
       const updated = await Supplier.findOneAndUpdate(
         { supplierId, 'inventory._id': itemId },
         { $set: setObj },
@@ -300,6 +304,12 @@ router.patch('/suppliers/:supplierId/inventory/:itemId',
       );
       if (!updated) return res.status(404).json({ msg: 'Item not found' });
       const item = updated.inventory.id(itemId);
+
+      // Empty before, stocked now — tell everyone who asked to be told.
+      if (prevQty <= 0 && item.quantity > 0) {
+        await fireRestockAlerts(req.user.name, item);
+      }
+
       res.json({ msg: 'Updated', item });
     } catch (err) { next(err); }
   },
