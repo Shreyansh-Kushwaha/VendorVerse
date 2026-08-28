@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth.jsx';
 import api from '../api.js';
-import { perUnit } from '../format.js';
+import { perUnit, CATEGORIES } from '../format.js';
+import { CATEGORY_TONES } from '../components/ui/Thumb.jsx';
 
 const reducedMotion = () =>
   window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -27,17 +28,112 @@ export default function Home() {
     <div>
       <Hero user={user} ctaHref={ctaHref} ctaLabel={ctaLabel} live={live} />
       {live?.ticker?.length > 3 && <Ticker items={live.ticker} />}
+      <Categories live={live} href={ctaHref} />
       <ScrollStory />
+      <Compare />
       <Bento live={live} />
 
       {/* FAQ */}
-      <section className="max-w-3xl mx-auto px-4 sm:px-6 mt-20 mb-14">
+      <section className="max-w-3xl mx-auto px-4 sm:px-6 mt-20 mb-20">
         <h2 className="font-display text-3xl text-center text-ink dark:text-gray-100">Frequently asked</h2>
         <div className="mt-6 space-y-3">
           {FAQS.map((f) => <Faq key={f.q} {...f} />)}
         </div>
       </section>
+
+      <CtaBand user={user} ctaHref={ctaHref} />
     </div>
+  );
+}
+
+/* ── Category showcase ───────────────────────────────────────────────── */
+
+function Categories({ live, href }) {
+  const counts = Object.fromEntries((live?.categories || []).map((c) => [c.category, c.items]));
+  return (
+    <section className="max-w-6xl mx-auto px-4 sm:px-6 mt-20">
+      <h2 className="font-display text-3xl sm:text-4xl text-center text-ink dark:text-gray-100">Stocked every morning</h2>
+      <p className="text-center text-gray-600 dark:text-gray-400 mt-2">From fresh produce to pantry staples, priced per unit.</p>
+      <div className="mt-8 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+        {CATEGORIES.map((c) => (
+          <Link key={c} to={href} className="card card-lift p-4 text-center block">
+            <div className={`h-12 w-12 mx-auto rounded-lg grid place-items-center text-lg font-semibold ${CATEGORY_TONES[c]}`}>
+              {c[0].toUpperCase()}
+            </div>
+            <div className="mt-3 text-sm font-medium text-ink dark:text-gray-100 capitalize">{c}</div>
+            {counts[c] > 0 && (
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5"><span className="tnum">{counts[c]}</span> items live</div>
+            )}
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* ── The old way vs VendorVerse ──────────────────────────────────────── */
+
+const COMPARE_ROWS = [
+  ['Call five suppliers to compare one price', 'Every price per kg, cheapest offer first'],
+  ['Order by phone tag at 5 a.m.', 'One cart across suppliers, placed in a tap'],
+  ['"Is it coming?" calls all morning', 'Live status from accepted to delivered'],
+  ['Prices remembered, never written down', 'Every order and total in your history'],
+];
+
+function Compare() {
+  return (
+    <section className="max-w-6xl mx-auto px-4 sm:px-6 mt-20">
+      <h2 className="font-display text-3xl sm:text-4xl text-center text-ink dark:text-gray-100">Mornings, before and after</h2>
+      <div className="mt-8 grid md:grid-cols-2 gap-4">
+        <div className="card p-6">
+          <h3 className="text-sm font-semibold uppercase tracking-[0.08em] text-gray-500 dark:text-gray-400 mb-4">The old way</h3>
+          <ul className="space-y-3">
+            {COMPARE_ROWS.map(([old]) => (
+              <li key={old} className="flex gap-3 text-gray-600 dark:text-gray-400">
+                <svg className="shrink-0 mt-1 text-gray-400" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                <span>{old}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="card p-6 border-brand-200 bg-brand-50/60 dark:border-brand-500/30 dark:bg-brand-500/5">
+          <h3 className="text-sm font-semibold uppercase tracking-[0.08em] text-brand-700 dark:text-brand-400 mb-4">With VendorVerse</h3>
+          <ul className="space-y-3">
+            {COMPARE_ROWS.map(([, now]) => (
+              <li key={now} className="flex gap-3 text-ink dark:text-gray-100">
+                <svg className="shrink-0 mt-1 text-brand-600 dark:text-brand-400" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                <span>{now}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── Closing CTA band ────────────────────────────────────────────────── */
+
+function CtaBand({ user, ctaHref }) {
+  return (
+    <section className="border-t border-brand-100 bg-brand-50 dark:border-night-700 dark:bg-night-800/50">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 text-center">
+        <h2 className="font-display text-3xl sm:text-4xl text-ink dark:text-gray-100">Restock in under three minutes.</h2>
+        <p className="mt-3 text-gray-600 dark:text-gray-400 max-w-md mx-auto">
+          Free during beta, no commission — pay the supplier when the order arrives.
+        </p>
+        <div className="mt-7 flex flex-wrap justify-center gap-3">
+          {user ? (
+            <Link to={ctaHref} className="btn-primary">Open Dashboard</Link>
+          ) : (
+            <>
+              <Link to="/signup" className="btn-primary">I buy ingredients</Link>
+              <Link to="/signup" className="btn-ghost">I sell ingredients</Link>
+            </>
+          )}
+        </div>
+      </div>
+    </section>
   );
 }
 

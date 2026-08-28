@@ -10,7 +10,7 @@ const SIZES = {
 // looks like. Tinting it by category turns a column of identical grey squares
 // into something you can scan — the colour is carrying the category, not
 // decorating the row.
-const CATEGORY_TONES = {
+export const CATEGORY_TONES = {
   vegetables: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300',
   fruits:     'bg-rose-100 text-rose-800 dark:bg-rose-500/15 dark:text-rose-300',
   spices:     'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300',
