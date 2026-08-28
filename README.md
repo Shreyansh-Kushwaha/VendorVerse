@@ -25,14 +25,14 @@
   <img alt="backend: Express 5" src="https://img.shields.io/badge/backend-Express_5-000000?style=flat-square&logo=express&logoColor=white"/>
   <img alt="frontend: React 18" src="https://img.shields.io/badge/frontend-React_18-61DAFB?style=flat-square&logo=react&logoColor=black"/>
   <img alt="database: MongoDB" src="https://img.shields.io/badge/database-MongoDB-47A248?style=flat-square&logo=mongodb&logoColor=white"/>
-  <img alt="158 tests passing" src="https://img.shields.io/badge/tests-158_passing-brightgreen?style=flat-square"/>
+  <img alt="171 tests passing" src="https://img.shields.io/badge/tests-171_passing-brightgreen?style=flat-square"/>
   <img alt="stock reservation: atomic" src="https://img.shields.io/badge/stock_reservation-atomic-blue?style=flat-square"/>
   <img alt="order states: 7" src="https://img.shields.io/badge/order_states-7-orange?style=flat-square"/>
   <img alt="PWA installable" src="https://img.shields.io/badge/PWA-installable-purple?style=flat-square"/>
 </p>
 
 <p align="center">
-  <sub><code>2 roles</code> · <code>8 units of sale</code> · <code>6 categories</code> · <code>7 order states</code> · <code>24 test suites</code> · <code>live SSE notifications</code> · <code>dark mode</code></sub>
+  <sub><code>2 roles</code> · <code>8 units of sale</code> · <code>6 categories</code> · <code>7 order states</code> · <code>27 test suites</code> · <code>live SSE notifications</code> · <code>dark mode</code></sub>
 </p>
 
 ---
@@ -268,7 +268,7 @@ cd Backend  && npm start       # http://localhost:3000
 | Command | Where | What it does |
 |---|---|---|
 | `npm run dev` | `Backend/` | API with auto-restart on change |
-| `npm test` | `Backend/` | **158 integration tests** against an in-memory MongoDB, no Atlas needed |
+| `npm test` | `Backend/` | **171 integration tests** against an in-memory MongoDB, no Atlas needed |
 | `npm start` | `Backend/` | Production server, serves the built SPA too |
 | `npm run dev` | `Frontend/` | Vite dev server with `/api` proxy |
 | `npm run build` | `Frontend/` | Production bundle into `dist/` |
@@ -288,12 +288,12 @@ All routes live under `/api`. Everything except registration, login and public s
 | `POST` | `/forgot-password` `/reset-password` | anyone, rate limited |
 | `GET` | `/me` | signed in |
 | `PATCH` `DELETE` | `/users/:id` | that user only |
-| `GET` | `/suppliers` | signed in |
+| `GET` | `/suppliers` | anyone — searchable, paginated directory |
 | `GET` | `/suppliers/:id` `/suppliers/:id/inventory` | anyone |
 | `POST` | `/suppliers` | supplier |
 | `PATCH` `DELETE` | `/suppliers/:id/inventory/:itemId` | that supplier only |
 | `POST` | `/placeOrder` `/placeOrders` | vendor |
-| `GET` | `/vendor/orders` `/vendor/analytics` | vendor |
+| `GET` | `/vendor/orders` `/vendor/analytics` `/vendor/insights` | vendor |
 | `GET` | `/orders` `/supplier/analytics` | supplier |
 | `PATCH` | `/orders/:id/status` | that order's supplier |
 | `GET` | `/orders/:id` | that order's buyer or seller |
@@ -311,10 +311,10 @@ All routes live under `/api`. Everything except registration, login and public s
 
 ## ✅ Why You Can Trust It
 
-**158 assertions across 24 suites**, run against a **real MongoDB spun up in memory** — not mocks pretending to be a database. The suite exits non-zero on failure and runs on every push.
+**171 assertions across 27 suites**, run against a **real MongoDB spun up in memory** — not mocks pretending to be a database. The suite exits non-zero on failure and runs on every push.
 
 ```
-cd Backend && npm test        158 tests, 24 suites, no Atlas connection needed
+cd Backend && npm test        171 tests, 27 suites, no Atlas connection needed
 ```
 
 <details open>
