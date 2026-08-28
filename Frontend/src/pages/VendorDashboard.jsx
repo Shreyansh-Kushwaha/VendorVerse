@@ -17,6 +17,7 @@ import { haptic } from '../lib/haptics.js';
 import { flyToCart } from '../lib/flyToCart.js';
 import { getPosition, distanceKm, formatKm } from '../lib/geo.js';
 import MandiRates from '../components/MandiRates.jsx';
+import WeatherStrip from '../components/WeatherStrip.jsx';
 
 const PAGE_SIZE = 24;
 const OPEN_STATUSES = ['Pending', 'Accepted', 'Packed', 'OutForDelivery'];
@@ -270,6 +271,7 @@ export default function VendorDashboard() {
           <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
             Suppliers near you
           </h2>
+          <WeatherStrip pos={pos} />
           {nearby.length === 0 ? (
             <p className="text-sm text-gray-500 dark:text-gray-400">
               No suppliers within 100 km have shared their location yet.
