@@ -14,6 +14,7 @@ import Cart from './pages/Cart.jsx';
 import Checkout from './pages/Checkout.jsx';
 import Orders from './pages/Orders.jsx';
 import OrderDetail from './pages/OrderDetail.jsx';
+import Invoice from './pages/Invoice.jsx';
 import SupplierProfile from './pages/SupplierProfile.jsx';
 import About from './pages/About.jsx';
 import Contact from './pages/Contact.jsx';
@@ -52,6 +53,9 @@ export default function App() {
         } />
         <Route path="orders/:id" element={
           <ProtectedRoute><OrderDetail /></ProtectedRoute>
+        } />
+        <Route path="orders/:id/invoice" element={
+          <ProtectedRoute><Invoice /></ProtectedRoute>
         } />
 
         <Route path="suppliers/:id" element={<SupplierProfile />} />

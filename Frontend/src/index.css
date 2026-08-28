@@ -238,6 +238,22 @@
 .ticker-band:hover .ticker-track { animation-play-state: paused; }
 @keyframes ticker-slide { to { transform: translateX(-50%); } }
 
+/* ── Invoice printing ──────────────────────────────────────────────── */
+
+/* On paper only the sheet survives: no app chrome, no buttons, no card frame. */
+@media print {
+  body.invoice-mode header,
+  body.invoice-mode footer,
+  body.invoice-mode .no-print { display: none !important; }
+  body.invoice-mode { background: #fff !important; }
+  body.invoice-mode .invoice-sheet {
+    border: none;
+    box-shadow: none;
+    border-radius: 0;
+    padding: 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

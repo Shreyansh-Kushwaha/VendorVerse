@@ -17,6 +17,8 @@ function stepPath(pts, x, y) {
 
 export default function PriceTrendModal({ item, onClose }) {
   const [points, setPoints] = useState(null);
+  // "Now" pins the right edge of the chart; per-mount precision is plenty.
+  const [now] = useState(Date.now);
 
   useEffect(() => {
     if (!item) return;
@@ -32,7 +34,7 @@ export default function PriceTrendModal({ item, onClose }) {
 
   const pts = (points || []).map((p) => ({ t: new Date(p.at).getTime(), price: p.price }));
   // Extend the line to "now" so the flat stretch since the last change shows.
-  if (pts.length > 0) pts.push({ t: Date.now(), price: item.price });
+  if (pts.length > 0) pts.push({ t: now, price: item.price });
 
   const prices = pts.map(p => p.price);
   const lo = Math.min(...prices);

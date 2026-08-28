@@ -167,7 +167,12 @@ export default function OrderDetail() {
             {amount(order.quantity, order.unit)} × {perUnit(order.price, order.unit)} • placed {new Date(order.date).toLocaleString()}
           </p>
         </div>
-        <StatusPill status={status} wide />
+        <div className="flex shrink-0 flex-col items-end gap-2">
+          <StatusPill status={status} wide />
+          <Link to={`/orders/${order._id}/invoice`} className="btn-ghost px-3 py-1.5 text-xs">
+            {status === 'Delivered' ? 'Invoice' : 'Order summary'}
+          </Link>
+        </div>
       </div>
 
       {canCancel && (
