@@ -16,6 +16,7 @@ import RollingNumber from '../components/ui/RollingNumber.jsx';
 import { haptic } from '../lib/haptics.js';
 import { flyToCart } from '../lib/flyToCart.js';
 import { getPosition, distanceKm, formatKm } from '../lib/geo.js';
+import MandiRates from '../components/MandiRates.jsx';
 
 const PAGE_SIZE = 24;
 const OPEN_STATUSES = ['Pending', 'Accepted', 'Packed', 'OutForDelivery'];
@@ -294,6 +295,8 @@ export default function VendorDashboard() {
           )}
         </section>
       )}
+
+      <MandiRates />
 
       <section className="mt-6">
         {catalogLoading && catalog.items.length === 0 ? (
