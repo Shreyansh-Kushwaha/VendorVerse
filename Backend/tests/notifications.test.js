@@ -130,6 +130,25 @@ test('marking one read clears it from the unread count', async () => {
   assert.strictEqual(after.body.unread, before.body.unread - 1);
 });
 
+test('the feed pages through history without disturbing the badge', async () => {
+  await Notification.deleteMany({});
+  // Straight to the model — five orders' worth of API round trips would prove
+  // nothing extra here.
+  await Notification.insertMany([...Array(5)].map((_, i) => ({
+    userId: idS, type: 'order_placed', title: `Order ${i}`, read: i > 1,
+  })));
+
+  const p1 = await supplier.get('/api/notifications').query({ limit: 2 }).expect(200);
+  assert.strictEqual(p1.body.items.length, 2);
+  assert.strictEqual(p1.body.total, 5);
+  assert.strictEqual(p1.body.pages, 3);
+  assert.strictEqual(p1.body.unread, 2, 'unread counts the whole history, not the page');
+
+  const p3 = await supplier.get('/api/notifications').query({ limit: 2, page: 3 }).expect(200);
+  assert.strictEqual(p3.body.items.length, 1, 'the last page holds the remainder');
+  await supplier.get('/api/notifications').query({ page: 0 }).expect(400);
+});
+
 test('you cannot mark somebody else notification as read', async () => {
   await Notification.deleteMany({});
   const itemId = await listItem();

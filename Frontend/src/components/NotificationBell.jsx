@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useNotifications } from '../notifications.jsx';
 
 function timeAgo(iso) {
@@ -101,6 +101,14 @@ export default function NotificationBell() {
               </ul>
             )}
           </div>
+
+          <Link
+            to="/notifications"
+            onClick={() => setOpen(false)}
+            className="block border-t border-gray-100 px-4 py-2.5 text-center text-xs font-medium text-brand-700 hover:bg-brand-50/60 dark:border-night-600 dark:text-brand-300 dark:hover:bg-night-700/60"
+          >
+            View all notifications
+          </Link>
         </div>
       )}
     </div>
