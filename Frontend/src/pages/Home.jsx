@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth.jsx';
 import api from '../api.js';
@@ -47,11 +47,10 @@ const ROTATOR_WORDS = ['onions', 'प्याज़', 'tomatoes', 'paneer'];
 
 function Hero({ user, ctaHref, ctaLabel, live }) {
   const zoneRef = useRef(null);
-  const cardRef = useRef(null);
   const floatRefs = useRef([]);
 
-  // One mousemove drives both the card tilt and the parallax garnish, writing
-  // transforms straight to the nodes so nothing re-renders per frame.
+  // The parallax garnish follows the pointer; transforms are written straight
+  // to the nodes so nothing re-renders per frame.
   useEffect(() => {
     const zone = zoneRef.current;
     if (!zone || !window.matchMedia('(hover: hover)').matches || reducedMotion()) return;
@@ -59,21 +58,14 @@ function Hero({ user, ctaHref, ctaLabel, live }) {
       const r = zone.getBoundingClientRect();
       const x = (e.clientX - r.left) / r.width - 0.5;
       const y = (e.clientY - r.top) / r.height - 0.5;
-      if (cardRef.current) {
-        cardRef.current.style.transform = `rotateY(${x * 14}deg) rotateX(${-y * 10}deg)`;
-      }
       floatRefs.current.forEach((el, i) => {
         if (!el) return;
         const d = 4 + i * 3;
         el.style.transform = `translate(${-x * d * 4}px, ${-y * d * 4}px)`;
       });
     };
-    const leave = () => {
-      if (cardRef.current) cardRef.current.style.transform = 'rotateY(0deg) rotateX(0deg)';
-    };
     zone.addEventListener('mousemove', move);
-    zone.addEventListener('mouseleave', leave);
-    return () => { zone.removeEventListener('mousemove', move); zone.removeEventListener('mouseleave', leave); };
+    return () => zone.removeEventListener('mousemove', move);
   }, []);
 
   return (
@@ -130,8 +122,13 @@ function Hero({ user, ctaHref, ctaLabel, live }) {
           )}
         </div>
 
-        <div className="tilt-zone hidden md:grid place-items-center">
-          <TiltCard ref={cardRef} />
+        <div className="relative aspect-[4/3] rounded-xl overflow-hidden border border-gray-200 dark:border-night-600">
+          <img src="/home/tractor.jpg" alt="Fresh from the farm" className="h-full w-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+          <div className="absolute bottom-4 left-4 right-4 text-white">
+            <p className="text-xs uppercase tracking-wider opacity-80">Today on the platform</p>
+            <p className="text-xl font-medium tracking-tight">Farm-fresh ingredients, delivered direct.</p>
+          </div>
         </div>
       </div>
     </section>
@@ -153,33 +150,6 @@ function Rotator({ words }) {
     </span>
   );
 }
-
-// A mock order card with real depth: children sit forward of the card so the
-// pointer tilt reads as an object. Illustrative, and labelled as such.
-const TiltCard = forwardRef(function TiltCard(props, ref) {
-  return (
-    <div ref={ref} className="tilt-card card p-6 w-full max-w-sm shadow-pop">
-      <div className="flex items-center justify-between mb-4" style={{ transform: 'translateZ(36px)' }}>
-        <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-gray-500 dark:text-gray-400">Sample order</span>
-        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-400">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Out for delivery
-        </span>
-      </div>
-      <div style={{ transform: 'translateZ(24px)' }}>
-        {[['Onion · 25 kg', '₹800'], ['Tomato · 10 kg', '₹410'], ['Ginger · 1 kg', '₹160']].map(([l, v]) => (
-          <div key={l} className="flex justify-between py-2.5 border-b border-gray-100 dark:border-night-700 text-sm">
-            <span className="text-gray-600 dark:text-gray-400">{l}</span>
-            <span className="tnum font-medium text-ink dark:text-gray-100">{v}</span>
-          </div>
-        ))}
-      </div>
-      <div className="flex justify-between pt-3 text-sm" style={{ transform: 'translateZ(40px)' }}>
-        <span className="font-medium text-ink dark:text-gray-100">Pay on delivery</span>
-        <span className="tnum font-semibold text-ink dark:text-gray-100">₹1,370</span>
-      </div>
-    </div>
-  );
-});
 
 // Counts up once, when the value first arrives.
 function CountUp({ value, className = '' }) {

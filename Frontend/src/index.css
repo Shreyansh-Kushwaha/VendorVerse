@@ -238,15 +238,6 @@
 .ticker-band:hover .ticker-track { animation-play-state: paused; }
 @keyframes ticker-slide { to { transform: translateX(-50%); } }
 
-/* The hero order card tilts toward the pointer; children sit at different
-   depths so the tilt reads as an object, not a rotated rectangle. */
-.tilt-zone { perspective: 900px; }
-.tilt-card {
-  transform-style: preserve-3d;
-  transition: transform 160ms ease-out;
-  will-change: transform;
-}
-
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
