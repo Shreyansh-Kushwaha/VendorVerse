@@ -10,6 +10,8 @@ import StatusPill from '../components/ui/StatusPill.jsx';
 import Thumb from '../components/ui/Thumb.jsx';
 import Stat from '../components/ui/Stat.jsx';
 import QuantityStepper from '../components/ui/QuantityStepper.jsx';
+import Tabs from '../components/ui/Tabs.jsx';
+import { haptic } from '../lib/haptics.js';
 
 const CATEGORY_OPTIONS = ['vegetables', 'fruits', 'spices', 'grains', 'dairy', 'others'];
 const NEXT_STATUS = { Pending: 'Accepted', Accepted: 'Packed', Packed: 'OutForDelivery', OutForDelivery: 'Delivered' };
@@ -174,6 +176,7 @@ export default function SupplierDashboard() {
   const advanceStatus = async (orderId, newStatus) => {
     try {
       await api.patch(`/orders/${orderId}/status`, { status: newStatus });
+      haptic('medium');
       toast.success(`Order marked ${newStatus === 'OutForDelivery' ? 'out for delivery' : newStatus.toLowerCase()}`);
       loadAll();
     } catch {
@@ -221,27 +224,21 @@ export default function SupplierDashboard() {
         </button>
       </div>
 
-      <div role="tablist" aria-label="Dashboard sections" className="mt-5 flex gap-1 border-b border-gray-200 dark:border-night-600">
-        {Object.entries(TABS).map(([key, label]) => {
-          const on = key === tab;
-          const badge = key === 'orders' ? openCount : key === 'inventory' ? inventory.length : 0;
-          return (
-            <button
-              key={key} role="tab" aria-selected={on} onClick={() => setTab(key)}
-              className={'-mb-px border-b-2 px-3 py-2.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink dark:focus-visible:ring-gray-100 ' +
-                (on
-                  ? 'border-ink font-medium text-ink dark:border-gray-100 dark:text-gray-100'
-                  : 'border-transparent text-gray-500 hover:text-ink dark:text-gray-400 dark:hover:text-gray-100')}
-            >
-              {label}
-              {badge > 0 && <span className="tnum ml-1.5 text-gray-400">{badge}</span>}
-            </button>
-          );
-        })}
+      <div className="mt-5">
+        <Tabs
+          label="Dashboard sections"
+          value={tab}
+          onChange={setTab}
+          tabs={Object.entries(TABS).map(([key, label]) => ({
+            key,
+            label,
+            badge: key === 'orders' ? openCount : key === 'inventory' ? inventory.length : 0,
+          }))}
+        />
       </div>
 
       {tab === 'orders' && (
-        <section className="mt-6">
+        <section key="orders" className="mt-6 animate-rise">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm text-gray-500 dark:text-gray-400">
               {openCount > 0 ? `${openCount} open order${openCount === 1 ? '' : 's'}` : 'Nothing waiting on you right now'}
@@ -249,7 +246,7 @@ export default function SupplierDashboard() {
             <button
               type="button" onClick={() => setShowAllOrders(v => !v)}
               className={'chip ' + (showAllOrders
-                ? 'bg-ink text-white dark:bg-gray-100 dark:text-ink'
+                ? 'bg-brand-600 text-white'
                 : 'border border-gray-200 text-gray-600 hover:bg-gray-50 dark:border-night-600 dark:text-gray-300 dark:hover:bg-night-700')}
             >
               {showAllOrders ? 'Showing all' : 'Showing open'}
@@ -267,11 +264,15 @@ export default function SupplierDashboard() {
             />
           ) : (
             <div className="grid gap-3 sm:grid-cols-2">
-              {visibleOrders.map((o) => {
+              {visibleOrders.map((o, i) => {
                 const status = o.status || 'Pending';
                 const next = NEXT_STATUS[status];
                 return (
-                  <div key={o._id} className="card flex flex-col gap-2 p-4">
+                  <div
+                    key={o._id}
+                    className="card card-lift animate-rise flex flex-col gap-2 p-4"
+                    style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}
+                  >
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <div className={'truncate font-medium ' + (o.vendorId?.name ? 'text-ink dark:text-gray-100' : 'italic text-gray-400 dark:text-gray-500')}>
@@ -320,7 +321,7 @@ export default function SupplierDashboard() {
       )}
 
       {tab === 'inventory' && (
-        <section className="mt-6">
+        <section key="inventory" className="mt-6 animate-rise">
           <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
             <input
               className="input sm:max-w-xs" placeholder="Search your items…"
@@ -335,7 +336,7 @@ export default function SupplierDashboard() {
                 <button
                   key={key} onClick={() => setStockFilter(key)} aria-pressed={stockFilter === key}
                   className={'chip ' + (stockFilter === key
-                    ? 'bg-ink text-white dark:bg-gray-100 dark:text-ink'
+                    ? 'bg-brand-600 text-white'
                     : 'border border-gray-200 text-gray-600 hover:bg-gray-50 dark:border-night-600 dark:text-gray-300 dark:hover:bg-night-700')}
                 >
                   {label}
@@ -361,7 +362,7 @@ export default function SupplierDashboard() {
               {visibleInventory.map((it) => (
                 <li key={it._id} className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:gap-4">
                   <div className="flex min-w-0 flex-1 items-center gap-3">
-                    <Thumb src={it.imageUrl} alt={it.itemName} size="sm" />
+                    <Thumb src={it.imageUrl} alt={it.itemName} size="sm" category={it.category} />
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5">
                         <span className="truncate font-medium text-ink dark:text-gray-100">{it.itemName}</span>
@@ -393,7 +394,7 @@ export default function SupplierDashboard() {
       )}
 
       {tab === 'money' && (
-        <section className="mt-6 space-y-6">
+        <section key="money" className="mt-6 animate-rise space-y-6">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <Stat label="Total revenue" value={money(analytics?.totalRevenue)} />
             <Stat label="Total orders" value={analytics?.totalOrders ?? orders.length} />
@@ -559,7 +560,7 @@ function RevenueChart({ daily }) {
               </div>
               <div className="flex w-full flex-1 items-end">
                 <div
-                  className="w-full rounded-t bg-ink dark:bg-gray-100"
+                  className="w-full rounded-t bg-brand-600 dark:bg-brand-500"
                   style={{ height: `${Math.max(pct, 1.5)}%` }}
                 />
               </div>
@@ -586,8 +587,8 @@ function EmptyState({ title, hint, action }) {
 
 function SkeletonList() {
   return (
-    <div className="animate-pulse space-y-3">
-      {[1, 2, 3].map(i => <div key={i} className="h-20 rounded-xl bg-gray-100 dark:bg-night-800" />)}
+    <div className="space-y-3">
+      {[1, 2, 3].map(i => <div key={i} className="skel h-20 rounded-xl" />)}
     </div>
   );
 }
