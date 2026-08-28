@@ -433,9 +433,13 @@ router.get('/orders',
   requireRole('supplier'),
   async (req, res, next) => {
     try {
+      // The list view never reads the transition log, and plain objects are
+      // all the response needs — no mongoose documents hydrated for nothing.
       const orders = await Order.find({ supplierId: req.user._id })
+        .select('-statusHistory')
         .populate('vendorId', 'name location')
-        .sort({ date: -1 });
+        .sort({ date: -1 })
+        .lean();
       res.json(orders);
     } catch (err) { next(err); }
   },
@@ -483,40 +487,56 @@ router.patch('/orders/:orderId/status',
   },
 );
 
+// Money that actually happened: rejected and cancelled orders count for zero.
+const LINE_TOTAL = { $multiply: [{ $ifNull: ['$quantity', 0] }, { $ifNull: ['$price', 0] }] };
+const EARNED = { $cond: [{ $in: ['$status', ['Rejected', 'Cancelled']] }, 0, LINE_TOTAL] };
+
 router.get('/supplier/analytics',
   requireAuth,
   requireRole('supplier'),
   async (req, res, next) => {
     try {
-      const supplierId = req.user._id;
-      const orders = await Order.find({ supplierId });
-      const totalRevenue = orders
-        .filter(o => o.status !== 'Rejected' && o.status !== 'Cancelled')
-        .reduce((sum, o) => sum + (o.quantity || 0) * (o.price || 0), 0);
-      const counts = orders.reduce((acc, o) => {
-        acc[o.status] = (acc[o.status] || 0) + 1;
-        return acc;
-      }, {});
-      // Last 7 days revenue by day
+      // Every number reduces in the database; the orders themselves never
+      // cross the wire. This endpoint used to load the supplier's entire
+      // order history into memory on every dashboard visit.
       const since = new Date(Date.now() - 6 * 24 * 60 * 60 * 1000);
-      since.setHours(0, 0, 0, 0);
-      const daily = {};
+      since.setUTCHours(0, 0, 0, 0);
+      const [agg] = await Order.aggregate([
+        { $match: { supplierId: req.user._id } },
+        {
+          $facet: {
+            totals: [
+              { $group: { _id: null, totalOrders: { $sum: 1 }, totalRevenue: { $sum: EARNED } } },
+            ],
+            statusCounts: [
+              { $group: { _id: '$status', n: { $sum: 1 } } },
+            ],
+            daily: [
+              { $match: { date: { $gte: since }, status: { $nin: ['Rejected', 'Cancelled'] } } },
+              {
+                $group: {
+                  _id: { $dateToString: { format: '%Y-%m-%d', date: '$date' } },
+                  revenue: { $sum: LINE_TOTAL },
+                },
+              },
+            ],
+          },
+        },
+      ]);
+
+      // Quiet days still get a bar, so the chart always spans a full week.
+      const byDay = Object.fromEntries(agg.daily.map(d => [d._id, d.revenue]));
+      const daily = [];
       for (let i = 0; i < 7; i++) {
-        const d = new Date(since.getTime() + i * 24 * 60 * 60 * 1000);
-        daily[d.toISOString().slice(0, 10)] = 0;
+        const day = new Date(since.getTime() + i * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+        daily.push({ day, revenue: byDay[day] || 0 });
       }
-      orders.forEach(o => {
-        if (!o.date) return;
-        const key = new Date(o.date).toISOString().slice(0, 10);
-        if (key in daily && o.status !== 'Rejected' && o.status !== 'Cancelled') {
-          daily[key] += (o.quantity || 0) * (o.price || 0);
-        }
-      });
+
       res.json({
-        totalRevenue,
-        totalOrders: orders.length,
-        statusCounts: counts,
-        daily: Object.entries(daily).map(([day, revenue]) => ({ day, revenue })),
+        totalRevenue: agg.totals[0]?.totalRevenue || 0,
+        totalOrders: agg.totals[0]?.totalOrders || 0,
+        statusCounts: Object.fromEntries(agg.statusCounts.map(s => [s._id, s.n])),
+        daily,
       });
     } catch (err) { next(err); }
   },

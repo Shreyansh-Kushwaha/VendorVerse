@@ -40,7 +40,7 @@ router.get('/notifications',
   async (req, res, next) => {
     try {
       const [items, unread] = await Promise.all([
-        Notification.find({ userId: req.user._id }).sort({ createdAt: -1 }).limit(req.query.limit),
+        Notification.find({ userId: req.user._id }).sort({ createdAt: -1 }).limit(req.query.limit).lean(),
         Notification.countDocuments({ userId: req.user._id, read: false }),
       ]);
       res.json({ items, unread });

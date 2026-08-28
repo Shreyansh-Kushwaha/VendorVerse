@@ -93,9 +93,12 @@ router.get('/vendor/orders',
   requireRole('vendor'),
   async (req, res, next) => {
     try {
+      // Same shape the list actually renders: no transition log, no hydration.
       const orders = await Order.find({ vendorId: req.user._id })
+        .select('-statusHistory')
         .populate('supplierId', 'name location')
-        .sort({ date: -1 });
+        .sort({ date: -1 })
+        .lean();
       res.json(orders);
     } catch (err) { next(err); }
   },
@@ -163,21 +166,35 @@ router.get('/vendor/analytics',
   requireRole('vendor'),
   async (req, res, next) => {
     try {
-      const orders = await Order.find({ vendorId: req.user._id });
-      const active = orders.filter(o => o.status !== 'Rejected' && o.status !== 'Cancelled');
-      const totalSpend = active.reduce((s, o) => s + (o.quantity || 0) * (o.price || 0), 0);
-      const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-      const weekSpend = active
-        .filter(o => o.date && new Date(o.date).getTime() >= weekAgo)
-        .reduce((s, o) => s + (o.quantity || 0) * (o.price || 0), 0);
+      // Reduced in the database — the vendor's order history never leaves it.
+      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      const lineTotal = { $multiply: [{ $ifNull: ['$quantity', 0] }, { $ifNull: ['$price', 0] }] };
+      const spent = { $cond: [{ $in: ['$status', ['Rejected', 'Cancelled']] }, 0, lineTotal] };
+      const [agg] = await Order.aggregate([
+        { $match: { vendorId: req.user._id } },
+        {
+          $facet: {
+            totals: [
+              {
+                $group: {
+                  _id: null,
+                  totalOrders: { $sum: 1 },
+                  totalSpend: { $sum: spent },
+                  weekSpend: { $sum: { $cond: [{ $gte: ['$date', weekAgo] }, spent, 0] } },
+                },
+              },
+            ],
+            statusCounts: [
+              { $group: { _id: '$status', n: { $sum: 1 } } },
+            ],
+          },
+        },
+      ]);
       res.json({
-        totalOrders: orders.length,
-        totalSpend,
-        weekSpend,
-        statusCounts: orders.reduce((acc, o) => {
-          acc[o.status] = (acc[o.status] || 0) + 1;
-          return acc;
-        }, {}),
+        totalOrders: agg.totals[0]?.totalOrders || 0,
+        totalSpend: agg.totals[0]?.totalSpend || 0,
+        weekSpend: agg.totals[0]?.weekSpend || 0,
+        statusCounts: Object.fromEntries(agg.statusCounts.map(s => [s._id, s.n])),
       });
     } catch (err) { next(err); }
   },
