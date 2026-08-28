@@ -8,6 +8,7 @@ const validate = require('../middleware/validate');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { placeOrders, releaseOrderStock } = require('../services/orders');
 const { notifySafely } = require('../services/notifications');
+const { fetchMandiPrices } = require('../services/mandi');
 const { SLOTS } = require('../lib/slots');
 
 const { objectId } = require('../lib/ids');
@@ -195,6 +196,126 @@ router.get('/vendor/analytics',
         totalSpend: agg.totals[0]?.totalSpend || 0,
         weekSpend: agg.totals[0]?.weekSpend || 0,
         statusCounts: Object.fromEntries(agg.statusCounts.map(s => [s._id, s.n])),
+      });
+    } catch (err) { next(err); }
+  },
+);
+
+// =====================================================================
+// Insights: where the vendor's money actually goes. Every number reduces in
+// the database; the mandi comparison is decoration fetched afterwards and
+// allowed to fail without taking the page with it.
+// =====================================================================
+const WEEKS = 8;
+
+// Agmarknet capitalises commodities ("Green Chilli"); order forms rarely do.
+const titleCase = (s) => s.replace(/\S+/g, (w) => w[0].toUpperCase() + w.slice(1).toLowerCase());
+
+router.get('/vendor/insights',
+  requireAuth,
+  requireRole('vendor'),
+  async (req, res, next) => {
+    try {
+      const lineTotal = { $multiply: [{ $ifNull: ['$quantity', 0] }, { $ifNull: ['$price', 0] }] };
+      const active = { status: { $nin: ['Rejected', 'Cancelled'] } };
+
+      // Buckets align to Mondays, matching $dateTrunc below.
+      const now = new Date();
+      const monday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - ((now.getUTCDay() + 6) % 7)));
+      const since = new Date(monday.getTime() - (WEEKS - 1) * 7 * 24 * 60 * 60 * 1000);
+
+      const [agg] = await Order.aggregate([
+        { $match: { vendorId: req.user._id } },
+        {
+          $facet: {
+            totals: [
+              {
+                $group: {
+                  _id: null,
+                  totalOrders: { $sum: 1 },
+                  totalSpend: { $sum: { $cond: [{ $in: ['$status', ['Rejected', 'Cancelled']] }, 0, lineTotal] } },
+                  activeOrders: { $sum: { $cond: [{ $in: ['$status', ['Rejected', 'Cancelled']] }, 0, 1] } },
+                  suppliers: { $addToSet: '$supplierId' },
+                },
+              },
+            ],
+            weekly: [
+              { $match: { ...active, date: { $gte: since } } },
+              {
+                $group: {
+                  _id: { $dateTrunc: { date: '$date', unit: 'week', startOfWeek: 'monday' } },
+                  spend: { $sum: lineTotal },
+                },
+              },
+            ],
+            topItems: [
+              { $match: active },
+              {
+                $group: {
+                  _id: { $toLower: '$itemName' },
+                  name: { $first: '$itemName' },
+                  unit: { $first: '$unit' },
+                  spend: { $sum: lineTotal },
+                  qty: { $sum: { $ifNull: ['$quantity', 0] } },
+                  orders: { $sum: 1 },
+                },
+              },
+              { $sort: { spend: -1 } },
+              { $limit: 6 },
+              { $project: { _id: 0, name: 1, unit: 1, spend: 1, qty: 1, orders: 1 } },
+            ],
+            topSuppliers: [
+              { $match: active },
+              { $group: { _id: '$supplierId', spend: { $sum: lineTotal }, orders: { $sum: 1 } } },
+              { $sort: { spend: -1 } },
+              { $limit: 5 },
+              { $lookup: { from: 'supplierdatas', localField: '_id', foreignField: '_id', as: 'user' } },
+              {
+                $project: {
+                  _id: 0,
+                  supplierId: '$_id',
+                  spend: 1,
+                  orders: 1,
+                  name: { $ifNull: [{ $first: '$user.name' }, 'Former supplier'] },
+                  location: { $first: '$user.location' },
+                },
+              },
+            ],
+          },
+        },
+      ]);
+
+      // Quiet weeks still get a bar, so the chart always spans two months.
+      const bySpend = new Map(agg.weekly.map(w => [new Date(w._id).toISOString().slice(0, 10), w.spend]));
+      const weekly = [...Array(WEEKS)].map((_, i) => {
+        const weekStart = new Date(since.getTime() + i * 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+        return { weekStart, spend: bySpend.get(weekStart) || 0 };
+      });
+
+      // "You pay ₹38/kg, the mandi says ₹27" — only meaningful for items
+      // bought by the kilo, and only when Agmarknet knows the name.
+      const topItems = agg.topItems;
+      await Promise.all(topItems.filter(i => (i.unit || 'kg') === 'kg' && i.qty > 0).slice(0, 3)
+        .map(async (item) => {
+          try {
+            const mandi = await fetchMandiPrices(titleCase(item.name));
+            if (mandi.medianPerKg != null) {
+              item.mandiPerKg = mandi.medianPerKg;
+              item.paidPerKg = Math.round((item.spend / item.qty) * 100) / 100;
+            }
+          } catch { /* the comparison is decoration */ }
+        }));
+
+      const t = agg.totals[0] || {};
+      res.json({
+        totalSpend: t.totalSpend || 0,
+        totalOrders: t.totalOrders || 0,
+        activeOrders: t.activeOrders || 0,
+        supplierCount: (t.suppliers || []).length,
+        avgOrderValue: t.activeOrders ? Math.round(t.totalSpend / t.activeOrders) : 0,
+        weekly,
+        topItems,
+        topSuppliers: agg.topSuppliers,
       });
     } catch (err) { next(err); }
   },

@@ -223,9 +223,12 @@ export default function VendorDashboard() {
             Restock, {user?.name?.split(' ')[0] || 'there'}
           </h1>
         </div>
-        <Link to="/orders" className="btn-ghost self-start sm:self-auto">
-          View orders{openOrders > 0 ? ` (${openOrders} open)` : ''}
-        </Link>
+        <div className="flex gap-2 self-start sm:self-auto">
+          <Link to="/vendor/insights" className="btn-ghost">Insights</Link>
+          <Link to="/orders" className="btn-ghost">
+            View orders{openOrders > 0 ? ` (${openOrders} open)` : ''}
+          </Link>
+        </div>
       </div>
 
       <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
