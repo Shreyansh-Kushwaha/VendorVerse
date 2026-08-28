@@ -36,7 +36,13 @@ async function fetchMandiPrices(commodity, state) {
   if (!res.ok) throw new Error(`data.gov.in responded ${res.status}`);
   const data = await res.json();
 
-  const records = (data.records || [])
+  // A rate-limited key answers 200 with {"error": ...} and no records. That
+  // must throw, not be cached for six hours as "no arrivals today".
+  if (!Array.isArray(data.records)) {
+    throw new Error(data.error || 'data.gov.in sent no records array');
+  }
+
+  const records = data.records
     .map((r) => ({
       market: r.market,
       district: r.district,
