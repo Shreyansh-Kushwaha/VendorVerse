@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api.js';
 import { useNotifications } from '../notifications.jsx';
+import usePageMeta from '../lib/meta.js';
 
 const PAGE_SIZE = 30;
 
@@ -19,6 +20,12 @@ function timeAgo(iso) {
 // own list so pagination can walk past the bell's window, and leans on the
 // shared context for the actions so the badge stays honest everywhere.
 export default function Notifications() {
+  usePageMeta({
+    title: 'Notifications',
+    description:
+      'Order updates, stock alerts and messages from your suppliers.',
+    noIndex: true,
+  });
   const navigate = useNavigate();
   const { unread, live, markRead, markAllRead, onNotification } = useNotifications();
 

@@ -6,12 +6,19 @@ import Stat from '../components/ui/Stat.jsx';
 import Stars from '../components/ui/Stars.jsx';
 import Tabs from '../components/ui/Tabs.jsx';
 import { money, perUnit } from '../format.js';
+import usePageMeta from '../lib/meta.js';
 
 const ROLES = ['all', 'vendor', 'supplier', 'admin'];
 
 // The marketplace from above: who is here, what is moving, and the two levers
 // moderation actually needs — suspend an account, remove what shouldn't be up.
 export default function AdminDashboard() {
+  usePageMeta({
+    title: 'Admin',
+    description:
+      'Moderate accounts, listings and reports across VendorVerse.',
+    noIndex: true,
+  });
   const toast = useToast();
   const [overview, setOverview] = useState(null);
   const [tab, setTab] = useState('users');

@@ -1,7 +1,14 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth.jsx';
+import usePageMeta from '../lib/meta.js';
 
 export default function NotFound() {
+  usePageMeta({
+    title: 'Page not found',
+    description:
+      'We could not find the page you were looking for. It may have moved, or the link may be out of date.',
+    noIndex: true,
+  });
   const { user } = useAuth();
   const home = user
     ? (user.userType === 'supplier' ? '/supplier' : '/vendor')

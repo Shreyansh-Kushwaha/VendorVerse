@@ -4,8 +4,15 @@ import api from '../api.js';
 import { useAuth } from '../auth.jsx';
 import { useToast } from '../components/Toast.jsx';
 import Modal from '../components/Modal.jsx';
+import usePageMeta from '../lib/meta.js';
 
 export default function Profile() {
+  usePageMeta({
+    title: 'Your profile',
+    description:
+      'Update your business details, change your password or delete your VendorVerse account.',
+    noIndex: true,
+  });
   const { user, login, logout } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();

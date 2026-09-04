@@ -2,8 +2,14 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../api.js';
 import { useToast } from '../components/Toast.jsx';
+import usePageMeta from '../lib/meta.js';
 
 export default function Signup() {
+  usePageMeta({
+    title: 'Sign up',
+    description:
+      'Create a free VendorVerse account as a street food vendor or as a raw material supplier. Takes a minute, no card needed.',
+  });
   const navigate = useNavigate();
   const toast = useToast();
   const [form, setForm] = useState({

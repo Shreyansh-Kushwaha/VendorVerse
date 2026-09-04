@@ -2,8 +2,15 @@ import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../api.js';
 import { useToast } from '../components/Toast.jsx';
+import usePageMeta from '../lib/meta.js';
 
 export default function ResetPassword() {
+  usePageMeta({
+    title: 'Reset password',
+    description:
+      'Choose a new password for your VendorVerse account.',
+    noIndex: true,
+  });
   const [params] = useSearchParams();
   const token = params.get('token') || '';
   const navigate = useNavigate();

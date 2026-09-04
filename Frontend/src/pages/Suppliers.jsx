@@ -4,6 +4,7 @@ import api from '../api.js';
 import { useToast } from '../components/Toast.jsx';
 import Stars from '../components/ui/Stars.jsx';
 import { getPosition, distanceKm, formatKm } from '../lib/geo.js';
+import usePageMeta from '../lib/meta.js';
 
 const PAGE_SIZE = 12;
 const SORTS = [
@@ -15,6 +16,11 @@ const SORTS = [
 // Every supplier with something listed, on one browsable page. The catalog
 // answers "who sells onions cheapest"; this page answers "who is here at all".
 export default function Suppliers() {
+  usePageMeta({
+    title: 'Suppliers',
+    description:
+      'Browse verified raw material suppliers near you. Compare per-unit prices, live stock and vendor ratings before you order.',
+  });
   const toast = useToast();
   const [data, setData] = useState({ suppliers: [], total: 0, pages: 0 });
   const [loading, setLoading] = useState(true);

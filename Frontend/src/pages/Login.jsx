@@ -3,8 +3,14 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import api from '../api.js';
 import { useAuth } from '../auth.jsx';
 import { useToast } from '../components/Toast.jsx';
+import usePageMeta from '../lib/meta.js';
 
 export default function Login() {
+  usePageMeta({
+    title: 'Log in',
+    description:
+      'Log in to VendorVerse to order raw ingredients from your suppliers, or to manage your inventory as a supplier.',
+  });
   const { login } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();

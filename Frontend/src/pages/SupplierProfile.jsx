@@ -8,6 +8,7 @@ import { perUnit, amount } from '../format.js';
 import { useFavorites } from '../favorites.js';
 import Stars from '../components/ui/Stars.jsx';
 import PriceTrendModal from '../components/PriceTrend.jsx';
+import usePageMeta from '../lib/meta.js';
 
 export default function SupplierProfile() {
   const { id } = useParams();
@@ -21,6 +22,16 @@ export default function SupplierProfile() {
   const [trendItem, setTrendItem] = useState(null);
   const { isFavorite, toggle } = useFavorites();
   const favorited = isFavorite(id);
+
+  // Supplier pages are the ones worth being found in search, so the title and
+  // description are built from the supplier itself once it loads rather than
+  // every one of them sharing a single generic snippet.
+  usePageMeta({
+    title: supplier ? `${supplier.name} — supplier` : 'Supplier',
+    description: supplier
+      ? `Order raw ingredients from ${supplier.name}${supplier.location ? ` in ${supplier.location}` : ''} on VendorVerse. See live stock, per-unit prices and vendor ratings.`
+      : 'View a supplier on VendorVerse — live stock, per-unit prices and vendor ratings.',
+  });
 
   useEffect(() => {
     let cancelled = false;

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import usePageMeta from '../lib/meta.js';
 
 const TOPICS = [
   {
@@ -35,6 +36,11 @@ const TOPICS = [
 ];
 
 export default function Help() {
+  usePageMeta({
+    title: 'Help Centre',
+    description:
+      'Answers to common questions about ordering, delivery, payments, listing inventory and managing your VendorVerse account.',
+  });
   const [q, setQ] = useState('');
 
   const filtered = TOPICS.map(c => ({

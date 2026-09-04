@@ -6,8 +6,15 @@ import { useCart } from '../cart.jsx';
 import { useToast } from '../components/Toast.jsx';
 import { money, amount, SLOTS } from '../format.js';
 import { haptic } from '../lib/haptics.js';
+import usePageMeta from '../lib/meta.js';
 
 export default function Checkout() {
+  usePageMeta({
+    title: 'Checkout',
+    description:
+      'Confirm your delivery details and place your order.',
+    noIndex: true,
+  });
   const { user } = useAuth();
   const { items, count, subtotal, clear } = useCart();
   const navigate = useNavigate();

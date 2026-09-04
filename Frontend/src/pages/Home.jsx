@@ -4,11 +4,13 @@ import { useAuth } from '../auth.jsx';
 import api from '../api.js';
 import { perUnit, CATEGORIES } from '../format.js';
 import { CATEGORY_TONES } from '../components/ui/Thumb.jsx';
+import usePageMeta from '../lib/meta.js';
 
 const reducedMotion = () =>
   window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 export default function Home() {
+  usePageMeta();
   const { user } = useAuth();
   const ctaHref = user ? (user.userType === 'supplier' ? '/supplier' : '/vendor') : '/signup';
   const ctaLabel = user ? 'Open Dashboard' : 'Get Started';

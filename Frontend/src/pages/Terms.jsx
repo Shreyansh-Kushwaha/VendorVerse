@@ -1,4 +1,11 @@
+import usePageMeta from '../lib/meta.js';
+
 export default function Terms() {
+  usePageMeta({
+    title: 'Terms of Service',
+    description:
+      'The terms that govern your use of VendorVerse as a vendor or as a supplier.',
+  });
   return (
     <article className="max-w-3xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
       <h1 className="font-display text-4xl text-ink dark:text-gray-100">Terms of Service</h1>

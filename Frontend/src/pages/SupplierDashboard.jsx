@@ -13,6 +13,7 @@ import QuantityStepper from '../components/ui/QuantityStepper.jsx';
 import Tabs from '../components/ui/Tabs.jsx';
 import { haptic } from '../lib/haptics.js';
 import { getPosition } from '../lib/geo.js';
+import usePageMeta from '../lib/meta.js';
 
 const NEXT_STATUS = { Pending: 'Accepted', Accepted: 'Packed', Packed: 'OutForDelivery', OutForDelivery: 'Delivered' };
 const STATUS_LABELS = { Accepted: 'Accept', Packed: 'Mark packed', OutForDelivery: 'Out for delivery', Delivered: 'Mark delivered' };
@@ -21,6 +22,12 @@ const LOW_STOCK = 5;
 const TABS = { orders: 'Orders', inventory: 'Inventory', money: 'Money' };
 
 export default function SupplierDashboard() {
+  usePageMeta({
+    title: 'Supplier dashboard',
+    description:
+      'Manage your listings, stock levels and incoming vendor orders.',
+    noIndex: true,
+  });
   const { user } = useAuth();
   const toast = useToast();
   const { onNotification } = useNotifications();

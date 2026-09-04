@@ -11,6 +11,7 @@ import Modal from '../components/Modal.jsx';
 import { money, perUnit, amount } from '../format.js';
 import StatusPill from '../components/ui/StatusPill.jsx';
 import Stars, { RatingInput } from '../components/ui/Stars.jsx';
+import usePageMeta from '../lib/meta.js';
 
 const FLOW = ['Pending', 'Accepted', 'Packed', 'OutForDelivery', 'Delivered'];
 const FLOW_LABELS = {
@@ -23,6 +24,11 @@ const FLOW_LABELS = {
 
 export default function OrderDetail() {
   const { id } = useParams();
+  usePageMeta({
+    title: `Order ${String(id).slice(-6).toUpperCase()}`,
+    description: 'Track this order from placed to delivered, see the items and the total, and reorder in one tap.',
+    noIndex: true,
+  });
   const { user } = useAuth();
   const toast = useToast();
   const { onNotification } = useNotifications();

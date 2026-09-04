@@ -18,6 +18,7 @@ import { flyToCart } from '../lib/flyToCart.js';
 import { getPosition, distanceKm, formatKm } from '../lib/geo.js';
 import MandiRates from '../components/MandiRates.jsx';
 import WeatherStrip from '../components/WeatherStrip.jsx';
+import usePageMeta from '../lib/meta.js';
 
 // Leaflet only ships to vendors who tapped "Near me".
 const SupplierMap = lazy(() => import('../components/SupplierMap.jsx'));
@@ -26,6 +27,12 @@ const PAGE_SIZE = 24;
 const OPEN_STATUSES = ['Pending', 'Accepted', 'Packed', 'OutForDelivery'];
 
 export default function VendorDashboard() {
+  usePageMeta({
+    title: 'Vendor dashboard',
+    description:
+      'Browse supplier inventory, track live stock and build your order.',
+    noIndex: true,
+  });
   const { user } = useAuth();
   const cart = useCart();
   const toast = useToast();

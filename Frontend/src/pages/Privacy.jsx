@@ -1,4 +1,11 @@
+import usePageMeta from '../lib/meta.js';
+
 export default function Privacy() {
+  usePageMeta({
+    title: 'Privacy Policy',
+    description:
+      'What VendorVerse collects, how we use it, and the control you have over your data. We never sell your personal information.',
+  });
   return (
     <article className="max-w-3xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
       <h1 className="font-display text-4xl text-ink dark:text-gray-100">Privacy Policy</h1>

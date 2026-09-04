@@ -1,4 +1,11 @@
+import usePageMeta from '../lib/meta.js';
+
 export default function About() {
+  usePageMeta({
+    title: 'About',
+    description:
+      'Why VendorVerse exists — giving India\u2019s street food vendors the same supply chain leverage that large kitchens already have.',
+  });
   return (
     <article className="max-w-3xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
       <h1 className="font-display text-4xl text-ink dark:text-gray-100">About VendorVerse</h1>

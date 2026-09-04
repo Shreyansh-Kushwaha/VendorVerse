@@ -6,11 +6,18 @@ import Thumb from '../components/ui/Thumb.jsx';
 import QuantityStepper from '../components/ui/QuantityStepper.jsx';
 import RollingNumber from '../components/ui/RollingNumber.jsx';
 import { haptic } from '../lib/haptics.js';
+import usePageMeta from '../lib/meta.js';
 
 const COLLAPSE_MS = 260;
 const UNDO_MS = 5000;
 
 export default function Cart() {
+  usePageMeta({
+    title: 'Your cart',
+    description:
+      'Review the items in your cart before you place the order.',
+    noIndex: true,
+  });
   const { items, add, update, remove, clear, count, subtotal } = useCart();
   const navigate = useNavigate();
 

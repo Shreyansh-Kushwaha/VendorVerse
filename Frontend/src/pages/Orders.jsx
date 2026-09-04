@@ -9,6 +9,7 @@ import { reorderLine } from '../lib/reorder.js';
 import { haptic } from '../lib/haptics.js';
 import StatusPill from '../components/ui/StatusPill.jsx';
 import Tabs from '../components/ui/Tabs.jsx';
+import usePageMeta from '../lib/meta.js';
 
 // "Where is my delivery?" is a daily question. It used to live at the bottom of
 // the dashboard, under a catalog that grows 24 rows at a time.
@@ -26,6 +27,12 @@ const NEXT_UP = {
 };
 
 export default function Orders() {
+  usePageMeta({
+    title: 'Your orders',
+    description:
+      'Track the status of every order you have placed, from pending to delivered.',
+    noIndex: true,
+  });
   const toast = useToast();
   const cart = useCart();
   const { onNotification } = useNotifications();

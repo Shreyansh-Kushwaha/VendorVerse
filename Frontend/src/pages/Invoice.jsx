@@ -2,11 +2,18 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import api from '../api.js';
 import { money, perUnit, amount } from '../format.js';
+import usePageMeta from '../lib/meta.js';
 
 // The paper trail the order pitch promises. Deliberately printed in document
 // colours — white paper, dark ink — whatever theme the app is in, so what the
 // screen shows is exactly what the printer produces.
 export default function Invoice() {
+  usePageMeta({
+    title: 'Invoice',
+    description:
+      'A printable invoice for this order.',
+    noIndex: true,
+  });
   const { id } = useParams();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);

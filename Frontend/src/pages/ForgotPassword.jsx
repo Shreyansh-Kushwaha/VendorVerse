@@ -2,8 +2,14 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api.js';
 import { useToast } from '../components/Toast.jsx';
+import usePageMeta from '../lib/meta.js';
 
 export default function ForgotPassword() {
+  usePageMeta({
+    title: 'Forgot password',
+    description:
+      'Forgot your VendorVerse password? Enter your email and we will send you a link to set a new one.',
+  });
   const toast = useToast();
   const [email, setEmail] = useState('');
   const [sending, setSending] = useState(false);

@@ -4,10 +4,17 @@ import api from '../api.js';
 import { useToast } from '../components/Toast.jsx';
 import Stat from '../components/ui/Stat.jsx';
 import { money } from '../format.js';
+import usePageMeta from '../lib/meta.js';
 
 // Where the vendor's money actually goes: spend over two months, the items and
 // suppliers behind it, and what the govt mandi says those kilos should cost.
 export default function VendorInsights() {
+  usePageMeta({
+    title: 'Spending insights',
+    description:
+      'See where your raw material spend goes, month by month and supplier by supplier.',
+    noIndex: true,
+  });
   const toast = useToast();
   const [data, setData] = useState(null);
   const [failed, setFailed] = useState(false);
