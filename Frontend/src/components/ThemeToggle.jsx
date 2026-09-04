@@ -13,7 +13,7 @@ export default function ThemeToggle({ className = '' }) {
       aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
       title={isDark ? 'Light mode' : 'Dark mode'}
       className={
-        'relative inline-flex h-9 w-16 items-center rounded-full p-1 transition-colors duration-300 ' +
+        'tap-44 relative inline-flex h-9 w-16 items-center rounded-full p-1 transition-colors duration-300 ' +
         'focus:outline-none focus:ring-2 focus:ring-brand-500/60 ' +
         (isDark
           ? 'bg-night-700 ring-1 ring-night-600'

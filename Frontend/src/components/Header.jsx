@@ -30,11 +30,13 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-30 bg-white/90 dark:bg-night-900/90 backdrop-blur border-b border-brand-100 dark:border-night-700 transition-colors">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2" onClick={() => setOpen(false)}>
-          <div className="grid h-9 w-9 place-items-center rounded-lg bg-brand-600 text-sm font-semibold text-white">
+        {/* min-w-0 lets the wordmark shrink instead of pushing the action
+            group off-screen — without it a 320px phone scrolls sideways. */}
+        <Link to="/" className="flex min-w-0 items-center gap-2" onClick={() => setOpen(false)}>
+          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-brand-600 text-sm font-semibold text-white">
             V
           </div>
-          <span className="font-display text-2xl font-bold text-ink dark:text-gray-100">VendorVerse</span>
+          <span className="truncate font-display text-xl font-bold text-ink dark:text-gray-100 sm:text-2xl">VendorVerse</span>
         </Link>
 
         <nav className="hidden md:flex items-center gap-1">
@@ -72,13 +74,13 @@ export default function Header() {
           )}
         </nav>
 
-        <div className="flex items-center gap-2 md:hidden">
+        <div className="flex shrink-0 items-center gap-1 md:hidden">
           {showCart && <CartButton count={cartCount} />}
           {user && <NotificationBell />}
           <ThemeToggle />
           <button
             aria-label="Toggle menu"
-            className="p-2 rounded-lg text-gray-700 hover:bg-brand-50 dark:text-gray-300 dark:hover:bg-night-700"
+            className="grid h-11 w-11 place-items-center rounded-lg text-gray-700 hover:bg-brand-50 dark:text-gray-300 dark:hover:bg-night-700"
             onClick={() => setOpen(o => !o)}
           >
             <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
