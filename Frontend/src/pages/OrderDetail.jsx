@@ -220,7 +220,7 @@ export default function OrderDetail() {
                     }
                   >
                     {reached ? (
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                         <path className={isCurrent && advanced ? 'tick-draw' : ''} d="M5 12l5 5L20 7"/>
                       </svg>
                     ) : <span className="h-1.5 w-1.5 rounded-full bg-current" />}

@@ -92,7 +92,7 @@ function Compare() {
           <ul className="space-y-3">
             {COMPARE_ROWS.map(([old]) => (
               <li key={old} className="flex gap-3 text-gray-600 dark:text-gray-400">
-                <svg className="shrink-0 mt-1 text-gray-400" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                <svg aria-hidden="true" className="shrink-0 mt-1 text-gray-400" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
                 <span>{old}</span>
               </li>
             ))}
@@ -103,7 +103,7 @@ function Compare() {
           <ul className="space-y-3">
             {COMPARE_ROWS.map(([, now]) => (
               <li key={now} className="flex gap-3 text-ink dark:text-gray-100">
-                <svg className="shrink-0 mt-1 text-brand-600 dark:text-brand-400" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                <svg aria-hidden="true" className="shrink-0 mt-1 text-brand-600 dark:text-brand-400" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
                 <span>{now}</span>
               </li>
             ))}
@@ -144,6 +144,7 @@ function CtaBand({ user, ctaHref }) {
 const ROTATOR_WORDS = ['onions', 'प्याज़', 'tomatoes', 'paneer'];
 
 function Hero({ user, ctaHref, ctaLabel, live }) {
+  const [heroFailed, setHeroFailed] = useState(false);
   const zoneRef = useRef(null);
   const floatRefs = useRef([]);
 
@@ -198,7 +199,7 @@ function Hero({ user, ctaHref, ctaLabel, live }) {
           <div className="mt-7 flex flex-wrap gap-3">
             <Link to={ctaHref} className="btn-primary">
               {ctaLabel}
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
             </Link>
             {!user && (
               <Link to="/login" className="btn-ghost">
@@ -220,8 +221,21 @@ function Hero({ user, ctaHref, ctaLabel, live }) {
           )}
         </div>
 
-        <div className="relative aspect-[4/3] rounded-xl overflow-hidden border border-gray-200 dark:border-night-600">
-          <img src="/home/tractor.jpg" alt="Fresh from the farm" className="h-full w-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+        <div className={`relative aspect-[4/3] rounded-xl overflow-hidden border border-gray-200 dark:border-night-600 ${
+          heroFailed ? 'bg-gradient-to-br from-brand-500 to-brand-700' : ''
+        }`}>
+          {/* The caption sits on top in white, so a failed load cannot just
+              hide the image — that would leave white text on the page ground.
+              The tile keeps a brand-toned fill and the img stays mounted so its
+              alt text is what fills the frame. */}
+          <img
+            src="/home/tractor.jpg"
+            alt="A tractor hauling crates of freshly harvested vegetables out of a farm at sunrise"
+            className="h-full w-full object-cover text-sm text-white/90"
+            width="800"
+            height="600"
+            onError={() => setHeroFailed(true)}
+          />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
           <div className="absolute bottom-4 left-4 right-4 text-white">
             <p className="text-xs uppercase tracking-wider opacity-80">Today on the platform</p>
@@ -474,7 +488,7 @@ function Faq({ q, a }) {
         aria-expanded={open}
       >
         <span className="font-medium text-ink dark:text-gray-100">{q}</span>
-        <svg
+        <svg aria-hidden="true"
           className={'shrink-0 text-brand-600 dark:text-brand-400 transition-transform ' + (open ? 'rotate-180' : '')}
           width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
         ><path d="M6 9l6 6 6-6"/></svg>

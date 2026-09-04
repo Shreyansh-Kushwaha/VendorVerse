@@ -229,7 +229,7 @@ export default function SupplierDashboard() {
           </h1>
         </div>
         <button onClick={() => setAddOpen(true)} className="btn-primary self-start sm:self-auto">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
           Add item
         </button>
       </div>
@@ -300,7 +300,7 @@ export default function SupplierDashboard() {
 
                     {o.deliveryAddress && (
                       <div className="flex items-start gap-1.5 text-sm text-gray-600 dark:text-gray-400">
-                        <svg className="mt-0.5 shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <svg aria-hidden="true" className="mt-0.5 shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" />
                         </svg>
                         <span>{o.deliveryAddress}</span>
@@ -308,7 +308,7 @@ export default function SupplierDashboard() {
                     )}
                     {o.deliverySlot && (
                       <div className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400">
-                        <svg className="shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <svg aria-hidden="true" className="shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" />
                         </svg>
                         <span>{o.deliverySlot}</span>

@@ -71,7 +71,7 @@ export default function PriceTrendModal({ item, onClose }) {
             )}
           </div>
 
-          <svg viewBox={`0 0 ${W} ${H}`} className="mt-3 w-full text-brand-600 dark:text-brand-400" role="img"
+          <svg aria-hidden="true" viewBox={`0 0 ${W} ${H}`} className="mt-3 w-full text-brand-600 dark:text-brand-400" role="img"
             aria-label={`Price of ${item.itemName} over time, from ${money(pts[0].price)} to ${money(item.price)} per ${item.unit}`}>
             <path d={stepPath(pts, x, y)} fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
             {/* A dot at every change the supplier actually made. */}

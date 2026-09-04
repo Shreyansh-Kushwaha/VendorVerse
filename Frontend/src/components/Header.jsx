@@ -81,7 +81,7 @@ export default function Header() {
             className="p-2 rounded-lg text-gray-700 hover:bg-brand-50 dark:text-gray-300 dark:hover:bg-night-700"
             onClick={() => setOpen(o => !o)}
           >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               {open
                 ? <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" />
                 : <path d="M3 6h18M3 12h18M3 18h18" strokeLinecap="round" />}
@@ -147,7 +147,7 @@ function CartButton({ count }) {
       aria-label={`Cart (${count} items)`}
       className="relative inline-flex h-11 w-11 items-center justify-center rounded-md text-gray-600 transition-colors hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-night-700"
     >
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="9" cy="20" r="1.5" />
         <circle cx="17" cy="20" r="1.5" />
         <path d="M3 3h2l3.4 12.4a2 2 0 0 0 2 1.6h7.6a2 2 0 0 0 2-1.6L21 8H6" />

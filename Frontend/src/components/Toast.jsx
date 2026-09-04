@@ -73,7 +73,7 @@ export function ToastProvider({ children }) {
                   aria-label="Dismiss"
                   className="-m-1 shrink-0 rounded p-1 text-gray-400 transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:hover:text-gray-100 dark:focus-visible:ring-brand-400"
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                     <path d="M6 6l12 12M18 6L6 18" />
                   </svg>
                 </button>

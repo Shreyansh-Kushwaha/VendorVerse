@@ -7,6 +7,7 @@ import { useToast } from '../components/Toast.jsx';
 import { perUnit, amount } from '../format.js';
 import { useFavorites } from '../favorites.js';
 import Stars from '../components/ui/Stars.jsx';
+import Thumb from '../components/ui/Thumb.jsx';
 import PriceTrendModal from '../components/PriceTrend.jsx';
 import usePageMeta from '../lib/meta.js';
 
@@ -91,7 +92,7 @@ export default function SupplierProfile() {
                   ? 'bg-brand-50 text-brand-700 border border-brand-200 dark:bg-night-700 dark:text-brand-300 dark:border-night-600'
                   : 'bg-white text-gray-600 border border-gray-200 dark:bg-night-800 dark:text-gray-300 dark:border-night-600 hover:bg-brand-50')}
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill={favorited ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill={favorited ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
                 </svg>
                 {favorited ? 'Favorited' : 'Add to favorites'}
@@ -135,9 +136,13 @@ export default function SupplierProfile() {
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
             {items.map((it) => (
               <div key={it._id} className="rounded-xl overflow-hidden border border-gray-100 dark:border-night-700">
-                {it.imageUrl
-                  ? <img src={it.imageUrl} alt={it.itemName} className="aspect-square w-full object-cover" />
-                  : <div className="aspect-square bg-brand-100 text-brand-700 dark:bg-night-700 dark:text-brand-300 grid place-items-center font-bold text-xl">{it.itemName?.[0]?.toUpperCase() || '?'}</div>}
+                <Thumb
+                  src={it.imageUrl}
+                  alt={`${it.itemName} from ${supplier.name}`}
+                  size="square"
+                  rounded={false}
+                  category={it.category}
+                />
                 <div className="p-3">
                   <div className="font-medium text-ink dark:text-gray-100 truncate">{it.itemName}</div>
                   <div className="flex items-center justify-between mt-1">
