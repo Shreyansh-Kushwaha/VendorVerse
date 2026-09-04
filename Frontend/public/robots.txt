@@ -1,0 +1,27 @@
+# VendorVerse — https://vendorverse.app
+
+User-agent: *
+
+# Everything behind a login is per-user, so there is nothing here for a search
+# engine to index and a stale result would only leak someone's order.
+# Paths are matched as prefixes, so the supplier dashboard is anchored with $ —
+# a bare /supplier would also swallow the public /suppliers directory.
+Disallow: /supplier$
+Disallow: /vendor
+Disallow: /admin
+Disallow: /profile
+Disallow: /cart
+Disallow: /checkout
+Disallow: /orders
+Disallow: /notifications
+Disallow: /reset-password
+
+# Search and category filters make one listing look like hundreds of pages.
+# The canonical tag already points them all at the bare path; this stops the
+# crawl budget being spent getting there.
+Disallow: /*?
+
+# Everything else — the landing page, /suppliers and each supplier profile —
+# is public and crawlable by default.
+
+Sitemap: https://vendorverse.app/sitemap.xml
