@@ -214,6 +214,36 @@ Two details worth catching in that diagram. The **name and price come back from 
 
 ---
 
+## 🔎 Findable, Reachable, Legible
+
+*A client-rendered SPA gets none of this for free. Each piece is deliberate.*
+
+| 🏷️ **A head that changes with the route** | `Frontend/src/lib/meta.js` |
+|---|---|
+| `index.html` can only carry one description, so `usePageMeta()` rewrites the title, description, canonical URL and Open Graph tags on every navigation. It rewrites the tags already in the document rather than appending new ones, so nothing stacks up over a session. Pages behind a login pass `noIndex` and get an explicit `noindex, nofollow` — a leaked order URL never lands in a search result. |
+
+| 🤖 **Instructions for crawlers** | `Frontend/public/robots.txt` · `sitemap.xml` |
+|---|---|
+| The sitemap lists the nine public pages; supplier profiles are left to be discovered through `/suppliers`, because a static file listing them would go stale the first time somebody signs up. `robots.txt` walls off everything behind a login and every query string — filters and sort params otherwise make one listing look like hundreds of pages. The supplier dashboard is anchored as `/supplier$`, since a bare prefix would also swallow the public `/suppliers` directory. |
+
+| 🖼️ **Images that fail gracefully** | `Frontend/src/components/ui/Thumb.jsx` |
+|---|---|
+| Most listings have no photo and some photo URLs rot, so `Thumb` falls back to a category-tinted initial on both. Every `<img>` carries alt text describing what it shows; the hero keeps its frame filled when the file 404s instead of collapsing and stranding white text on the page ground. The 27 inline icon SVGs are marked `aria-hidden` — they sit beside visible text or inside a labelled button, so a screen reader announcing them would only add noise. |
+
+| ⏳ **Placeholders shaped like the answer** | `.skel` in `Frontend/src/index.css` |
+|---|---|
+| Every page that fetches renders a skeleton in the shape of the content it is waiting for, so the layout does not jump when the data lands. Each one carries `role="status"` and a `sr-only` label, because a shimmer says nothing to a screen reader. Every async button reports its own work — `Placing…`, `Saving…`, `Adding…` — and disables while it runs. |
+
+| 📱 **Down to 320px** | verified, not assumed |
+|---|---|
+| Every public page was measured in a headless browser at 320, 375 and 414px: zero horizontal overflow. The header wordmark shrinks rather than shoving the action group off-screen. Controls that are deliberately small — the 32px filter chips, the 36px theme switch — keep their size but get a 44px hit area from a pseudo-element gated behind `@media (pointer: coarse)`, so a finger clears the floor while a mouse keeps the tight target. |
+
+| 🎚️ **Scrollbars that belong to the theme** | `Frontend/src/index.css` |
+|---|---|
+| Declared on bare selectors, so every scroll container inherits them without opting in. The thumb rests in the warm neutral ramp and only takes the accent once you actually grab it, thickening from 6px to 8px under the cursor. `scrollbar-gutter: stable` reserves the lane even on short pages, so navigating between them stops nudging the centred layout sideways. |
+
+---
+
 ## 🚀 Quick Start
 
 You need exactly two things: **Node.js 18+** and a **MongoDB connection string** (a free Atlas cluster works). The test suite needs neither a running server nor Atlas — it spins up its own MongoDB in memory.
