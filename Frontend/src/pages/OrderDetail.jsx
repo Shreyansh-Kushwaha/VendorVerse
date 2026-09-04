@@ -110,7 +110,7 @@ export default function OrderDetail() {
   };
 
   if (loading) {
-    return <div className="max-w-3xl mx-auto px-4 sm:px-6 py-12 text-gray-500 dark:text-gray-400">Loading order…</div>;
+    return <OrderSkeleton />;
   }
   if (!order) {
     return (
@@ -338,6 +338,36 @@ function Party({ title, name, location, email }) {
       </div>
       {location && <div className="text-sm text-gray-600 dark:text-gray-400">{location}</div>}
       {email && <div className="text-xs text-gray-500 dark:text-gray-500 mt-1 truncate">{email}</div>}
+    </div>
+  );
+}
+
+// The status timeline is the tallest thing on this page, so it gets a shape in
+// the placeholder — otherwise everything below it jumps once the order lands.
+function OrderSkeleton() {
+  return (
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8" role="status" aria-live="polite">
+      <span className="sr-only">Loading order…</span>
+      <div className="flex items-center justify-between gap-3">
+        <div className="space-y-2">
+          <div className="skel h-7 w-40" />
+          <div className="skel h-4 w-28" />
+        </div>
+        <div className="skel h-7 w-24 rounded-full" />
+      </div>
+      <div className="card mt-6 p-5 space-y-4">
+        {FLOW.map((step) => (
+          <div key={step} className="flex items-center gap-3">
+            <div className="skel h-6 w-6 shrink-0 rounded-full" />
+            <div className="skel h-4 w-32" />
+          </div>
+        ))}
+      </div>
+      <div className="card mt-4 p-5 space-y-3">
+        <div className="skel h-4 w-24" />
+        <div className="skel h-16 rounded-xl" />
+        <div className="skel h-4 w-1/3" />
+      </div>
     </div>
   );
 }

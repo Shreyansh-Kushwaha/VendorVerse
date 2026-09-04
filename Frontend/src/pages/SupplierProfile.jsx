@@ -64,7 +64,7 @@ export default function SupplierProfile() {
     toast.info(favorited ? 'Removed from favorites' : 'Saved to favorites');
   };
 
-  if (loading) return <div className="max-w-5xl mx-auto px-4 sm:px-6 py-12 text-gray-500 dark:text-gray-400">Loading supplier…</div>;
+  if (loading) return <SupplierSkeleton />;
   if (!supplier) {
     return (
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-12 text-center">
@@ -213,6 +213,39 @@ export default function SupplierProfile() {
       )}
 
       <PriceTrendModal item={trendItem} onClose={() => setTrendItem(null)} />
+    </div>
+  );
+}
+
+// Mirrors the real page — identity block, then the catalog grid — so the
+// layout does not jump when the data lands. role="status" is what a screen
+// reader gets instead of the shimmer, which says nothing to it.
+function SupplierSkeleton() {
+  return (
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8" role="status" aria-live="polite">
+      <span className="sr-only">Loading supplier…</span>
+      <div className="card p-5 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+          <div className="skel h-16 w-16 shrink-0 rounded-full" />
+          <div className="flex-1 space-y-2">
+            <div className="skel h-6 w-48 max-w-full" />
+            <div className="skel h-4 w-32 max-w-full" />
+          </div>
+          <div className="skel h-11 w-40 max-w-full rounded-md" />
+        </div>
+      </div>
+      <div className="skel mt-8 h-6 w-40" />
+      <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+        {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+          <div key={i} className="rounded-xl overflow-hidden border border-gray-100 dark:border-night-700">
+            <div className="skel aspect-square rounded-none" />
+            <div className="p-3 space-y-2">
+              <div className="skel h-4 w-3/4" />
+              <div className="skel h-3 w-1/2" />
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
