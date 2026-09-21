@@ -3,8 +3,14 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import api from '../api.js';
 import { useAuth } from '../auth.jsx';
 import { useToast } from '../components/Toast.jsx';
+import usePageMeta from '../lib/meta.js';
 
 export default function Login() {
+  usePageMeta({
+    title: 'Log in',
+    description:
+      'Log in to VendorVerse to order raw ingredients from your suppliers, or to manage your inventory as a supplier.',
+  });
   const { login } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
@@ -21,7 +27,9 @@ export default function Login() {
       const { data } = await api.post('/login', form);
       login(data.user);
       toast.success('Welcome back!');
-      const dest = data.userType === 'supplier' ? '/supplier' : '/vendor';
+      const dest =
+        data.userType === 'admin'    ? '/admin' :
+        data.userType === 'supplier' ? '/supplier' : '/vendor';
       navigate(location.state?.from?.pathname || dest, { replace: true });
     } catch (err) {
       toast.error(err.response?.data?.msg || 'Login failed');

@@ -1,19 +1,31 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../api.js';
 import { useAuth } from '../auth.jsx';
 import { useCart } from '../cart.jsx';
 import { useToast } from '../components/Toast.jsx';
-import { money, amount } from '../format.js';
+import { money, amount, SLOTS } from '../format.js';
+import { haptic } from '../lib/haptics.js';
+import usePageMeta from '../lib/meta.js';
 
 export default function Checkout() {
+  usePageMeta({
+    title: 'Checkout',
+    description:
+      'Confirm your delivery details and place your order.',
+    noIndex: true,
+  });
   const { user } = useAuth();
   const { items, count, subtotal, clear } = useCart();
   const navigate = useNavigate();
   const toast = useToast();
   const [address, setAddress] = useState(user?.location || '');
+  const [slot, setSlot] = useState(''); // '' = anytime
   const [notes, setNotes] = useState('');
   const [placing, setPlacing] = useState(false);
+  const [placed, setPlaced] = useState(null); // { suppliers } — shows the confirmation moment
+  const navTimer = useRef(null);
+  useEffect(() => () => clearTimeout(navTimer.current), []);
 
   // Group cart items by supplier so the user understands they're placing N orders to N suppliers
   const bySupplier = useMemo(() => {
@@ -41,18 +53,43 @@ export default function Checkout() {
           quantity: it.quantity,
         })),
         deliveryAddress: address,
+        deliverySlot: slot || undefined,
         notes,
       };
-      const { data } = await api.post('/placeOrders', payload);
-      toast.success(`Placed ${data.count} order${data.count === 1 ? '' : 's'}`);
+      await api.post('/placeOrders', payload);
+      // This is the one earned celebration in the app — the moment money is
+      // committed. A drawn check and a success buzz, then on to the orders.
+      haptic('success');
+      setPlaced({ suppliers: bySupplier.length });
       clear();
-      navigate('/vendor');
+      navTimer.current = setTimeout(() => navigate('/orders'), 1800);
     } catch (err) {
       toast.error(err.response?.data?.msg || 'Failed to place orders');
     } finally {
       setPlacing(false);
     }
   };
+
+  if (placed) {
+    return (
+      <div className="fixed inset-0 z-40 grid place-items-center bg-cream dark:bg-night-900">
+        <div className="text-center">
+          <svg className="check-draw mx-auto" width="72" height="72" viewBox="0 0 72 72" aria-hidden>
+            <circle className="cir" cx="36" cy="36" r="32" fill="none" strokeWidth="3" strokeLinecap="round"
+              stroke="currentColor" style={{ color: '#047857' }} transform="rotate(-90 36 36)" />
+            <path className="tick" d="M23 37.5l8.5 8.5L49 28.5" fill="none" strokeWidth="3.5"
+              strokeLinecap="round" strokeLinejoin="round" stroke="currentColor" style={{ color: '#047857' }} />
+          </svg>
+          <p className="animate-rise mt-5 text-lg font-medium text-ink dark:text-gray-100" style={{ animationDelay: '500ms' }}>
+            Order placed with {placed.suppliers} supplier{placed.suppliers === 1 ? '' : 's'}
+          </p>
+          <p className="animate-rise mt-1 text-sm text-gray-500 dark:text-gray-400" style={{ animationDelay: '620ms' }}>
+            Taking you to your orders…
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (items.length === 0) {
     return (
@@ -69,7 +106,8 @@ export default function Checkout() {
         <div>
           <h1 className="font-display text-3xl text-ink dark:text-gray-100">Checkout</h1>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-            You're placing {bySupplier.length} order{bySupplier.length === 1 ? '' : 's'} across {bySupplier.length} supplier{bySupplier.length === 1 ? '' : 's'}.
+            {count} item{count === 1 ? '' : 's'} from {bySupplier.length} supplier{bySupplier.length === 1 ? '' : 's'}.
+            Each supplier delivers and is paid separately.
           </p>
         </div>
 
@@ -78,19 +116,41 @@ export default function Checkout() {
           <div className="space-y-3">
             <div>
               <label className="label" htmlFor="address">Delivery address</label>
-              <input id="address" className="input" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Stall address or landmark" />
-              {!address.trim() && (
-                <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
-                  Leave this blank and we will use your profile location.
-                </p>
-              )}
+              <input id="address" className="input" required value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Stall address or landmark" />
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Prefilled from your profile. Change it for this order if you need to.
+              </p>
+            </div>
+            <div>
+              <span className="label">When should it arrive?</span>
+              <div className="flex flex-wrap gap-2">
+                {['', ...SLOTS].map((s) => {
+                  const active = slot === s;
+                  return (
+                    <button
+                      key={s || 'anytime'}
+                      type="button"
+                      onClick={() => setSlot(s)}
+                      aria-pressed={active}
+                      className={'chip ' + (active
+                        ? 'bg-brand-600 text-white'
+                        : 'border border-gray-200 text-gray-600 hover:bg-gray-50 dark:border-night-600 dark:text-gray-300 dark:hover:bg-night-700')}
+                    >
+                      {s || 'Anytime'}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                The supplier sees your preferred window with the order.
+              </p>
             </div>
             <div>
               <label className="label" htmlFor="notes">Notes for the supplier (optional)</label>
               <textarea id="notes" className="input min-h-[80px]" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. ring the bell, deliver before 8 AM" />
             </div>
-            <p className="text-xs text-gray-500 dark:text-gray-500">
-              Payment is on delivery for now. Online payments coming soon.
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              You pay each supplier in cash when their delivery arrives. Online payment is coming.
             </p>
           </div>
         </div>
@@ -100,7 +160,7 @@ export default function Checkout() {
             <div key={sid} className="card p-4">
               <div className="flex items-center justify-between mb-2">
                 <div className="font-medium text-ink dark:text-gray-100">{group.supplierName}</div>
-                <div className="text-brand-700 dark:text-brand-400 font-semibold">{money(group.total)}</div>
+                <div className="tnum text-ink dark:text-gray-100 font-semibold">{money(group.total)}</div>
               </div>
               <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
                 {group.items.map((it) => (
@@ -121,14 +181,15 @@ export default function Checkout() {
           <div className="flex justify-between text-gray-700 dark:text-gray-300"><dt>Items</dt><dd>{count}</dd></div>
           <div className="flex justify-between text-gray-700 dark:text-gray-300"><dt>Subtotal</dt><dd>{money(subtotal)}</dd></div>
           <div className="flex justify-between text-gray-500 dark:text-gray-400"><dt>Delivery</dt><dd>Free</dd></div>
+          <div className="flex justify-between text-gray-500 dark:text-gray-400"><dt>Deliveries</dt><dd>{bySupplier.length}</dd></div>
         </dl>
         <div className="border-t border-gray-100 dark:border-night-700 my-4" />
         <div className="flex items-center justify-between">
           <span className="font-medium text-gray-700 dark:text-gray-300">Total</span>
-          <span className="font-display text-2xl text-brand-700 dark:text-brand-400">{money(subtotal)}</span>
+          <span className="tnum text-2xl font-medium tracking-tight text-ink dark:text-gray-100">{money(subtotal)}</span>
         </div>
         <button onClick={placeOrders} disabled={placing} className="btn-primary w-full mt-5">
-          {placing ? 'Placing orders…' : `Place ${bySupplier.length} order${bySupplier.length === 1 ? '' : 's'}`}
+          {placing ? 'Placing…' : `Place order · ${money(subtotal)}`}
         </button>
         <Link to="/cart" className="btn-ghost w-full mt-2">Back to cart</Link>
       </aside>

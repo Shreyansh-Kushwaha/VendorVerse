@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../api.js';
 import { useAuth } from '../auth.jsx';
 import { useCart } from '../cart.jsx';
@@ -7,32 +7,124 @@ import { useToast } from '../components/Toast.jsx';
 import { useNotifications } from '../notifications.jsx';
 import { CATEGORIES, money, perUnit, amount } from '../format.js';
 import { useFavorites } from '../favorites.js';
-import StatusPill from '../components/ui/StatusPill.jsx';
 import Thumb from '../components/ui/Thumb.jsx';
+import Stars from '../components/ui/Stars.jsx';
+import PriceTrendModal from '../components/PriceTrend.jsx';
 import Stat from '../components/ui/Stat.jsx';
+import QuantityStepper from '../components/ui/QuantityStepper.jsx';
+import RollingNumber from '../components/ui/RollingNumber.jsx';
+import { haptic } from '../lib/haptics.js';
+import { flyToCart } from '../lib/flyToCart.js';
+import { getPosition, distanceKm, formatKm } from '../lib/geo.js';
+import MandiRates from '../components/MandiRates.jsx';
+import WeatherStrip from '../components/WeatherStrip.jsx';
+import usePageMeta from '../lib/meta.js';
+
+// Leaflet only ships to vendors who tapped "Near me".
+const SupplierMap = lazy(() => import('../components/SupplierMap.jsx'));
 
 const PAGE_SIZE = 24;
+const OPEN_STATUSES = ['Pending', 'Accepted', 'Packed', 'OutForDelivery'];
 
 export default function VendorDashboard() {
+  usePageMeta({
+    title: 'Vendor dashboard',
+    description:
+      'Browse supplier inventory, track live stock and build your order.',
+    noIndex: true,
+  });
   const { user } = useAuth();
   const cart = useCart();
   const toast = useToast();
   const { onNotification } = useNotifications();
-  const navigate = useNavigate();
 
   const [orders, setOrders] = useState([]);
   const [analytics, setAnalytics] = useState(null);
-  const [loading, setLoading] = useState(true);
   const { favorites, toggle: toggleFav } = useFavorites();
 
-  // Catalog now comes from the server one page at a time, filtered there too.
+  // Listings this vendor asked to be told about when they restock.
+  const [alerts, setAlerts] = useState(() => new Set());
+  useEffect(() => {
+    let on = true;
+    api.get('/stock-alerts')
+      .then(({ data }) => { if (on) setAlerts(new Set(data.alerts.map(a => a.itemId))); })
+      .catch(() => {});
+    return () => { on = false; };
+  }, []);
+
+  const toggleAlert = async (it) => {
+    const watching = alerts.has(it.itemId);
+    // Optimistic — the bell answers the tap; a failure rolls it back.
+    setAlerts((prev) => {
+      const next = new Set(prev);
+      if (watching) next.delete(it.itemId); else next.add(it.itemId);
+      return next;
+    });
+    try {
+      if (watching) {
+        await api.delete(`/stock-alerts/${it.itemId}`);
+      } else {
+        await api.post('/stock-alerts', { supplierId: it.supplierId, itemId: it.itemId });
+        haptic('tick');
+        toast.success(`You will hear when ${it.itemName} is back`);
+      }
+    } catch (err) {
+      setAlerts((prev) => {
+        const next = new Set(prev);
+        if (watching) next.add(it.itemId); else next.delete(it.itemId);
+        return next;
+      });
+      toast.error(err.response?.data?.msg || 'Could not update the alert');
+    }
+  };
+
+  // Catalog comes from the server one page at a time, filtered and sorted there.
   const [catalog, setCatalog] = useState({ items: [], total: 0, pages: 0 });
   const [catalogLoading, setCatalogLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState({ q: '', category: 'all', favOnly: false });
+  // Listing whose price timeline is open in a modal.
+  const [trendItem, setTrendItem] = useState(null);
 
-  // Any filter change starts a new result set from page one.
+  // "Near me": the vendor's position unlocks distances on every listing and a
+  // rail of the closest suppliers. Asked for on tap, never on load.
+  const [pos, setPos] = useState(null);
+  const [nearby, setNearby] = useState(null);
+  const [locating, setLocating] = useState(false);
+
+  const findNearby = async () => {
+    if (pos) { setPos(null); setNearby(null); return; }
+    setLocating(true);
+    try {
+      const p = await getPosition();
+      if (!p) return toast.error('Could not get your location — check the browser permission');
+      setPos(p);
+      const { data } = await api.get('/suppliers/near', { params: { lat: p.lat, lng: p.lng } });
+      setNearby(data.suppliers);
+      loadDriveTimes(p, data.suppliers);
+    } catch {
+      setNearby([]);
+    } finally {
+      setLocating(false);
+    }
+  };
+
+  // Road distance and drive time are a second pass — the cards render at once
+  // on straight-line distance and upgrade when OSRM answers.
+  const loadDriveTimes = async (p, suppliers) => {
+    const withGeo = suppliers.filter((s) => s.geo?.coordinates);
+    if (withGeo.length === 0) return;
+    try {
+      const to = withGeo.map((s) => `${s.geo.coordinates[1]},${s.geo.coordinates[0]}`).join(';');
+      const { data } = await api.get('/route-matrix', { params: { from: `${p.lat},${p.lng}`, to } });
+      const routes = new Map(withGeo.map((s, i) => [s.supplierId, data.routes[i]]));
+      setNearby((prev) => prev?.map((s) => ({ ...s, route: routes.get(s.supplierId) || undefined })) ?? prev);
+    } catch {
+      // straight-line distances are already on screen
+    }
+  };
+
   const applyFilter = (patch) => {
     setPage(1);
     setFilters((prev) => ({ ...prev, ...patch }));
@@ -74,7 +166,6 @@ export default function VendorDashboard() {
   useEffect(() => { loadCatalog(); }, [loadCatalog]);
 
   const loadAll = useCallback(async () => {
-    setLoading(true);
     try {
       const [ord, an] = await Promise.all([
         api.get('/vendor/orders'),
@@ -83,9 +174,7 @@ export default function VendorDashboard() {
       setOrders(ord.data);
       setAnalytics(an.data);
     } catch {
-      toast.error('Failed to load dashboard');
-    } finally {
-      setLoading(false);
+      toast.error('Failed to load your orders');
     }
   }, [toast]);
 
@@ -97,76 +186,69 @@ export default function VendorDashboard() {
   useEffect(() => { loadRef.current = loadAll; });
   useEffect(() => onNotification(() => { loadRef.current(); loadCatalog(); }), [onNotification, loadCatalog]);
 
-  const lastOrder = orders[0];
+  // The server sorts by item name then price, so identical items arrive adjacent
+  // and cheapest first. Walking the list once is enough to group them, and it
+  // keeps working across appended pages.
+  const groups = useMemo(() => {
+    const out = [];
+    for (const it of catalog.items) {
+      const last = out[out.length - 1];
+      if (last && last.name === it.itemName) last.offers.push(it);
+      else out.push({ name: it.itemName, offers: [it] });
+    }
+    return out;
+  }, [catalog.items]);
 
-  const addToCart = (item) => {
-    cart.add({
-      itemId: item.itemId,
-      itemName: item.itemName,
-      price: item.price,
-      unit: item.unit,
-      imageUrl: item.imageUrl,
-      supplierId: item.supplierId,
-      supplierName: item.supplierName,
-      location: item.location,
-    }, 1);
-    toast.success(`Added ${item.itemName}`);
-  };
+  const openOrders = useMemo(
+    () => orders.filter(o => OPEN_STATUSES.includes(o.status || 'Pending')).length,
+    [orders],
+  );
 
-  const repeatLast = () => {
-    if (!lastOrder) return;
+  // The confirmation is physical, not textual: a dot flies to the cart, the
+  // badge pops, the button flashes a check, the phone ticks. No toast needed.
+  const addToCart = (it, fromEl, n) => {
     cart.add({
-      itemId: lastOrder.itemId,
-      itemName: lastOrder.itemName,
-      price: lastOrder.price,
-      unit: lastOrder.unit,
-      supplierId: lastOrder.supplierId?._id || lastOrder.supplierId,
-      supplierName: lastOrder.supplierId?.name || 'Supplier',
-      location: lastOrder.supplierId?.location || '',
-    }, lastOrder.quantity || 1);
-    toast.success('Added to cart');
-    navigate('/cart');
+      itemId: it.itemId,
+      itemName: it.itemName,
+      price: it.price,
+      unit: it.unit,
+      imageUrl: it.imageUrl,
+      supplierId: it.supplierId,
+      supplierName: it.supplierName,
+      location: it.location,
+    }, n);
+    flyToCart(fromEl);
+    haptic('tick');
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-6">
-      {/* Greeting */}
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+    <div className="mx-auto max-w-6xl px-4 pb-28 pt-6 sm:px-6 sm:pb-10 sm:pt-10">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Vendor dashboard</p>
-          <h1 className="font-display text-3xl sm:text-4xl text-ink dark:text-gray-100">
-            Hello, <span className="text-brand-600 dark:text-brand-400">{user?.name?.split(' ')[0] || 'Vendor'}</span> 👋
+          <p className="text-sm text-gray-500 dark:text-gray-400">Vendor</p>
+          <h1 className="text-2xl tracking-tight text-ink dark:text-gray-100 sm:text-3xl">
+            Restock, {user?.name?.split(' ')[0] || 'there'}
           </h1>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          {lastOrder && (
-            <button onClick={repeatLast} className="btn-ghost">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>
-              Repeat last order
-            </button>
-          )}
-          {cart.count > 0 && (
-            <Link to="/cart" className="btn-primary">
-              Cart ({cart.count}) · {money(cart.subtotal)}
-            </Link>
-          )}
+        <div className="flex gap-2 self-start sm:self-auto">
+          <Link to="/vendor/insights" className="btn-ghost">Insights</Link>
+          <Link to="/orders" className="btn-ghost">
+            View orders{openOrders > 0 ? ` (${openOrders} open)` : ''}
+          </Link>
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Stat label="Items available" value={catalog.total} />
-        <Stat label="My orders" value={analytics?.totalOrders ?? orders.length} />
-        <Stat label="Spend (7 days)" value={money(analytics?.weekSpend)} accent />
+      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <Stat label="Open orders" value={openOrders} />
+        <Stat label="Spend (7 days)" value={money(analytics?.weekSpend)} />
         <Stat label="Total spend" value={money(analytics?.totalSpend)} />
+        <Stat label="Saved suppliers" value={favorites.size} />
       </div>
 
-
-      {/* Search + categories */}
-      <section className="card p-5 space-y-4">
-        <div className="flex flex-col sm:flex-row gap-3">
+      <section className="card mt-6 space-y-4 p-4 sm:p-5">
+        <div className="flex flex-col gap-3 sm:flex-row">
           <div className="relative flex-1">
-            <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3" strokeLinecap="round"/></svg>
+            <svg aria-hidden="true" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" strokeLinecap="round" /></svg>
             <input
               className="input pl-10"
               placeholder="Search items or suppliers…"
@@ -176,14 +258,22 @@ export default function VendorDashboard() {
           </div>
           <button
             onClick={() => applyFilter({ favOnly: !filters.favOnly })}
-            className={'btn ' + (filters.favOnly
-              ? 'bg-brand-600 text-white hover:bg-brand-700'
-              : 'btn-ghost')}
+            aria-pressed={filters.favOnly}
+            className={filters.favOnly ? 'btn-primary' : 'btn-ghost'}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill={filters.favOnly ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-            Favorites
+            Saved only
           </button>
-          <button onClick={() => { loadAll(); loadCatalog(); }} className="btn-ghost sm:w-auto">Refresh</button>
+          <button
+            onClick={findNearby}
+            aria-pressed={!!pos}
+            disabled={locating}
+            className={pos ? 'btn-primary' : 'btn-ghost'}
+          >
+            <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" />
+            </svg>
+            {locating ? 'Locating…' : 'Near me'}
+          </button>
         </div>
 
         <div className="flex flex-wrap gap-2">
@@ -193,9 +283,10 @@ export default function VendorDashboard() {
               <button
                 key={c}
                 onClick={() => applyFilter({ category: c })}
+                aria-pressed={active}
                 className={'chip capitalize ' + (active
                   ? 'bg-brand-600 text-white'
-                  : 'bg-brand-50 text-brand-700 hover:bg-brand-100 dark:bg-night-700 dark:text-brand-300 dark:hover:bg-night-600')}
+                  : 'border border-gray-200 text-gray-600 hover:bg-gray-50 dark:border-night-600 dark:text-gray-300 dark:hover:bg-night-700')}
               >
                 {c === 'all' ? 'All' : c}
               </button>
@@ -204,95 +295,83 @@ export default function VendorDashboard() {
         </div>
       </section>
 
-      {/* Items */}
-      <section>
-        {catalog.items.length > 0 && (
-          <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-            Showing {catalog.items.length} of {catalog.total} item{catalog.total === 1 ? '' : 's'}
-          </p>
-        )}
+      {pos && nearby !== null && (
+        <section className="mt-6">
+          <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+            Suppliers near you
+          </h2>
+          <WeatherStrip pos={pos} />
+          {nearby.length === 0 ? (
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              No suppliers within 100 km have shared their location yet.
+            </p>
+          ) : (
+            <>
+            <Suspense fallback={<div className="skel mb-3 h-64 rounded-xl" />}>
+              <SupplierMap pos={pos} suppliers={nearby} />
+            </Suspense>
+            <div className="flex gap-3 overflow-x-auto pb-1">
+              {nearby.map((s) => (
+                <Link
+                  key={s.supplierId}
+                  to={`/suppliers/${s.supplierId}`}
+                  className="card card-lift block w-44 shrink-0 p-3"
+                >
+                  <div className="truncate text-sm font-medium text-ink dark:text-gray-100">{s.name}</div>
+                  <div className="truncate text-xs text-gray-500 dark:text-gray-400">{s.location}</div>
+                  <div className="tnum mt-1.5 text-xs text-gray-600 dark:text-gray-300">
+                    <span className="font-semibold text-brand-700 dark:text-brand-400">
+                      {s.route ? `${s.route.minutes} min` : formatKm(s.distanceKm)}
+                    </span>
+                    {s.route && ` · ${s.route.km} km road`}
+                    {' · '}{s.items} item{s.items === 1 ? '' : 's'}
+                  </div>
+                  {s.rating != null && <div className="mt-1 text-xs"><Stars value={s.rating} count={s.ratingCount} size={10} /></div>}
+                </Link>
+              ))}
+            </div>
+            </>
+          )}
+        </section>
+      )}
 
+      <MandiRates />
+
+      <section className="mt-6">
         {catalogLoading && catalog.items.length === 0 ? (
           <div className="card p-5"><SkeletonRow /></div>
-        ) : catalog.items.length === 0 ? (
+        ) : groups.length === 0 ? (
           <div className="card p-10 text-center text-gray-500 dark:text-gray-400">
-            {filters.favOnly ? 'No items from your favorite suppliers match.' : 'No items match your filters.'}
+            {filters.favOnly ? 'None of your saved suppliers stock a match.' : 'No items match your filters.'}
           </div>
         ) : (
           <>
-            {/* Mobile cards */}
-            <div className="grid sm:hidden grid-cols-1 gap-3">
-              {catalog.items.map((it) => (
-                <div key={`${it.supplierId}-${it.itemId}`} className="card p-4 flex gap-3">
-                  <Thumb src={it.imageUrl} alt={it.itemName} />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <div className="font-medium text-ink dark:text-gray-100 truncate">{it.itemName}</div>
-                        <Link to={`/suppliers/${it.supplierId}`} className="text-xs text-gray-500 dark:text-gray-400 truncate hover:text-brand-600 hover:underline">{it.supplierName} • {it.location}</Link>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
-                        <div className="text-brand-700 dark:text-brand-400 font-semibold whitespace-nowrap">{perUnit(it.price, it.unit)}</div>
-                        <FavBtn on={favorites.has(it.supplierId)} onClick={() => toggleFav(it.supplierId)} />
-                      </div>
-                    </div>
-                    <button onClick={() => addToCart(it)} className="btn-primary w-full mt-3 py-1.5 text-sm">Add to cart</button>
-                  </div>
+            <p className="mb-3 text-sm text-gray-500 dark:text-gray-400">
+              {groups.length} item{groups.length === 1 ? '' : 's'} · {catalog.items.length} of {catalog.total} listing{catalog.total === 1 ? '' : 's'}
+            </p>
+
+            <div className="space-y-4">
+              {groups.map((g, i) => (
+                // Groups cascade in 40ms apart; the delay caps at the eighth row
+                // so a long catalog never feels slow to arrive.
+                <div key={g.name} className="animate-rise" style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}>
+                  <ItemGroup
+                    group={g}
+                    favorites={favorites}
+                    onToggleFav={toggleFav}
+                    onAdd={addToCart}
+                    alerts={alerts}
+                    onToggleAlert={toggleAlert}
+                    onShowTrend={setTrendItem}
+                    pos={pos}
+                  />
                 </div>
               ))}
             </div>
 
-            {/* Desktop table */}
-            <div className="hidden sm:block card overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-brand-50/60 dark:bg-night-700/60 text-left text-gray-700 dark:text-gray-300">
-                    <tr>
-                      <th className="px-4 py-3">Item</th>
-                      <th className="px-4 py-3">Category</th>
-                      <th className="px-4 py-3">Price</th>
-                      <th className="px-4 py-3">In stock</th>
-                      <th className="px-4 py-3">Supplier</th>
-                      <th className="px-4 py-3">Location</th>
-                      <th className="px-4 py-3 text-right">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-ink dark:text-gray-200">
-                    {catalog.items.map((it) => (
-                      <tr key={`${it.supplierId}-${it.itemId}`} className="border-t border-gray-100 dark:border-night-700 hover:bg-brand-50/30 dark:hover:bg-night-700/40">
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-3">
-                            <Thumb src={it.imageUrl} alt={it.itemName} size="sm" />
-                            <span className="font-medium">{it.itemName}</span>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-gray-600 dark:text-gray-400 capitalize">{it.category}</td>
-                        <td className="px-4 py-3 font-semibold text-brand-700 dark:text-brand-400 whitespace-nowrap">{perUnit(it.price, it.unit)}</td>
-                        <td className="px-4 py-3 text-gray-600 dark:text-gray-400 whitespace-nowrap">{amount(it.quantity, it.unit)}</td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <Link to={`/suppliers/${it.supplierId}`} className="hover:text-brand-600 hover:underline">{it.supplierName}</Link>
-                            <FavBtn on={favorites.has(it.supplierId)} onClick={() => toggleFav(it.supplierId)} />
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{it.location}</td>
-                        <td className="px-4 py-3 text-right">
-                          <button onClick={() => addToCart(it)} className="btn-primary py-1.5 text-sm">Add to cart</button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
             {page < catalog.pages && (
               <div className="mt-4 text-center">
-                <button
-                  onClick={() => setPage(p => p + 1)}
-                  disabled={catalogLoading}
-                  className="btn-ghost"
-                >
+                <button onClick={() => setPage(p => p + 1)} disabled={catalogLoading} className="btn-ghost">
                   {catalogLoading ? 'Loading…' : `Load more (${catalog.total - catalog.items.length} left)`}
                 </button>
               </div>
@@ -301,45 +380,186 @@ export default function VendorDashboard() {
         )}
       </section>
 
-      {/* My orders */}
-      <section className="card p-5">
-        <h2 className="font-display text-xl text-ink dark:text-gray-100 mb-3">My orders</h2>
-        {loading ? (
-          <SkeletonRow />
-        ) : orders.length === 0 ? (
-          <p className="text-sm text-gray-500 dark:text-gray-400">You haven't placed any orders yet.</p>
-        ) : (
-          <ul className="divide-y divide-gray-100 dark:divide-night-700">
-            {orders.map((o) => (
-              <li key={o._id} className="py-3 flex flex-wrap items-center justify-between gap-2">
-                <Link to={`/orders/${o._id}`} className="min-w-0 flex-1 group">
-                  <div className="font-medium text-ink dark:text-gray-100 truncate group-hover:text-brand-600 dark:group-hover:text-brand-400">{o.itemName}</div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">
-                    {amount(o.quantity, o.unit)} • {perUnit(o.price, o.unit)} • Supplier: {o.supplierId?.name || 'Deleted account'}
-                  </div>
-                </Link>
-                <StatusPill status={o.status} />
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      <PriceTrendModal item={trendItem} onClose={() => setTrendItem(null)} />
+
+      {/* The cart is the reason this page exists, so on a phone it stays in reach. */}
+      {cart.count > 0 && (
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-gray-200 bg-white p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:hidden dark:border-night-600 dark:bg-night-800">
+          <Link to="/cart" className="btn-primary w-full">
+            <span className="tnum">Review cart · {cart.count} item{cart.count === 1 ? '' : 's'} · </span>
+            <RollingNumber value={money(cart.subtotal)} className="tnum" />
+          </Link>
+        </div>
+      )}
     </div>
   );
 }
 
+function ItemGroup({ group, favorites, onToggleFav, onAdd, alerts, onToggleAlert, onShowTrend, pos }) {
+  const { name, offers } = group;
+  const low = offers[0].price;
+  const high = offers[offers.length - 1].price;
+  const unit = offers[0].unit;
+
+  return (
+    <div className="card overflow-hidden">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b border-gray-200 bg-gray-50 px-4 py-2.5 dark:border-night-600 dark:bg-night-700/40">
+        <h2 className="text-base text-ink dark:text-gray-100">{name}</h2>
+        <p className="tnum text-xs text-gray-500 dark:text-gray-400">
+          {offers.length} supplier{offers.length === 1 ? '' : 's'}
+          {offers.length > 1 && ` · ${perUnit(low, unit)}–${perUnit(high, unit)}`}
+        </p>
+      </div>
+
+      <ul>
+        {offers.map((it, i) => (
+          <OfferRow
+            key={`${it.supplierId}-${it.itemId}`}
+            it={it}
+            cheapest={i === 0 && offers.length > 1}
+            favorite={favorites.has(it.supplierId)}
+            onToggleFav={onToggleFav}
+            onAdd={onAdd}
+            watching={alerts.has(it.itemId)}
+            onToggleAlert={onToggleAlert}
+            onShowTrend={onShowTrend}
+            pos={pos}
+          />
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+// The quantity being picked lives here, in the row it belongs to — typing in
+// one stepper re-renders one row, not the whole catalog.
+function OfferRow({ it, cheapest, favorite, onToggleFav, onAdd, watching, onToggleAlert, onShowTrend, pos }) {
+  const [qty, setQty] = useState(1);
+
+  return (
+    <li className="flex flex-col gap-3 p-3 first:border-t-0 border-t border-gray-200 sm:flex-row sm:items-center sm:gap-4 dark:border-night-600">
+      <div className="flex min-w-0 flex-1 items-center gap-3">
+        <Thumb src={it.imageUrl} alt={it.itemName} size="sm" category={it.category} />
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5">
+            <Link to={`/suppliers/${it.supplierId}`} className="truncate text-sm font-medium text-ink hover:underline dark:text-gray-100">
+              {it.supplierName}
+            </Link>
+            {cheapest && (
+              <span className="shrink-0 rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400">
+                Cheapest
+              </span>
+            )}
+            <FavBtn on={favorite} onClick={() => onToggleFav(it.supplierId)} />
+          </div>
+          <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+            <span className="truncate">
+              {it.location}
+              {pos && it.geo?.coordinates && ` · ${formatKm(distanceKm(pos, it.geo.coordinates))}`}
+            </span>
+            {it.rating != null && <Stars value={it.rating} count={it.ratingCount} size={11} className="shrink-0" />}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between gap-4 sm:justify-end">
+        <button
+          type="button"
+          onClick={() => onShowTrend(it)}
+          title="Price history"
+          className="text-left sm:text-right rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:focus-visible:ring-brand-400"
+        >
+          <div className="tnum text-sm font-semibold text-ink underline decoration-dotted decoration-gray-300 underline-offset-2 hover:decoration-brand-600 dark:text-gray-100 dark:decoration-night-500 dark:hover:decoration-brand-400">
+            {perUnit(it.price, it.unit)}
+          </div>
+          <div className="tnum text-xs text-gray-500 dark:text-gray-400">{amount(it.quantity, it.unit)} left</div>
+        </button>
+        <div className="flex items-center gap-2">
+          <QuantityStepper
+            value={qty}
+            onChange={setQty}
+            unit={it.unit}
+            max={it.quantity}
+            label={`${it.itemName} from ${it.supplierName}`}
+          />
+          {it.quantity < 1
+            ? <NotifyButton on={watching} onClick={() => onToggleAlert(it)} />
+            : <AddButton onAdd={(el) => onAdd(it, el, qty)} />}
+        </div>
+      </div>
+    </li>
+  );
+}
+
+// The label crossfades to a check for a moment, so the row itself confirms the
+// add even when the flying dot is off-screen. Width stays locked by the
+// absolute overlay, so nothing around it shifts.
+function AddButton({ onAdd, disabled }) {
+  const ref = useRef(null);
+  const [added, setAdded] = useState(false);
+  const timer = useRef(null);
+  useEffect(() => () => clearTimeout(timer.current), []);
+
+  const handle = () => {
+    onAdd(ref.current);
+    setAdded(true);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => setAdded(false), 1000);
+  };
+
+  return (
+    <button ref={ref} onClick={handle} disabled={disabled} className="btn-primary relative text-sm">
+      <span className={'transition-opacity duration-150 ' + (added ? 'opacity-0' : '')}>
+        {disabled ? 'Out' : 'Add'}
+      </span>
+      <span
+        aria-hidden
+        className={'absolute inset-0 grid place-items-center transition-[opacity,transform] duration-200 ease-spring ' +
+          (added ? 'scale-100 opacity-100' : 'scale-50 opacity-0')}
+      >
+        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12l5 5L20 7" /></svg>
+      </span>
+    </button>
+  );
+}
+
+// Stands in for the add button when a listing is empty. Instead of a dead
+// "Out" label, the row offers the next useful thing: a restock alert.
+function NotifyButton({ on, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      aria-pressed={on}
+      className={'btn text-sm ' + (on
+        ? 'border border-brand-200 bg-brand-50 text-brand-700 dark:border-night-600 dark:bg-night-700 dark:text-brand-300'
+        : 'border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 dark:border-night-600 dark:bg-night-800 dark:text-gray-300 dark:hover:bg-night-700')}
+    >
+      <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill={on ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" />
+      </svg>
+      {on ? 'Watching' : 'Notify me'}
+    </button>
+  );
+}
+
 function FavBtn({ on, onClick }) {
+  // Saving pops and ticks; unsaving is silent — celebrations are for additions.
+  const [pulse, setPulse] = useState(0);
   return (
     <button
       type="button"
-      onClick={(e) => { e.stopPropagation(); e.preventDefault(); onClick(); }}
-      aria-label={on ? 'Remove from favorites' : 'Add to favorites'}
-      className={'p-1 rounded-md transition ' + (on
-        ? 'text-brand-600 dark:text-brand-400'
-        : 'text-gray-300 hover:text-brand-500 dark:text-gray-600 dark:hover:text-brand-400')}
+      onClick={(e) => {
+        e.stopPropagation(); e.preventDefault();
+        if (!on) { setPulse((p) => p + 1); haptic('tick'); }
+        onClick();
+      }}
+      aria-pressed={on}
+      aria-label={on ? 'Remove supplier from saved' : 'Save supplier'}
+      className={'shrink-0 rounded p-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:focus-visible:ring-brand-400 ' +
+        (on ? 'text-brand-600 dark:text-brand-400' : 'text-gray-300 hover:text-brand-600 dark:text-gray-600 dark:hover:text-brand-400')}
     >
-      <svg width="14" height="14" viewBox="0 0 24 24" fill={on ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+      <svg aria-hidden="true" key={pulse} className={pulse && on ? 'animate-pop' : ''} width="14" height="14" viewBox="0 0 24 24" fill={on ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
       </svg>
     </button>
   );
@@ -347,10 +567,10 @@ function FavBtn({ on, onClick }) {
 
 function SkeletonRow() {
   return (
-    <div className="animate-pulse space-y-2">
-      <div className="h-4 bg-gray-200 dark:bg-night-700 rounded w-1/2" />
-      <div className="h-4 bg-gray-200 dark:bg-night-700 rounded w-3/4" />
-      <div className="h-4 bg-gray-200 dark:bg-night-700 rounded w-2/3" />
+    <div className="space-y-2">
+      <div className="skel h-4 w-1/2" />
+      <div className="skel h-4 w-3/4" />
+      <div className="skel h-4 w-2/3" />
     </div>
   );
 }

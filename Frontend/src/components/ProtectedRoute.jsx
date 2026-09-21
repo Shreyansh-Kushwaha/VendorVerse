@@ -20,7 +20,9 @@ export default function ProtectedRoute({ role, children }) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
   if (role && user.userType !== role) {
-    const correct = user.userType === 'supplier' ? '/supplier' : '/vendor';
+    const correct =
+      user.userType === 'admin'    ? '/admin' :
+      user.userType === 'supplier' ? '/supplier' : '/vendor';
     return <Navigate to={correct} replace />;
   }
   return children;

@@ -22,7 +22,6 @@ export default class ErrorBoundary extends Component {
     return (
       <div className="min-h-[60vh] grid place-items-center px-4">
         <div className="card p-8 max-w-md text-center">
-          <div className="text-4xl mb-3">😕</div>
           <h1 className="font-display text-2xl text-ink dark:text-gray-100">Something broke on this page</h1>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
             That is our fault, not yours. Reloading usually sorts it out.

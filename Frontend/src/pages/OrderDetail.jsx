@@ -1,12 +1,17 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { haptic } from '../lib/haptics.js';
+import { reorderLine } from '../lib/reorder.js';
 import api from '../api.js';
 import { useAuth } from '../auth.jsx';
+import { useCart } from '../cart.jsx';
 import { useToast } from '../components/Toast.jsx';
 import { useNotifications } from '../notifications.jsx';
 import Modal from '../components/Modal.jsx';
 import { money, perUnit, amount } from '../format.js';
 import StatusPill from '../components/ui/StatusPill.jsx';
+import Stars, { RatingInput } from '../components/ui/Stars.jsx';
+import usePageMeta from '../lib/meta.js';
 
 const FLOW = ['Pending', 'Accepted', 'Packed', 'OutForDelivery', 'Delivered'];
 const FLOW_LABELS = {
@@ -19,6 +24,11 @@ const FLOW_LABELS = {
 
 export default function OrderDetail() {
   const { id } = useParams();
+  usePageMeta({
+    title: `Order ${String(id).slice(-6).toUpperCase()}`,
+    description: 'Track this order from placed to delivered, see the items and the total, and reorder in one tap.',
+    noIndex: true,
+  });
   const { user } = useAuth();
   const toast = useToast();
   const { onNotification } = useNotifications();
@@ -26,6 +36,45 @@ export default function OrderDetail() {
   const [loading, setLoading] = useState(true);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const cart = useCart();
+  const [reordering, setReordering] = useState(false);
+
+  // Review of this order, loaded once it turns out to be delivered.
+  const [review, setReview] = useState(null);
+  const [revRating, setRevRating] = useState(0);
+  const [revComment, setRevComment] = useState('');
+  const [revBusy, setRevBusy] = useState(false);
+  const [revSaved, setRevSaved] = useState(false);
+  const delivered = order?.status === 'Delivered';
+  useEffect(() => {
+    if (!delivered) return;
+    let on = true;
+    api.get(`/orders/${id}/review`)
+      .then(({ data }) => {
+        if (!on || !data.review) return;
+        setReview(data.review);
+        setRevRating(data.review.rating);
+        setRevComment(data.review.comment || '');
+      })
+      .catch(() => {});
+    return () => { on = false; };
+  }, [delivered, id]);
+
+  // Motion happens only at the moment of change: when an SSE update advances
+  // the status, the newly reached dot pops and its check draws in. Steps that
+  // were already reached when the page loaded render settled and still.
+  const prevIdx = useRef(null);
+  const [advanced, setAdvanced] = useState(false);
+  const status0 = order?.status || 'Pending';
+  useEffect(() => {
+    if (!order) return;
+    const idx = FLOW.indexOf(status0);
+    if (prevIdx.current !== null && idx > prevIdx.current) {
+      setAdvanced(true);
+      haptic('medium');
+    }
+    prevIdx.current = idx;
+  }, [order, status0]);
 
   const load = useCallback(async ({ quiet = false } = {}) => {
     try {
@@ -61,7 +110,7 @@ export default function OrderDetail() {
   };
 
   if (loading) {
-    return <div className="max-w-3xl mx-auto px-4 sm:px-6 py-12 text-gray-500 dark:text-gray-400">Loading order…</div>;
+    return <OrderSkeleton />;
   }
   if (!order) {
     return (
@@ -79,6 +128,41 @@ export default function OrderDetail() {
   const isBuyer = String(order.vendorId?._id || order.vendorId) === String(user?._id);
   const canCancel = isBuyer && status === 'Pending';
 
+  const reorder = async () => {
+    setReordering(true);
+    try {
+      const { qty, item, priceChanged } = await reorderLine(order, cart);
+      haptic('tick');
+      toast.success(
+        `${amount(qty, item.unit)} ${item.itemName} added at ${perUnit(item.price, item.unit)}` +
+        (priceChanged ? ` (was ${perUnit(order.price, order.unit)})` : ''),
+      );
+    } catch (err) {
+      toast.error(err.message || 'Could not reorder this item');
+    } finally {
+      setReordering(false);
+    }
+  };
+
+  const saveReview = async () => {
+    if (!revRating) return toast.error('Pick a star rating first');
+    setRevBusy(true);
+    try {
+      const { data } = await api.put(`/orders/${id}/review`, {
+        rating: revRating,
+        comment: revComment.trim() || undefined,
+      });
+      setReview(data.review);
+      setRevSaved(true);
+      haptic('tick');
+      toast.success(review ? 'Review updated' : 'Thanks for rating this order');
+    } catch (err) {
+      toast.error(err.response?.data?.msg || 'Could not save your review');
+    } finally {
+      setRevBusy(false);
+    }
+  };
+
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-6">
       <div className="flex items-start justify-between gap-3">
@@ -89,7 +173,12 @@ export default function OrderDetail() {
             {amount(order.quantity, order.unit)} × {perUnit(order.price, order.unit)} • placed {new Date(order.date).toLocaleString()}
           </p>
         </div>
-        <StatusPill status={status} wide />
+        <div className="flex shrink-0 flex-col items-end gap-2">
+          <StatusPill status={status} wide />
+          <Link to={`/orders/${order._id}/invoice`} className="btn-ghost px-3 py-1.5 text-xs">
+            {status === 'Delivered' ? 'Invoice' : 'Order summary'}
+          </Link>
+        </div>
       </div>
 
       {canCancel && (
@@ -117,18 +206,24 @@ export default function OrderDetail() {
               return (
                 <li key={step} className="flex gap-3 pb-5 last:pb-0 relative">
                   {idx < FLOW.length - 1 && (
-                    <span className={'absolute left-3 top-6 bottom-0 w-px ' + (idx < currentIdx ? 'bg-brand-500' : 'bg-gray-200 dark:bg-night-600')} />
+                    <span className={'absolute left-3 top-6 bottom-0 w-px ' + (idx < currentIdx ? 'bg-brand-600 dark:bg-brand-500' : 'bg-gray-200 dark:bg-night-600')} />
                   )}
-                  <span className={
-                    'relative h-6 w-6 rounded-full grid place-items-center shrink-0 transition ' +
-                    (reached
-                      ? 'bg-brand-500 text-white'
-                      : 'bg-gray-100 text-gray-400 dark:bg-night-700 dark:text-gray-500')
-                  }>
+                  <span
+                    aria-current={isCurrent ? 'step' : undefined}
+                    className={
+                      'relative grid h-6 w-6 shrink-0 place-items-center rounded-full transition-colors duration-200 ' +
+                      (reached
+                        ? 'bg-brand-600 text-white dark:bg-brand-500'
+                        : 'bg-gray-100 text-gray-400 dark:bg-night-700 dark:text-gray-500') +
+                      (isCurrent ? ' ring-2 ring-brand-600 ring-offset-2 dark:ring-gray-100 dark:ring-offset-night-800' : '') +
+                      (isCurrent && advanced ? ' animate-pop' : '')
+                    }
+                  >
                     {reached ? (
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12l5 5L20 7"/></svg>
+                      <svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <path className={isCurrent && advanced ? 'tick-draw' : ''} d="M5 12l5 5L20 7"/>
+                      </svg>
                     ) : <span className="h-1.5 w-1.5 rounded-full bg-current" />}
-                    {isCurrent && <span className="absolute inline-flex h-full w-full rounded-full bg-brand-500 opacity-40 animate-ping" />}
                   </span>
                   <div className="flex-1 -mt-0.5">
                     <div className={'font-medium ' + (reached ? 'text-ink dark:text-gray-100' : 'text-gray-400 dark:text-gray-500')}>{FLOW_LABELS[step]}</div>
@@ -146,6 +241,8 @@ export default function OrderDetail() {
         <div className="text-sm">
           <div className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Address</div>
           <p className="text-ink dark:text-gray-100 mt-0.5">{order.deliveryAddress || '—'}</p>
+          <div className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mt-3">Preferred window</div>
+          <p className="text-ink dark:text-gray-100 mt-0.5">{order.deliverySlot || 'Anytime'}</p>
           {order.notes && (
             <>
               <div className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mt-3">Notes for the supplier</div>
@@ -167,9 +264,48 @@ export default function OrderDetail() {
         <h2 className="font-display text-xl text-ink dark:text-gray-100 mb-3">Total</h2>
         <div className="flex justify-between items-center">
           <span className="text-gray-600 dark:text-gray-400">{order.itemName} · {amount(order.quantity, order.unit)}</span>
-          <span className="font-display text-2xl text-brand-700 dark:text-brand-400">{money(order.quantity * order.price)}</span>
+          <span className="tnum text-2xl font-medium tracking-tight text-ink dark:text-gray-100">{money(order.quantity * order.price)}</span>
         </div>
+        {isBuyer && (
+          <button className="btn-ghost w-full mt-4" onClick={reorder} disabled={reordering}>
+            {reordering ? 'Adding…' : 'Order this again'}
+          </button>
+        )}
       </section>
+
+      {delivered && isBuyer && (
+        <section className="card p-5">
+          <h2 className="font-display text-xl text-ink dark:text-gray-100 mb-1">
+            {review ? 'Your review' : 'How was it?'}
+          </h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            {review
+              ? 'Shown on the supplier’s profile. You can change it any time.'
+              : 'Rate this delivery — it helps other vendors pick a supplier.'}
+          </p>
+          <RatingInput value={revRating} onChange={(n) => { setRevRating(n); setRevSaved(false); }} />
+          <textarea
+            className="input min-h-[70px] mt-3"
+            maxLength={500}
+            placeholder="Anything other vendors should know? (optional)"
+            value={revComment}
+            onChange={(e) => { setRevComment(e.target.value); setRevSaved(false); }}
+          />
+          <button className="btn-primary mt-3" onClick={saveReview} disabled={revBusy || revSaved}>
+            {revBusy ? 'Saving…' : revSaved ? 'Saved' : review ? 'Update review' : 'Submit review'}
+          </button>
+        </section>
+      )}
+
+      {delivered && !isBuyer && review && (
+        <section className="card p-5">
+          <h2 className="font-display text-xl text-ink dark:text-gray-100 mb-2">Vendor review</h2>
+          <Stars value={review.rating} size={16} />
+          {review.comment && (
+            <p className="text-sm text-gray-700 dark:text-gray-300 mt-2 whitespace-pre-wrap">{review.comment}</p>
+          )}
+        </section>
+      )}
       <Modal
         open={confirmCancel}
         onClose={() => !cancelling && setConfirmCancel(false)}
@@ -202,6 +338,36 @@ function Party({ title, name, location, email }) {
       </div>
       {location && <div className="text-sm text-gray-600 dark:text-gray-400">{location}</div>}
       {email && <div className="text-xs text-gray-500 dark:text-gray-500 mt-1 truncate">{email}</div>}
+    </div>
+  );
+}
+
+// The status timeline is the tallest thing on this page, so it gets a shape in
+// the placeholder — otherwise everything below it jumps once the order lands.
+function OrderSkeleton() {
+  return (
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8" role="status" aria-live="polite">
+      <span className="sr-only">Loading order…</span>
+      <div className="flex items-center justify-between gap-3">
+        <div className="space-y-2">
+          <div className="skel h-7 w-40" />
+          <div className="skel h-4 w-28" />
+        </div>
+        <div className="skel h-7 w-24 rounded-full" />
+      </div>
+      <div className="card mt-6 p-5 space-y-4">
+        {FLOW.map((step) => (
+          <div key={step} className="flex items-center gap-3">
+            <div className="skel h-6 w-6 shrink-0 rounded-full" />
+            <div className="skel h-4 w-32" />
+          </div>
+        ))}
+      </div>
+      <div className="card mt-4 p-5 space-y-3">
+        <div className="skel h-4 w-24" />
+        <div className="skel h-16 rounded-xl" />
+        <div className="skel h-4 w-1/3" />
+      </div>
     </div>
   );
 }

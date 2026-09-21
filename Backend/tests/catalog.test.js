@@ -128,8 +128,14 @@ test('the payload is capped no matter what the client asks for', async () => {
   assert.strictEqual(res.status, 400, 'an absurd limit is refused');
 });
 
-test('the old full catalog dump is gone', async () => {
-  await vendor.get('/api/suppliers').expect(404);
+test('the old full catalog dump stays gone — /suppliers is now a paginated summary', async () => {
+  // The route exists again as the directory, but the regression this guards
+  // against is shipping every supplier's entire inventory in one response.
+  const res = await vendor.get('/api/suppliers').expect(200);
+  assert.ok(res.body.pages !== undefined, 'paginated, never everything at once');
+  for (const s of res.body.suppliers) {
+    assert.strictEqual(s.inventory, undefined, 'summary cards only, no inventory dump');
+  }
 });
 
 test('the catalog needs a session', async () => {
@@ -151,4 +157,30 @@ test('stock levels in the catalog reflect real inventory', async () => {
 test('one supplier document still holds everything they list', async () => {
   assert.strictEqual(await Supplier.countDocuments({ supplierId: idA }), 1);
   assert.strictEqual(await Supplier.countDocuments({ supplierId: idB }), 1);
+});
+
+// Appended last on purpose: it stocks a second Onion, and the counts asserted
+// by the tests above are written against the original fixture.
+test('the same item from two suppliers comes back adjacent, cheapest first', async () => {
+  const [supC] = await makeUser({
+    name: 'Nadia Wholesale', email: 'c@t.co', password: 'secret123',
+    userType: 'supplier', location: 'Nashik',
+  });
+  await supC.post('/api/suppliers').send({
+    location: 'Nashik',
+    inventory: { itemName: 'Onion', quantity: 80, price: 32, unit: 'kg', category: 'vegetables' },
+  }).expect(201);
+
+  const res = await items({ q: 'onion' }).expect(200);
+  const onions = res.body.items.filter(i => i.itemName === 'Onion');
+
+  assert.strictEqual(onions.length, 2, 'both suppliers list an Onion');
+  assert.deepStrictEqual(
+    onions.map(i => i.price), [32, 40],
+    'the cheaper listing leads the group so a vendor can compare at a glance',
+  );
+
+  // Adjacent, so the client can group by walking the list once.
+  const names = res.body.items.map(i => i.itemName);
+  assert.deepStrictEqual(names, ['Onion', 'Onion', 'Onion Red']);
 });

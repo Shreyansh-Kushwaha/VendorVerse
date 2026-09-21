@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const TYPES = ['order_placed', 'order_status', 'order_cancelled'];
+const TYPES = ['order_placed', 'order_status', 'order_cancelled', 'review', 'stock'];
 
 const notificationSchema = new mongoose.Schema({
   userId: {

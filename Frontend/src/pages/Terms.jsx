@@ -1,8 +1,15 @@
+import usePageMeta from '../lib/meta.js';
+
 export default function Terms() {
+  usePageMeta({
+    title: 'Terms of Service',
+    description:
+      'The terms that govern your use of VendorVerse as a vendor or as a supplier.',
+  });
   return (
-    <article className="max-w-3xl mx-auto px-4 sm:px-6 py-10 sm:py-14 prose-styles">
+    <article className="max-w-3xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
       <h1 className="font-display text-4xl text-ink dark:text-gray-100">Terms of Service</h1>
-      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Last updated: {new Date().toLocaleDateString()}</p>
+      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Last updated: 27 August 2026</p>
 
       <Section title="Using VendorVerse">
         <p>By creating an account, you agree to use VendorVerse to source or fulfill ingredient orders in good faith. You are responsible for the accuracy of inventory you list and the legitimacy of orders you place.</p>

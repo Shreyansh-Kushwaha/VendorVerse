@@ -1,6 +1,8 @@
 const Supplier = require('../models/Supplier');
 const Order = require('../models/Order');
+const User = require('../models/user');
 const { notifySafely } = require('./notifications');
+const { LOW_STOCK } = require('../lib/stock');
 
 const describeLine = (o) => `${o.quantity} ${o.unit || 'kg'} ${o.itemName}`;
 
@@ -40,21 +42,38 @@ async function describeFailure(supplierId, itemId, qty) {
 
 // The client sends what it wants to buy. Name and price are read off the listing
 // so a tampered or stale cart cannot dictate either.
-async function placeOrders(vendor, lines, { deliveryAddress, notes } = {}) {
+async function placeOrders(vendor, lines, { deliveryAddress, deliverySlot, notes } = {}) {
   const address = (deliveryAddress || '').trim() || vendor.location;
   const reserved = [];
   const docs = [];
+  const lowLines = [];
+
+  // A suspended supplier's listings may still be on screen somewhere; the
+  // money moment is where the door actually closes. Checked before anything
+  // is reserved, so a refused cart leaves no stock to hand back.
+  const supplierIds = [...new Set(lines.map(l => String(l.supplierId)))];
+  const suspended = await User.findOne({ _id: { $in: supplierIds }, suspended: true }).select('name');
+  if (suspended) {
+    throw new OrderError(403, `${suspended.name} is temporarily unavailable on VendorVerse`);
+  }
 
   try {
     for (const line of lines) {
       const item = await reserveStock(line.supplierId, line.itemId, line.quantity);
       if (!item) throw await describeFailure(line.supplierId, line.itemId, line.quantity);
 
+      // This order took the item across the low-water mark. Warn the supplier
+      // once, at the crossing — not on every sale below it.
+      if (item.quantity <= LOW_STOCK && item.quantity + line.quantity > LOW_STOCK) {
+        lowLines.push({ supplierId: line.supplierId, item: item.toObject() });
+      }
+
       reserved.push(line);
       docs.push({
         vendorId: vendor._id,
         supplierId: line.supplierId,
         deliveryAddress: address,
+        deliverySlot: deliverySlot || undefined,
         notes: notes?.trim() || undefined,
         itemId: line.itemId,
         itemName: item.itemName,
@@ -85,6 +104,21 @@ async function placeOrders(vendor, lines, { deliveryAddress, notes } = {}) {
         orderId: group[0]._id,
         email: true, // a new order is the whole reason to get a mail
       })));
+
+    // Low-stock nudges ride the same dashboard stream; no email — the supplier
+    // just got one about the order itself.
+    await Promise.all(lowLines.map(({ supplierId, item }) => {
+      const u = item.unit || 'kg';
+      return notifySafely(supplierId, {
+        type: 'stock',
+        title: item.quantity <= 0
+          ? `${item.itemName} just sold out`
+          : `${item.itemName} is running low`,
+        body: item.quantity <= 0
+          ? 'Restock it to keep taking orders'
+          : `${item.quantity} ${u} left after this order`,
+      });
+    }));
 
     return created;
   } catch (err) {

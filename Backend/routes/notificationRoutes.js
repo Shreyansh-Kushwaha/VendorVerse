@@ -6,7 +6,7 @@ const validate = require('../middleware/validate');
 const { requireAuth } = require('../middleware/auth');
 const { subscribe } = require('../services/notifications');
 
-const objectId = z.string().regex(/^[a-f\d]{24}$/i, 'Invalid id');
+const { objectId } = require('../lib/ids');
 
 // Live feed. EventSource cannot set headers, but it does send same origin
 // cookies, which is exactly how this app authenticates.
@@ -36,14 +36,26 @@ router.get('/notifications/stream', requireAuth, (req, res) => {
 
 router.get('/notifications',
   requireAuth,
-  validate({ query: z.object({ limit: z.coerce.number().int().min(1).max(100).default(30) }) }),
+  validate({
+    query: z.object({
+      limit: z.coerce.number().int().min(1).max(100).default(30),
+      // The bell only ever reads page one; the history page walks the rest.
+      page: z.coerce.number().int().min(1).default(1),
+    }),
+  }),
   async (req, res, next) => {
     try {
-      const [items, unread] = await Promise.all([
-        Notification.find({ userId: req.user._id }).sort({ createdAt: -1 }).limit(req.query.limit),
+      const { page, limit } = req.query;
+      const [items, unread, total] = await Promise.all([
+        Notification.find({ userId: req.user._id })
+          .sort({ createdAt: -1 })
+          .skip((page - 1) * limit)
+          .limit(limit)
+          .lean(),
         Notification.countDocuments({ userId: req.user._id, read: false }),
+        Notification.countDocuments({ userId: req.user._id }),
       ]);
-      res.json({ items, unread });
+      res.json({ items, unread, total, page, pages: Math.ceil(total / limit) });
     } catch (err) { next(err); }
   },
 );

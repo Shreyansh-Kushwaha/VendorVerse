@@ -1,7 +1,13 @@
 import { useState } from 'react';
 import { useToast } from '../components/Toast.jsx';
+import usePageMeta from '../lib/meta.js';
 
 export default function Contact() {
+  usePageMeta({
+    title: 'Contact',
+    description:
+      'Get in touch with the VendorVerse team about your account, an order, a partnership or anything else.',
+  });
   const toast = useToast();
   const [form, setForm] = useState({ name: '', email: '', subject: '', message: '' });
   const [sent, setSent] = useState(false);

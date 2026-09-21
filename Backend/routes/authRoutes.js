@@ -15,7 +15,7 @@ const { sendPasswordResetEmail } = require('../services/email');
 const RESET_WINDOW_MS = 60 * 60 * 1000; // one hour
 const hashToken = (raw) => crypto.createHash('sha256').update(raw).digest('hex');
 
-const objectId = z.string().regex(/^[a-f\d]{24}$/i, 'Invalid id');
+const { objectId } = require('../lib/ids');
 
 router.post('/register',
   validate({

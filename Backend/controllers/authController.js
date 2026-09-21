@@ -53,6 +53,12 @@ const loginUser = async (req, res) => {
       return res.status(401).json({ msg: "Invalid credentials" });
     }
 
+    // Only after the password check — a wrong guess must not learn whether
+    // the account is suspended.
+    if (user.suspended) {
+      return res.status(403).json({ msg: "This account is suspended. Contact support." });
+    }
+
     setAuthCookie(res, user);
 
     return res.status(200).json({

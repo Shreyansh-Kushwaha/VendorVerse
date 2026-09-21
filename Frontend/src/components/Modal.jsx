@@ -68,14 +68,17 @@ export default function Modal({ open, onClose, title, children, footer, size = '
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      {/* Solid scrim — backdrop blur is a per-frame paint tax on low-end phones. */}
+      <div className="fixed inset-0 bg-black/55 animate-fade-in" onClick={onClose} />
+      {/* Phones get the bottom-sheet landing (fast launch, long soft settle);
+          desktop gets a quiet scale-and-fade. */}
       <div
         ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className={`relative w-full ${SIZES[size] || SIZES.md} bg-white dark:bg-night-800 rounded-t-2xl sm:rounded-2xl shadow-pop max-h-[90vh] overflow-hidden flex flex-col focus:outline-none`}
+        className={`relative w-full ${SIZES[size] || SIZES.md} bg-white dark:bg-night-800 rounded-t-2xl sm:rounded-2xl shadow-pop max-h-[90vh] overflow-hidden flex flex-col focus:outline-none animate-sheet-in sm:animate-modal-in`}
       >
         <div className="px-5 py-4 border-b border-gray-100 dark:border-night-600 flex items-center justify-between">
           <h3 id={titleId} className="font-display text-xl text-ink dark:text-gray-100">{title}</h3>
@@ -84,7 +87,7 @@ export default function Modal({ open, onClose, title, children, footer, size = '
             className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-night-700"
             onClick={onClose}
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M6 6l12 12M18 6L6 18" />
             </svg>
           </button>

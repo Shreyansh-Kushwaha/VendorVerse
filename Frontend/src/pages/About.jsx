@@ -1,4 +1,11 @@
+import usePageMeta from '../lib/meta.js';
+
 export default function About() {
+  usePageMeta({
+    title: 'About',
+    description:
+      'Why VendorVerse exists — giving India\u2019s street food vendors the same supply chain leverage that large kitchens already have.',
+  });
   return (
     <article className="max-w-3xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
       <h1 className="font-display text-4xl text-ink dark:text-gray-100">About VendorVerse</h1>
@@ -6,7 +13,7 @@ export default function About() {
         We're on a mission to digitize the everyday supply chain that powers Indian street food.
       </p>
 
-      <section className="mt-8 prose-styles space-y-4 text-gray-700 dark:text-gray-300">
+      <section className="mt-8 space-y-4 text-gray-700 dark:text-gray-300">
         <p>
           Every morning across India, lakhs of street food vendors pick up the phone or walk to the mandi to source their ingredients. The process is slow, prices vary wildly, and trustworthy suppliers are hard to find.
           VendorVerse is a single platform where vendors can browse, compare and order from local suppliers — and where suppliers can list their inventory and grow their customer base without endless WhatsApp threads.
