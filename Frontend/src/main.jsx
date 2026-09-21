@@ -8,6 +8,7 @@ import { CartProvider } from './cart.jsx';
 import { ToastProvider } from './components/Toast.jsx';
 import { NotificationProvider } from './notifications.jsx';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
+import BackendWakeToast from './components/BackendWakeToast.jsx';
 import './index.css';
 
 // Register service worker (production builds only — Vite dev doesn't expose /sw.js)
@@ -33,6 +34,7 @@ createRoot(document.getElementById('root')).render(
           </AuthProvider>
         </ThemeProvider>
       </BrowserRouter>
+      <BackendWakeToast />
     </ErrorBoundary>
   </React.StrictMode>
 );
