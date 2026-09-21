@@ -6,7 +6,7 @@ import usePageMeta from '../lib/meta.js';
 
 export default function ResetPassword() {
   usePageMeta({
-    title: 'Reset password',
+    title: 'Reset',
     description:
       'Choose a new password for your VendorVerse account.',
     noIndex: true,

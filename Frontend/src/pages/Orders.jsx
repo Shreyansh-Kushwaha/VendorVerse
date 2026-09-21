@@ -28,7 +28,7 @@ const NEXT_UP = {
 
 export default function Orders() {
   usePageMeta({
-    title: 'Your orders',
+    title: 'Orders',
     description:
       'Track the status of every order you have placed, from pending to delivered.',
     noIndex: true,

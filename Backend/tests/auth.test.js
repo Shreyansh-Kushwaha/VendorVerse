@@ -37,12 +37,29 @@ async function signUpAndIn(agent, who) {
   return res.body.user;
 }
 
-test('register does not sign you in and login sets an httpOnly cookie', async () => {
+test('register signs you in immediately with an httpOnly cookie', async () => {
   const agent = request.agent(app);
-  await agent.post('/api/register').send(VENDOR).expect(201);
+  const res = await agent.post('/api/register').send(VENDOR).expect(201);
+  assert.strictEqual(res.body.userType, VENDOR.userType);
+  assert.strictEqual(res.body.user.email, VENDOR.email);
+  assert.strictEqual(res.body.user.password, undefined);
+
+  const cookie = res.headers['set-cookie'].join(';');
+  assert.match(cookie, /vv_token=/);
+  assert.match(cookie, /HttpOnly/i, 'session cookie must be httpOnly');
+  assert.match(cookie, /SameSite=Lax/i, 'session cookie must be SameSite=Lax');
+
+  await agent.get('/api/me').expect(200);
+});
+
+test('login also sets an httpOnly cookie', async () => {
+  const agent = request.agent(app);
+  const who = { ...SUPPLIER, email: 'login-cookie@t.co' };
+  await agent.post('/api/register').send(who).expect(201);
+  await agent.post('/api/logout');
   await agent.get('/api/me').expect(401);
 
-  const res = await agent.post('/api/login').send({ email: VENDOR.email, password: VENDOR.password }).expect(200);
+  const res = await agent.post('/api/login').send({ email: who.email, password: who.password }).expect(200);
 
   const cookie = res.headers['set-cookie'].join(';');
   assert.match(cookie, /vv_token=/);

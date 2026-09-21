@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../auth.jsx';
 import { useCart } from '../cart.jsx';
 import { money, perUnit } from '../format.js';
 import Thumb from '../components/ui/Thumb.jsx';
@@ -13,13 +14,17 @@ const UNDO_MS = 5000;
 
 export default function Cart() {
   usePageMeta({
-    title: 'Your cart',
+    title: 'Cart',
     description:
       'Review the items in your cart before you place the order.',
     noIndex: true,
   });
+  const { user } = useAuth();
   const { items, add, update, remove, clear, count, subtotal } = useCart();
   const navigate = useNavigate();
+  // A vendor's browse links go to their dashboard; anyone else (a guest, or a
+  // supplier/admin who wandered in) lands on the public catalog instead.
+  const browseHref = user?.userType === 'vendor' ? '/vendor' : '/catalog';
 
   // Removal is reversible for five seconds: the row collapses, a bar with a
   // draining timer appears, and Undo puts everything back.
@@ -86,7 +91,7 @@ export default function Cart() {
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-16 text-center">
         <h1 className="font-display text-3xl text-ink dark:text-gray-100">Your cart is empty</h1>
         <p className="text-gray-600 dark:text-gray-400 mt-2">Browse suppliers and add items to start an order.</p>
-        <Link to="/vendor" className="btn-primary mt-6">Browse items</Link>
+        <Link to={browseHref} className="btn-primary mt-6">Browse items</Link>
         {undoBar}
       </div>
     );
@@ -170,7 +175,7 @@ export default function Cart() {
         <button onClick={() => navigate('/checkout')} className="btn-primary w-full mt-5">
           Proceed to checkout
         </button>
-        <Link to="/vendor" className="btn-ghost w-full mt-2">Continue shopping</Link>
+        <Link to={browseHref} className="btn-ghost w-full mt-2">Continue shopping</Link>
       </aside>
 
       {undoBar}

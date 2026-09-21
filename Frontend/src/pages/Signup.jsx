@@ -1,17 +1,24 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import api from '../api.js';
+import { useAuth } from '../auth.jsx';
 import { useToast } from '../components/Toast.jsx';
 import usePageMeta from '../lib/meta.js';
 
 export default function Signup() {
   usePageMeta({
-    title: 'Sign up',
+    title: 'Signup',
     description:
       'Create a free VendorVerse account as a street food vendor or as a raw material supplier. Takes a minute, no card needed.',
   });
   const navigate = useNavigate();
+  const location = useLocation();
+  const { login } = useAuth();
   const toast = useToast();
+  // Arriving here with a cart to check out — checkout only serves vendors,
+  // so that's the sensible default, but the toggle below still lets someone
+  // who landed here by mistake pick supplier instead.
+  const fromCheckout = Boolean(location.state?.from);
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -48,9 +55,11 @@ export default function Signup() {
     e.preventDefault();
     setLoading(true);
     try {
-      await api.post('/register', form);
-      toast.success('Account created! Please sign in.');
-      navigate('/login', { replace: true });
+      const { data } = await api.post('/register', form);
+      login(data.user);
+      toast.success('Welcome to VendorVerse!');
+      const dest = data.userType === 'supplier' ? '/supplier' : '/vendor';
+      navigate(location.state?.from?.pathname || dest, { replace: true });
     } catch (err) {
       toast.error(err.response?.data?.msg || 'Sign up failed');
     } finally {
@@ -61,8 +70,14 @@ export default function Signup() {
   return (
     <div className="max-w-lg mx-auto px-4 sm:px-6 py-10 sm:py-16">
       <div className="card p-6 sm:p-8">
-        <h1 className="font-display text-3xl text-ink dark:text-gray-100">Join VendorVerse</h1>
-        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Create an account to start ordering or selling.</p>
+        <h1 className="font-display text-3xl text-ink dark:text-gray-100">
+          {fromCheckout ? 'Almost there' : 'Join VendorVerse'}
+        </h1>
+        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+          {fromCheckout
+            ? 'Create a free account to check out — your cart is waiting.'
+            : 'Create an account to start ordering or selling.'}
+        </p>
 
         {/* Role toggle */}
         <div className="mt-6 grid grid-cols-2 gap-2 p-1 bg-brand-50 dark:bg-night-700 rounded-xl">

@@ -4,7 +4,7 @@ import usePageMeta from '../lib/meta.js';
 
 export default function NotFound() {
   usePageMeta({
-    title: 'Page not found',
+    title: '404',
     description:
       'We could not find the page you were looking for. It may have moved, or the link may be out of date.',
     noIndex: true,

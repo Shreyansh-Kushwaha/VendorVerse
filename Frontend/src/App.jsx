@@ -22,6 +22,7 @@ const OrderDetail = lazy(() => import('./pages/OrderDetail.jsx'));
 const Invoice = lazy(() => import('./pages/Invoice.jsx'));
 const SupplierProfile = lazy(() => import('./pages/SupplierProfile.jsx'));
 const Suppliers = lazy(() => import('./pages/Suppliers.jsx'));
+const Catalog = lazy(() => import('./pages/Catalog.jsx'));
 const Notifications = lazy(() => import('./pages/Notifications.jsx'));
 const VendorInsights = lazy(() => import('./pages/VendorInsights.jsx'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard.jsx'));
@@ -73,11 +74,10 @@ export default function App() {
           <Route path="profile" element={
             <ProtectedRoute><Profile /></ProtectedRoute>
           } />
-          <Route path="cart" element={
-            <ProtectedRoute role="vendor"><Cart /></ProtectedRoute>
-          } />
+          {/* Public: a guest can build a cart before they ever sign up. */}
+          <Route path="cart" element={<Cart />} />
           <Route path="checkout" element={
-            <ProtectedRoute role="vendor"><Checkout /></ProtectedRoute>
+            <ProtectedRoute role="vendor" guestPath="/signup"><Checkout /></ProtectedRoute>
           } />
           <Route path="orders" element={
             <ProtectedRoute role="vendor"><Orders /></ProtectedRoute>
@@ -91,6 +91,7 @@ export default function App() {
 
           <Route path="suppliers" element={<Suppliers />} />
           <Route path="suppliers/:id" element={<SupplierProfile />} />
+          <Route path="catalog" element={<Catalog />} />
 
           <Route path="about" element={<About />} />
           <Route path="contact" element={<Contact />} />

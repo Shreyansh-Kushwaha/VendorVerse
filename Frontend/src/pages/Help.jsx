@@ -37,7 +37,7 @@ const TOPICS = [
 
 export default function Help() {
   usePageMeta({
-    title: 'Help Centre',
+    title: 'Help',
     description:
       'Answers to common questions about ordering, delivery, payments, listing inventory and managing your VendorVerse account.',
   });

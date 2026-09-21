@@ -236,8 +236,10 @@ router.get('/suppliers',
 // Replaces the old GET /suppliers, which sent every supplier's entire
 // inventory and left the browser to flatten and filter it.
 // =====================================================================
+// Public — same reasoning as the directory and per-supplier routes above:
+// nothing here is scoped to the caller, so there is no reason to make a
+// visitor sign in just to compare prices.
 router.get('/items',
-  requireAuth,
   validate({
     query: z.object({
       q: z.string().trim().max(100).optional(),

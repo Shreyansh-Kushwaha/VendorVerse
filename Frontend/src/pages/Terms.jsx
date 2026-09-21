@@ -2,7 +2,7 @@ import usePageMeta from '../lib/meta.js';
 
 export default function Terms() {
   usePageMeta({
-    title: 'Terms of Service',
+    title: 'Terms',
     description:
       'The terms that govern your use of VendorVerse as a vendor or as a supplier.',
   });

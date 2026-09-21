@@ -6,6 +6,7 @@ import { useCart } from '../cart.jsx';
 import { useToast } from '../components/Toast.jsx';
 import { perUnit, amount } from '../format.js';
 import { useFavorites } from '../favorites.js';
+import { noteSupplierViewed } from '../lib/recentlyViewed.js';
 import Stars from '../components/ui/Stars.jsx';
 import Thumb from '../components/ui/Thumb.jsx';
 import PriceTrendModal from '../components/PriceTrend.jsx';
@@ -28,7 +29,7 @@ export default function SupplierProfile() {
   // description are built from the supplier itself once it loads rather than
   // every one of them sharing a single generic snippet.
   usePageMeta({
-    title: supplier ? `${supplier.name} — supplier` : 'Supplier',
+    title: supplier ? supplier.name : 'Supplier',
     description: supplier
       ? `Order raw ingredients from ${supplier.name}${supplier.location ? ` in ${supplier.location}` : ''} on VendorVerse. See live stock, per-unit prices and vendor ratings.`
       : 'View a supplier on VendorVerse — live stock, per-unit prices and vendor ratings.',
@@ -39,7 +40,10 @@ export default function SupplierProfile() {
     (async () => {
       try {
         const { data } = await api.get(`/suppliers/${id}`);
-        if (!cancelled) setSupplier(data);
+        if (!cancelled) {
+          setSupplier(data);
+          noteSupplierViewed({ supplierId: id, name: data.name, location: data.location });
+        }
         // Reviews are decoration on this page — a failure just hides them.
         api.get(`/suppliers/${id}/reviews`)
           .then((r) => { if (!cancelled) setReviews(r.data); })
@@ -75,7 +79,8 @@ export default function SupplierProfile() {
   }
 
   const initials = (supplier.name || '?').split(' ').slice(0, 2).map(w => w[0]?.toUpperCase()).join('');
-  const isVendor = user?.userType === 'vendor';
+  // A guest can shop too — only a signed-in supplier/admin is out of place here.
+  const canShop = !user || user.userType === 'vendor';
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-6">
@@ -85,7 +90,7 @@ export default function SupplierProfile() {
             <div className="grid h-16 w-16 place-items-center rounded-xl border border-gray-200 bg-gray-50 text-xl font-medium text-gray-600 dark:border-night-600 dark:bg-night-700 dark:text-gray-300">
               {initials}
             </div>
-            {isVendor && (
+            {canShop && (
               <button
                 onClick={toggleFavorite}
                 className={'btn ' + (favorited
@@ -157,7 +162,7 @@ export default function SupplierProfile() {
                     <span className="text-xs text-gray-500 dark:text-gray-400 capitalize">{it.category}</span>
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{amount(it.quantity, it.unit)} in stock</div>
-                  {isVendor && (
+                  {canShop && (
                     <button
                       className="btn-ghost w-full mt-3 text-sm"
                       onClick={() => {

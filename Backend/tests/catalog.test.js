@@ -138,8 +138,9 @@ test('the old full catalog dump stays gone — /suppliers is now a paginated sum
   }
 });
 
-test('the catalog needs a session', async () => {
-  await request(app).get('/api/items').expect(401);
+test('the catalog is public — a guest can browse it without a session', async () => {
+  const res = await request(app).get('/api/items').expect(200);
+  assert.strictEqual(res.body.total, 5);
 });
 
 test('stock levels in the catalog reflect real inventory', async () => {

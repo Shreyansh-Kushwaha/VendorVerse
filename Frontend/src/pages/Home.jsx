@@ -10,7 +10,7 @@ const reducedMotion = () =>
   window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 export default function Home() {
-  usePageMeta();
+  usePageMeta({ title: 'Home' });
   const { user } = useAuth();
   const ctaHref = user ? (user.userType === 'supplier' ? '/supplier' : '/vendor') : '/signup';
   const ctaLabel = user ? 'Open Dashboard' : 'Get Started';
@@ -50,6 +50,43 @@ export default function Home() {
 
 /* ── Category showcase ───────────────────────────────────────────────── */
 
+const CATEGORY_IMAGES = {
+  vegetables: '/categories/vegetables.jpg',
+  fruits: '/categories/fruits.jpg',
+  spices: '/categories/spices.jpg',
+  grains: '/categories/grains.jpg',
+  dairy: '/categories/dairy.jpg',
+  others: '/categories/others.jpg',
+};
+
+function CategoryCard({ category, href, count }) {
+  const [failed, setFailed] = useState(false);
+  const src = CATEGORY_IMAGES[category];
+  return (
+    <Link to={href} className="card card-lift text-center block overflow-hidden">
+      {src && !failed ? (
+        <img
+          src={src}
+          alt={`Fresh ${category} sold on VendorVerse`}
+          loading="lazy"
+          onError={() => setFailed(true)}
+          className="h-24 sm:h-28 w-full object-cover"
+        />
+      ) : (
+        <div className={`h-24 sm:h-28 w-full grid place-items-center text-2xl font-semibold ${CATEGORY_TONES[category]}`}>
+          {category[0].toUpperCase()}
+        </div>
+      )}
+      <div className="p-4">
+        <div className="text-sm font-medium text-ink dark:text-gray-100 capitalize">{category}</div>
+        {count > 0 && (
+          <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5"><span className="tnum">{count}</span> items live</div>
+        )}
+      </div>
+    </Link>
+  );
+}
+
 function Categories({ live, href }) {
   const counts = Object.fromEntries((live?.categories || []).map((c) => [c.category, c.items]));
   return (
@@ -58,15 +95,7 @@ function Categories({ live, href }) {
       <p className="text-center text-gray-600 dark:text-gray-400 mt-2">From fresh produce to pantry staples, priced per unit.</p>
       <div className="mt-8 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
         {CATEGORIES.map((c) => (
-          <Link key={c} to={href} className="card card-lift p-4 text-center block">
-            <div className={`h-12 w-12 mx-auto rounded-lg grid place-items-center text-lg font-semibold ${CATEGORY_TONES[c]}`}>
-              {c[0].toUpperCase()}
-            </div>
-            <div className="mt-3 text-sm font-medium text-ink dark:text-gray-100 capitalize">{c}</div>
-            {counts[c] > 0 && (
-              <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5"><span className="tnum">{counts[c]}</span> items live</div>
-            )}
-          </Link>
+          <CategoryCard key={c} category={c} href={href} count={counts[c]} />
         ))}
       </div>
     </section>
@@ -202,9 +231,14 @@ function Hero({ user, ctaHref, ctaLabel, live }) {
               <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
             </Link>
             {!user && (
-              <Link to="/login" className="btn-ghost">
-                I already have an account
-              </Link>
+              <>
+                <Link to="/catalog" className="btn-ghost">
+                  Continue as guest
+                </Link>
+                <Link to="/login" className="btn-ghost">
+                  I already have an account
+                </Link>
+              </>
             )}
           </div>
           {live && (

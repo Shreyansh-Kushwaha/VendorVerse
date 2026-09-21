@@ -6,7 +6,7 @@ import usePageMeta from '../lib/meta.js';
 
 export default function ForgotPassword() {
   usePageMeta({
-    title: 'Forgot password',
+    title: 'Recover',
     description:
       'Forgot your VendorVerse password? Enter your email and we will send you a link to set a new one.',
   });

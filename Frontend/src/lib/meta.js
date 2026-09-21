@@ -32,8 +32,10 @@ function setTag(selector, attrs) {
  * gives each page its own entry in a tab strip, a shared link preview and a
  * JS-executing crawler's index.
  *
- * @param title       Page title, without the site name — appended here so the
- *                    suffix stays consistent. Omit on the landing page.
+ * @param title       One short word — this is what shows in the browser tab,
+ *                    so it stays bare there (no " — VendorVerse" suffix; a
+ *                    tab strip has no room for it). The site name is added
+ *                    back only for the shared link preview (og/twitter).
  * @param description One or two sentences describing this page specifically.
  * @param noIndex     True for pages behind a login or unique to one user, so
  *                    they stay out of search results even if a URL leaks.
@@ -41,17 +43,18 @@ function setTag(selector, attrs) {
 export default function usePageMeta({ title, description, noIndex = false } = {}) {
   const { pathname } = useLocation();
   const desc = description || DEFAULT_DESCRIPTION;
-  const fullTitle = title ? `${title} — ${SITE_NAME}` : `${SITE_NAME} — raw materials for street food vendors`;
+  const tabTitle = title || SITE_NAME;
+  const shareTitle = title ? `${title} — ${SITE_NAME}` : `${SITE_NAME} — raw materials for street food vendors`;
 
   useEffect(() => {
-    document.title = fullTitle;
+    document.title = tabTitle;
 
     setTag('meta[name="description"]', { name: 'description', content: desc });
 
-    setTag('meta[property="og:title"]', { property: 'og:title', content: fullTitle });
+    setTag('meta[property="og:title"]', { property: 'og:title', content: shareTitle });
     setTag('meta[property="og:description"]', { property: 'og:description', content: desc });
     setTag('meta[property="og:site_name"]', { property: 'og:site_name', content: SITE_NAME });
-    setTag('meta[name="twitter:title"]', { name: 'twitter:title', content: fullTitle });
+    setTag('meta[name="twitter:title"]', { name: 'twitter:title', content: shareTitle });
     setTag('meta[name="twitter:description"]', { name: 'twitter:description', content: desc });
 
     // Query strings are filters and tracking, not distinct pages, so the
@@ -68,5 +71,5 @@ export default function usePageMeta({ title, description, noIndex = false } = {}
     } else if (robots) {
       robots.remove();
     }
-  }, [fullTitle, desc, noIndex, pathname]);
+  }, [tabTitle, shareTitle, desc, noIndex, pathname]);
 }

@@ -12,15 +12,35 @@ export function CartProvider({ children }) {
   const key = storageKey(user?._id);
   const [items, setItems] = useState([]);
 
-  // Load cart for current user whenever the user changes
+  // Load cart for current user whenever the user changes. Signing in swaps the
+  // key from 'anon' to the account's — fold whatever a guest was carrying into
+  // the account cart once, then forget the anon bucket so it can't be merged
+  // again or read stale from another tab.
   useEffect(() => {
     try {
       const raw = localStorage.getItem(key);
-      setItems(raw ? JSON.parse(raw) : []);
+      let next = raw ? JSON.parse(raw) : [];
+
+      if (user?._id) {
+        const guestRaw = localStorage.getItem(storageKey());
+        const guestItems = guestRaw ? JSON.parse(guestRaw) : [];
+        if (guestItems.length > 0) {
+          const merged = next.slice();
+          for (const gi of guestItems) {
+            const idx = merged.findIndex((p) => p.itemId === gi.itemId);
+            if (idx >= 0) merged[idx] = { ...merged[idx], quantity: merged[idx].quantity + gi.quantity };
+            else merged.push(gi);
+          }
+          next = merged;
+          localStorage.removeItem(storageKey());
+        }
+      }
+
+      setItems(next);
     } catch {
       setItems([]);
     }
-  }, [key]);
+  }, [key, user?._id]);
 
   // Persist on change
   useEffect(() => {

@@ -30,7 +30,16 @@ const registerUser = async (req, res) => {
     });
 
     await newUser.save();
-    res.status(201).json({ msg: "User registered successfully" });
+
+    // Log the new account straight in — the same cookie loginUser hands out,
+    // in the same response shape, so a caller that just registered a guest's
+    // cart into an account can treat this exactly like a login.
+    setAuthCookie(res, newUser);
+    res.status(201).json({
+      msg: "Account created",
+      userType: newUser.userType,
+      user: publicUser(newUser),
+    });
 
   } catch (err) {
     res.status(500).json({ msg: err.message });

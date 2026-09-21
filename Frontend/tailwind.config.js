@@ -90,6 +90,19 @@ export default {
         'modal-in': { from: { opacity: '0', transform: 'translateY(8px) scale(0.97)' }, to: { opacity: '1', transform: 'none' } },
         'sheet-in': { from: { transform: 'translateY(100%)' }, to: { transform: 'none' } },
         shimmer:    { from: { backgroundPosition: '200% 0' }, to: { backgroundPosition: '-200% 0' } },
+        // A slow breathe-and-sway for the wake-toast sprout — the one spot that
+        // gets a bespoke idle animation, because it marks a genuinely unusual
+        // wait (a cold start), not routine content loading.
+        sprout: {
+          '0%, 100%': { transform: 'rotate(-5deg) scaleY(0.96)' },
+          '50%':      { transform: 'rotate(5deg) scaleY(1)' },
+        },
+        // The wake-toast progress bar: indeterminate, so it travels rather than
+        // fills — nothing here claims to know how long a cold start takes.
+        'wake-bar': {
+          from: { transform: 'translateX(-100%)' },
+          to:   { transform: 'translateX(400%)' },
+        },
       },
       animation: {
         rise:       'rise 260ms cubic-bezier(0.25, 1, 0.5, 1) both',
@@ -102,6 +115,8 @@ export default {
         'modal-in': 'modal-in 260ms cubic-bezier(0.25, 1, 0.5, 1) both',
         'sheet-in': 'sheet-in 340ms cubic-bezier(0.32, 0.72, 0, 1) both',
         shimmer:    'shimmer 1.6s linear infinite',
+        sprout:     'sprout 2.6s cubic-bezier(0.45, 0, 0.55, 1) infinite',
+        'wake-bar': 'wake-bar 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite',
       },
     },
   },

@@ -10,7 +10,9 @@ export default function Header() {
   const { count: cartCount } = useCart();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
-  const showCart = user?.userType === 'vendor';
+  // Browsing (catalog/suppliers/cart) is open to anyone who isn't a supplier
+  // or admin — that includes a guest, not just a signed-in vendor.
+  const canBrowse = !user || user.userType === 'vendor';
 
   const dashHref =
     user?.userType === 'admin'    ? '/admin'    :
@@ -40,17 +42,22 @@ export default function Header() {
         </Link>
 
         <nav className="hidden md:flex items-center gap-1">
+          {canBrowse && (
+            <>
+              <NavLink to="/suppliers" end className={({isActive}) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
+                Suppliers
+              </NavLink>
+              <NavLink to="/catalog" className={({isActive}) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
+                Catalog
+              </NavLink>
+            </>
+          )}
           {user ? (
             <>
               <NavLink to={dashHref} className={({isActive}) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
                 Dashboard
               </NavLink>
-              {showCart && (
-                <NavLink to="/suppliers" end className={({isActive}) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
-                  Suppliers
-                </NavLink>
-              )}
-              {showCart && (
+              {canBrowse && (
                 <NavLink to="/orders" className={({isActive}) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
                   Orders
                 </NavLink>
@@ -58,16 +65,24 @@ export default function Header() {
               <NavLink to="/profile" className={({isActive}) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
                 Profile
               </NavLink>
-              {showCart && <CartButton count={cartCount} />}
+              {canBrowse && <CartButton count={cartCount} />}
               <NotificationBell />
               <ThemeToggle className="ml-2" />
               <button onClick={handleLogout} className="btn-ghost ml-2">Log out</button>
             </>
           ) : (
             <>
+              <CartButton count={cartCount} />
               <NavLink to="/login" className={({isActive}) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
                 Login
               </NavLink>
+              <Link
+                to="/signup"
+                className="chip border border-gray-200 text-gray-500 hover:bg-gray-50 dark:border-night-600 dark:text-gray-400 dark:hover:bg-night-700"
+                title="Sign up to save your cart across devices"
+              >
+                Browsing as guest
+              </Link>
               <ThemeToggle className="ml-2" />
               <Link to="/signup" className="btn-primary ml-2">Get started</Link>
             </>
@@ -75,7 +90,7 @@ export default function Header() {
         </nav>
 
         <div className="flex shrink-0 items-center gap-1 md:hidden">
-          {showCart && <CartButton count={cartCount} />}
+          {canBrowse && <CartButton count={cartCount} />}
           {user && <NotificationBell />}
           <ThemeToggle />
           <button
@@ -97,17 +112,22 @@ export default function Header() {
       {open && (
         <div className="md:hidden border-t border-brand-100 dark:border-night-700 bg-white dark:bg-night-900">
           <div className="px-4 py-3 flex flex-col gap-1">
+            {canBrowse && (
+              <>
+                <NavLink onClick={() => setOpen(false)} to="/suppliers" end className={({isActive}) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
+                  Suppliers
+                </NavLink>
+                <NavLink onClick={() => setOpen(false)} to="/catalog" className={({isActive}) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
+                  Catalog
+                </NavLink>
+              </>
+            )}
             {user ? (
               <>
                 <NavLink onClick={() => setOpen(false)} to={dashHref} className={({isActive}) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
                   Dashboard
                 </NavLink>
-                {showCart && (
-                  <NavLink onClick={() => setOpen(false)} to="/suppliers" end className={({isActive}) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
-                    Suppliers
-                  </NavLink>
-                )}
-                {showCart && (
+                {canBrowse && (
                   <NavLink onClick={() => setOpen(false)} to="/orders" className={({isActive}) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
                     Orders
                   </NavLink>
@@ -122,6 +142,9 @@ export default function Header() {
                 <NavLink onClick={() => setOpen(false)} to="/login" className={({isActive}) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
                   Login
                 </NavLink>
+                <p className="px-3 text-xs text-gray-500 dark:text-gray-400">
+                  Browsing as guest — sign up to save your cart across devices.
+                </p>
                 <Link onClick={() => setOpen(false)} to="/signup" className="btn-primary mt-2">Get started</Link>
               </>
             )}

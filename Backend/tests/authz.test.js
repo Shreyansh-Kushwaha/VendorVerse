@@ -141,7 +141,6 @@ test('analytics are scoped to the session', async () => {
 
 test('anonymous callers are locked out of every mutating route', async () => {
   const anon = request(app);
-  await anon.get('/api/items').expect(401);
   await anon.post('/api/suppliers').send({}).expect(401);
   await anon.post('/api/upload').expect(401);
   await anon.get('/api/orders').expect(401);

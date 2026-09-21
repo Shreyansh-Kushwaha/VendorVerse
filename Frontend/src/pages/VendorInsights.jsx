@@ -10,7 +10,7 @@ import usePageMeta from '../lib/meta.js';
 // suppliers behind it, and what the govt mandi says those kilos should cost.
 export default function VendorInsights() {
   usePageMeta({
-    title: 'Spending insights',
+    title: 'Insights',
     description:
       'See where your raw material spend goes, month by month and supplier by supplier.',
     noIndex: true,

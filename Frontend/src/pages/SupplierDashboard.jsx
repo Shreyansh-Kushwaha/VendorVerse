@@ -23,7 +23,7 @@ const TABS = { orders: 'Orders', inventory: 'Inventory', money: 'Money' };
 
 export default function SupplierDashboard() {
   usePageMeta({
-    title: 'Supplier dashboard',
+    title: 'Dashboard',
     description:
       'Manage your listings, stock levels and incoming vendor orders.',
     noIndex: true,

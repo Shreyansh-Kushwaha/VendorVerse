@@ -7,7 +7,7 @@ import usePageMeta from '../lib/meta.js';
 
 export default function Login() {
   usePageMeta({
-    title: 'Log in',
+    title: 'Login',
     description:
       'Log in to VendorVerse to order raw ingredients from your suppliers, or to manage your inventory as a supplier.',
   });

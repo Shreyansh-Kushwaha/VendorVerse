@@ -1,60 +1,56 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import api from '../api.js';
 import { useAuth } from '../auth.jsx';
 import { useCart } from '../cart.jsx';
 import { useToast } from '../components/Toast.jsx';
-import { useNotifications } from '../notifications.jsx';
-import { CATEGORIES, money, perUnit, amount } from '../format.js';
+import { CATEGORIES, perUnit, amount } from '../format.js';
 import { useFavorites } from '../favorites.js';
 import Thumb from '../components/ui/Thumb.jsx';
 import Stars from '../components/ui/Stars.jsx';
 import PriceTrendModal from '../components/PriceTrend.jsx';
-import Stat from '../components/ui/Stat.jsx';
 import QuantityStepper from '../components/ui/QuantityStepper.jsx';
-import RollingNumber from '../components/ui/RollingNumber.jsx';
 import { haptic } from '../lib/haptics.js';
 import { flyToCart } from '../lib/flyToCart.js';
-import { getPosition, distanceKm, formatKm } from '../lib/geo.js';
-import MandiRates from '../components/MandiRates.jsx';
-import WeatherStrip from '../components/WeatherStrip.jsx';
 import usePageMeta from '../lib/meta.js';
 
-// Leaflet only ships to vendors who tapped "Near me".
-const SupplierMap = lazy(() => import('../components/SupplierMap.jsx'));
-
 const PAGE_SIZE = 24;
-const OPEN_STATUSES = ['Pending', 'Accepted', 'Packed', 'OutForDelivery'];
 
-export default function VendorDashboard() {
+// The public price-comparison page: the same flat, cheapest-offer-first
+// catalog a signed-in vendor gets on their dashboard, open to anyone. No
+// account needed to see what things cost — only to actually order them.
+export default function Catalog() {
   usePageMeta({
-    title: 'Dashboard',
+    title: 'Catalog',
     description:
-      'Browse supplier inventory, track live stock and build your order.',
-    noIndex: true,
+      'Compare raw ingredient prices across every supplier on VendorVerse — no account needed to browse.',
   });
   const { user } = useAuth();
   const cart = useCart();
   const toast = useToast();
-  const { onNotification } = useNotifications();
-
-  const [orders, setOrders] = useState([]);
-  const [analytics, setAnalytics] = useState(null);
+  const navigate = useNavigate();
   const { favorites, toggle: toggleFav } = useFavorites();
+  const canShop = !user || user.userType === 'vendor';
 
-  // Listings this vendor asked to be told about when they restock.
+  // Restock alerts are a signed-in-vendor feature; a guest tapping the same
+  // control gets routed to sign up instead of a silent 401.
   const [alerts, setAlerts] = useState(() => new Set());
   useEffect(() => {
+    if (user?.userType !== 'vendor') return;
     let on = true;
     api.get('/stock-alerts')
       .then(({ data }) => { if (on) setAlerts(new Set(data.alerts.map(a => a.itemId))); })
       .catch(() => {});
     return () => { on = false; };
-  }, []);
+  }, [user?.userType]);
 
   const toggleAlert = async (it) => {
+    if (user?.userType !== 'vendor') {
+      toast.info('Sign up to get notified when this restocks');
+      navigate('/signup');
+      return;
+    }
     const watching = alerts.has(it.itemId);
-    // Optimistic — the bell answers the tap; a failure rolls it back.
     setAlerts((prev) => {
       const next = new Set(prev);
       if (watching) next.delete(it.itemId); else next.add(it.itemId);
@@ -78,59 +74,18 @@ export default function VendorDashboard() {
     }
   };
 
-  // Catalog comes from the server one page at a time, filtered and sorted there.
   const [catalog, setCatalog] = useState({ items: [], total: 0, pages: 0 });
   const [catalogLoading, setCatalogLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState({ q: '', category: 'all', favOnly: false });
-  // Listing whose price timeline is open in a modal.
   const [trendItem, setTrendItem] = useState(null);
-
-  // "Near me": the vendor's position unlocks distances on every listing and a
-  // rail of the closest suppliers. Asked for on tap, never on load.
-  const [pos, setPos] = useState(null);
-  const [nearby, setNearby] = useState(null);
-  const [locating, setLocating] = useState(false);
-
-  const findNearby = async () => {
-    if (pos) { setPos(null); setNearby(null); return; }
-    setLocating(true);
-    try {
-      const p = await getPosition();
-      if (!p) return toast.error('Could not get your location — check the browser permission');
-      setPos(p);
-      const { data } = await api.get('/suppliers/near', { params: { lat: p.lat, lng: p.lng } });
-      setNearby(data.suppliers);
-      loadDriveTimes(p, data.suppliers);
-    } catch {
-      setNearby([]);
-    } finally {
-      setLocating(false);
-    }
-  };
-
-  // Road distance and drive time are a second pass — the cards render at once
-  // on straight-line distance and upgrade when OSRM answers.
-  const loadDriveTimes = async (p, suppliers) => {
-    const withGeo = suppliers.filter((s) => s.geo?.coordinates);
-    if (withGeo.length === 0) return;
-    try {
-      const to = withGeo.map((s) => `${s.geo.coordinates[1]},${s.geo.coordinates[0]}`).join(';');
-      const { data } = await api.get('/route-matrix', { params: { from: `${p.lat},${p.lng}`, to } });
-      const routes = new Map(withGeo.map((s, i) => [s.supplierId, data.routes[i]]));
-      setNearby((prev) => prev?.map((s) => ({ ...s, route: routes.get(s.supplierId) || undefined })) ?? prev);
-    } catch {
-      // straight-line distances are already on screen
-    }
-  };
 
   const applyFilter = (patch) => {
     setPage(1);
     setFilters((prev) => ({ ...prev, ...patch }));
   };
 
-  // Don't fire a request on every keystroke.
   useEffect(() => {
     const t = setTimeout(() => {
       setPage(1);
@@ -139,7 +94,6 @@ export default function VendorDashboard() {
     return () => clearTimeout(t);
   }, [search]);
 
-  // Favourites live in localStorage, so the server needs the ids to filter by.
   const favKey = useMemo(() => [...favorites].sort().join(','), [favorites]);
 
   const loadCatalog = useCallback(async () => {
@@ -165,30 +119,6 @@ export default function VendorDashboard() {
 
   useEffect(() => { loadCatalog(); }, [loadCatalog]);
 
-  const loadAll = useCallback(async () => {
-    try {
-      const [ord, an] = await Promise.all([
-        api.get('/vendor/orders'),
-        api.get('/vendor/analytics'),
-      ]);
-      setOrders(ord.data);
-      setAnalytics(an.data);
-    } catch {
-      toast.error('Failed to load your orders');
-    }
-  }, [toast]);
-
-  useEffect(() => { loadAll(); }, [loadAll]);
-
-  // Pull fresh data the moment something happens, instead of waiting for the
-  // user to hit refresh.
-  const loadRef = useRef(loadAll);
-  useEffect(() => { loadRef.current = loadAll; });
-  useEffect(() => onNotification(() => { loadRef.current(); loadCatalog(); }), [onNotification, loadCatalog]);
-
-  // The server sorts by item name then price, so identical items arrive adjacent
-  // and cheapest first. Walking the list once is enough to group them, and it
-  // keeps working across appended pages.
   const groups = useMemo(() => {
     const out = [];
     for (const it of catalog.items) {
@@ -199,13 +129,6 @@ export default function VendorDashboard() {
     return out;
   }, [catalog.items]);
 
-  const openOrders = useMemo(
-    () => orders.filter(o => OPEN_STATUSES.includes(o.status || 'Pending')).length,
-    [orders],
-  );
-
-  // The confirmation is physical, not textual: a dot flies to the cart, the
-  // badge pops, the button flashes a check, the phone ticks. No toast needed.
   const addToCart = (it, fromEl, n) => {
     cart.add({
       itemId: it.itemId,
@@ -222,27 +145,17 @@ export default function VendorDashboard() {
   };
 
   return (
-    <div className="mx-auto max-w-6xl px-4 pb-28 pt-6 sm:px-6 sm:pb-10 sm:pt-10">
+    <div className="mx-auto max-w-6xl px-4 pb-16 pt-6 sm:px-6 sm:pt-10">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Vendor</p>
-          <h1 className="text-2xl tracking-tight text-ink dark:text-gray-100 sm:text-3xl">
-            Restock, {user?.name?.split(' ')[0] || 'there'}
-          </h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Compare prices</p>
+          <h1 className="text-2xl tracking-tight text-ink dark:text-gray-100 sm:text-3xl">Catalog</h1>
         </div>
-        <div className="flex gap-2 self-start sm:self-auto">
-          <Link to="/vendor/insights" className="btn-ghost">Insights</Link>
-          <Link to="/orders" className="btn-ghost">
-            View orders{openOrders > 0 ? ` (${openOrders} open)` : ''}
-          </Link>
-        </div>
-      </div>
-
-      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Stat label="Open orders" value={openOrders} />
-        <Stat label="Spend (7 days)" value={money(analytics?.weekSpend)} />
-        <Stat label="Total spend" value={money(analytics?.totalSpend)} />
-        <Stat label="Saved suppliers" value={favorites.size} />
+        {!user && (
+          <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm sm:text-right">
+            Browsing as a guest — add items freely, we’ll only ask you to sign up when you’re ready to check out.
+          </p>
+        )}
       </div>
 
       <section className="card mt-6 space-y-4 p-4 sm:p-5">
@@ -262,17 +175,6 @@ export default function VendorDashboard() {
             className={filters.favOnly ? 'btn-primary' : 'btn-ghost'}
           >
             Saved only
-          </button>
-          <button
-            onClick={findNearby}
-            aria-pressed={!!pos}
-            disabled={locating}
-            className={pos ? 'btn-primary' : 'btn-ghost'}
-          >
-            <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" />
-            </svg>
-            {locating ? 'Locating…' : 'Near me'}
           </button>
         </div>
 
@@ -295,47 +197,14 @@ export default function VendorDashboard() {
         </div>
       </section>
 
-      {pos && nearby !== null && (
-        <section className="mt-6">
-          <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-            Suppliers near you
-          </h2>
-          <WeatherStrip pos={pos} />
-          {nearby.length === 0 ? (
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              No suppliers within 100 km have shared their location yet.
-            </p>
-          ) : (
-            <>
-            <Suspense fallback={<div className="skel mb-3 h-64 rounded-xl" />}>
-              <SupplierMap pos={pos} suppliers={nearby} />
-            </Suspense>
-            <div className="flex gap-3 overflow-x-auto pb-1">
-              {nearby.map((s) => (
-                <Link
-                  key={s.supplierId}
-                  to={`/suppliers/${s.supplierId}`}
-                  className="card card-lift block w-44 shrink-0 p-3"
-                >
-                  <div className="truncate text-sm font-medium text-ink dark:text-gray-100">{s.name}</div>
-                  <div className="truncate text-xs text-gray-500 dark:text-gray-400">{s.location}</div>
-                  <div className="tnum mt-1.5 text-xs text-gray-600 dark:text-gray-300">
-                    <span className="font-semibold text-brand-700 dark:text-brand-400">
-                      {s.route ? `${s.route.minutes} min` : formatKm(s.distanceKm)}
-                    </span>
-                    {s.route && ` · ${s.route.km} km road`}
-                    {' · '}{s.items} item{s.items === 1 ? '' : 's'}
-                  </div>
-                  {s.rating != null && <div className="mt-1 text-xs"><Stars value={s.rating} count={s.ratingCount} size={10} /></div>}
-                </Link>
-              ))}
-            </div>
-            </>
-          )}
-        </section>
+      {!user && (
+        <div className="card mt-6 flex flex-wrap items-center justify-between gap-3 p-4 border-brand-200 bg-brand-50/60 dark:border-brand-500/30 dark:bg-brand-500/5">
+          <p className="text-sm text-ink dark:text-gray-100">
+            Want suppliers sorted by distance? <span className="text-gray-600 dark:text-gray-400">Sign up to find who's near you.</span>
+          </p>
+          <Link to="/signup" className="btn-ghost shrink-0">Sign up</Link>
+        </div>
       )}
-
-      <MandiRates />
 
       <section className="mt-6">
         {catalogLoading && catalog.items.length === 0 ? (
@@ -352,18 +221,16 @@ export default function VendorDashboard() {
 
             <div className="space-y-4">
               {groups.map((g, i) => (
-                // Groups cascade in 40ms apart; the delay caps at the eighth row
-                // so a long catalog never feels slow to arrive.
                 <div key={g.name} className="animate-rise" style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}>
                   <ItemGroup
                     group={g}
+                    canShop={canShop}
                     favorites={favorites}
                     onToggleFav={toggleFav}
                     onAdd={addToCart}
                     alerts={alerts}
                     onToggleAlert={toggleAlert}
                     onShowTrend={setTrendItem}
-                    pos={pos}
                   />
                 </div>
               ))}
@@ -382,12 +249,10 @@ export default function VendorDashboard() {
 
       <PriceTrendModal item={trendItem} onClose={() => setTrendItem(null)} />
 
-      {/* The cart is the reason this page exists, so on a phone it stays in reach. */}
-      {cart.count > 0 && (
+      {canShop && cart.count > 0 && (
         <div className="fixed inset-x-0 bottom-0 z-30 border-t border-gray-200 bg-white p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:hidden dark:border-night-600 dark:bg-night-800">
           <Link to="/cart" className="btn-primary w-full">
-            <span className="tnum">Review cart · {cart.count} item{cart.count === 1 ? '' : 's'} · </span>
-            <RollingNumber value={money(cart.subtotal)} className="tnum" />
+            Review cart · {cart.count} item{cart.count === 1 ? '' : 's'}
           </Link>
         </div>
       )}
@@ -395,7 +260,7 @@ export default function VendorDashboard() {
   );
 }
 
-function ItemGroup({ group, favorites, onToggleFav, onAdd, alerts, onToggleAlert, onShowTrend, pos }) {
+function ItemGroup({ group, canShop, favorites, onToggleFav, onAdd, alerts, onToggleAlert, onShowTrend }) {
   const { name, offers } = group;
   const low = offers[0].price;
   const high = offers[offers.length - 1].price;
@@ -417,13 +282,13 @@ function ItemGroup({ group, favorites, onToggleFav, onAdd, alerts, onToggleAlert
             key={`${it.supplierId}-${it.itemId}`}
             it={it}
             cheapest={i === 0 && offers.length > 1}
+            canShop={canShop}
             favorite={favorites.has(it.supplierId)}
             onToggleFav={onToggleFav}
             onAdd={onAdd}
             watching={alerts.has(it.itemId)}
             onToggleAlert={onToggleAlert}
             onShowTrend={onShowTrend}
-            pos={pos}
           />
         ))}
       </ul>
@@ -431,9 +296,7 @@ function ItemGroup({ group, favorites, onToggleFav, onAdd, alerts, onToggleAlert
   );
 }
 
-// The quantity being picked lives here, in the row it belongs to — typing in
-// one stepper re-renders one row, not the whole catalog.
-function OfferRow({ it, cheapest, favorite, onToggleFav, onAdd, watching, onToggleAlert, onShowTrend, pos }) {
+function OfferRow({ it, cheapest, canShop, favorite, onToggleFav, onAdd, watching, onToggleAlert, onShowTrend }) {
   const [qty, setQty] = useState(1);
 
   return (
@@ -450,13 +313,10 @@ function OfferRow({ it, cheapest, favorite, onToggleFav, onAdd, watching, onTogg
                 Cheapest
               </span>
             )}
-            <FavBtn on={favorite} onClick={() => onToggleFav(it.supplierId)} />
+            {canShop && <FavBtn on={favorite} onClick={() => onToggleFav(it.supplierId)} />}
           </div>
           <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-            <span className="truncate">
-              {it.location}
-              {pos && it.geo?.coordinates && ` · ${formatKm(distanceKm(pos, it.geo.coordinates))}`}
-            </span>
+            <span className="truncate">{it.location}</span>
             {it.rating != null && <Stars value={it.rating} count={it.ratingCount} size={11} className="shrink-0" />}
           </div>
         </div>
@@ -474,26 +334,25 @@ function OfferRow({ it, cheapest, favorite, onToggleFav, onAdd, watching, onTogg
           </div>
           <div className="tnum text-xs text-gray-500 dark:text-gray-400">{amount(it.quantity, it.unit)} left</div>
         </button>
-        <div className="flex items-center gap-2">
-          <QuantityStepper
-            value={qty}
-            onChange={setQty}
-            unit={it.unit}
-            max={it.quantity}
-            label={`${it.itemName} from ${it.supplierName}`}
-          />
-          {it.quantity < 1
-            ? <NotifyButton on={watching} onClick={() => onToggleAlert(it)} />
-            : <AddButton onAdd={(el) => onAdd(it, el, qty)} />}
-        </div>
+        {canShop && (
+          <div className="flex items-center gap-2">
+            <QuantityStepper
+              value={qty}
+              onChange={setQty}
+              unit={it.unit}
+              max={it.quantity}
+              label={`${it.itemName} from ${it.supplierName}`}
+            />
+            {it.quantity < 1
+              ? <NotifyButton on={watching} onClick={() => onToggleAlert(it)} />
+              : <AddButton onAdd={(el) => onAdd(it, el, qty)} />}
+          </div>
+        )}
       </div>
     </li>
   );
 }
 
-// The label crossfades to a check for a moment, so the row itself confirms the
-// add even when the flying dot is off-screen. Width stays locked by the
-// absolute overlay, so nothing around it shifts.
 function AddButton({ onAdd, disabled }) {
   const ref = useRef(null);
   const [added, setAdded] = useState(false);
@@ -523,8 +382,6 @@ function AddButton({ onAdd, disabled }) {
   );
 }
 
-// Stands in for the add button when a listing is empty. Instead of a dead
-// "Out" label, the row offers the next useful thing: a restock alert.
 function NotifyButton({ on, onClick }) {
   return (
     <button
@@ -543,7 +400,6 @@ function NotifyButton({ on, onClick }) {
 }
 
 function FavBtn({ on, onClick }) {
-  // Saving pops and ticks; unsaving is silent — celebrations are for additions.
   const [pulse, setPulse] = useState(0);
   return (
     <button

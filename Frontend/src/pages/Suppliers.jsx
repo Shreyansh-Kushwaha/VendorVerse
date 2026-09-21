@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api.js';
+import { useAuth } from '../auth.jsx';
 import { useToast } from '../components/Toast.jsx';
 import Stars from '../components/ui/Stars.jsx';
 import { getPosition, distanceKm, formatKm } from '../lib/geo.js';
+import { useRecentlyViewed } from '../lib/recentlyViewed.js';
 import usePageMeta from '../lib/meta.js';
 
 const PAGE_SIZE = 12;
@@ -21,7 +23,9 @@ export default function Suppliers() {
     description:
       'Browse verified raw material suppliers near you. Compare per-unit prices, live stock and vendor ratings before you order.',
   });
+  const { user } = useAuth();
   const toast = useToast();
+  const recent = useRecentlyViewed();
   const [data, setData] = useState({ suppliers: [], total: 0, pages: 0 });
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -83,6 +87,28 @@ export default function Suppliers() {
           </p>
         )}
       </div>
+
+      {!user && (
+        <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">
+          Browsing as a guest — add items freely, we’ll only ask you to sign up when you’re ready to check out.
+        </p>
+      )}
+
+      {recent.length > 0 && (
+        <section className="mt-6">
+          <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+            Recently viewed
+          </h2>
+          <div className="flex gap-3 overflow-x-auto pb-1">
+            {recent.map((s) => (
+              <Link key={s.supplierId} to={`/suppliers/${s.supplierId}`} className="card card-lift block w-44 shrink-0 p-3">
+                <div className="truncate text-sm font-medium text-ink dark:text-gray-100">{s.name}</div>
+                <div className="truncate text-xs text-gray-500 dark:text-gray-400">{s.location}</div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="card mt-6 flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:p-5">
         <div className="relative flex-1">

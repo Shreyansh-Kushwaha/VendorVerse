@@ -8,7 +8,7 @@ import usePageMeta from '../lib/meta.js';
 
 export default function Profile() {
   usePageMeta({
-    title: 'Your profile',
+    title: 'Profile',
     description:
       'Update your business details, change your password or delete your VendorVerse account.',
     noIndex: true,

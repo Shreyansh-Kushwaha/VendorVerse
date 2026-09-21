@@ -2,7 +2,7 @@ import usePageMeta from '../lib/meta.js';
 
 export default function Privacy() {
   usePageMeta({
-    title: 'Privacy Policy',
+    title: 'Privacy',
     description:
       'What VendorVerse collects, how we use it, and the control you have over your data. We never sell your personal information.',
   });
