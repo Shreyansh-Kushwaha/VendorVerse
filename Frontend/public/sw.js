@@ -1,5 +1,5 @@
 // VendorVerse service worker — minimal offline shell + stale-while-revalidate for assets
-const VERSION = 'vv-cache-v1';
+const VERSION = 'vv-cache-v2';
 const SHELL = ['/', '/index.html'];
 
 self.addEventListener('install', (event) => {

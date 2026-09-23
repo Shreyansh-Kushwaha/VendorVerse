@@ -3,6 +3,10 @@
     {
       "source": "/api/:path*",
       "destination": "https://vendorverse-3.onrender.com"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
